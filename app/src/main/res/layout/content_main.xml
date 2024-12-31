@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/content_bill_validator"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    app:layout_behavior="@string/appbar_scrolling_view_behavior"
+    tools:context=".CashCollectorActivity"
+    tools:showIn="@layout/activity_main">
+
+
+    <LinearLayout
+        android:id="@+id/up_replace"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="2"
+        android:background="@color/design_default_color_on_primary"
+        android:orientation="vertical"
+        android:padding="20dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/txtDevice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Device" />
+
+        <TextView
+            android:id="@+id/txtFirmware"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Firmware" />
+
+        <TextView
+            android:id="@+id/txtDataset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Dataset" />
+
+        <TextView
+            android:id="@+id/txtSerialNumber"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Serial Number" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="5"
+        android:background="@android:color/white"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_weight="5"
+            android:orientation="horizontal"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+
+                android:layout_weight="2"
+                android:weightSum="1">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0.43"
+                    android:orientation="vertical"
+                    android:padding="15dp"
+                    android:weightSum="6">
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/swEnable"
+                        android:layout_width="@dimen/_48sdp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:text="Enable"
+                        tools:ignore="NestedWeights" />
+
+                    <androidx.appcompat.widget.SwitchCompat
+                        android:id="@+id/swEscrow"
+                        android:layout_width="@dimen/_48sdp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:text="Escrow" />
+
+                    <Button
+                        android:id="@+id/bttnAccept"
+                        android:layout_width="100dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:background="@color/colorEscrow"
+                        android:text="Accept"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/white"
+                        android:visibility="invisible" />
+
+
+                    <TextView
+                        android:id="@+id/txtDiv"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <Button
+                        android:id="@+id/bttnReject"
+                        android:layout_width="100dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:background="@color/colorEscrow"
+                        android:text="Reject"
+                        android:textAllCaps="false"
+                        android:textColor="@android:color/white"
+                        android:visibility="invisible" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="3"
+                android:orientation="horizontal">
+
+                <ListView
+                    android:id="@+id/listChannels"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="3"
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/textView8"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/design_default_color_on_primary"
+            android:paddingLeft="10dp"
+            android:text="Events" />
+
+        <ListView
+            android:id="@+id/listEvents"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/design_default_color_on_primary" />
+    </LinearLayout>
+
+
+</LinearLayout>

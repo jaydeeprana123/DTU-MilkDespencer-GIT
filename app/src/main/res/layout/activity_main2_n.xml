@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/md_theme_light_onTertiary"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:id="@+id/llStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/_2sdp"
+        android:orientation="horizontal"
+        android:weightSum="3.2"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:ignore="MissingConstraints">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight=".8"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Temperature "
+                android:textAlignment="textEnd"
+                android:textSize="@dimen/_10ssp" />
+
+            <TextView
+                android:id="@+id/tvTemperature"
+                style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/_2sdp"
+                android:layout_weight="1"
+                android:text="0.00"
+                android:textSize="@dimen/_10ssp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_weight=".8"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Milk Price "
+                android:textAlignment="textEnd"
+                android:textSize="@dimen/_10ssp" />
+
+            <TextView
+                android:id="@+id/tvMilkBasePrice"
+                style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/_2sdp"
+                android:layout_weight=".1"
+                android:text="0.00"
+                android:textSize="@dimen/_10ssp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight=".6"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Agitator "
+                android:textAlignment="textEnd"
+                android:textSize="@dimen/_10ssp" />
+
+            <ImageView
+                android:id="@+id/ivAgitator"
+                android:layout_width="@dimen/_10sdp"
+                android:layout_height="@dimen/_10sdp"
+                android:layout_gravity="center"
+                android:layout_marginHorizontal="@dimen/_2sdp"
+                android:padding="@dimen/_4sdp"
+                android:scaleType="fitCenter" />
+
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight=".6"
+            android:orientation="horizontal">
+
+            <TextView
+                style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Compressor "
+                android:textAlignment="textEnd"
+                android:textSize="@dimen/_10ssp" />
+
+            <ImageView
+                android:id="@+id/ivCompressor"
+                android:layout_width="@dimen/_10sdp"
+                android:layout_height="@dimen/_10sdp"
+                android:layout_gravity="center"
+                android:layout_marginHorizontal="@dimen/_2sdp"
+                android:padding="@dimen/_4sdp"
+                android:scaleType="fitCenter" />
+
+        </LinearLayout>
+    </LinearLayout>
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/ivLogo"
+        android:layout_width="@dimen/_250sdp"
+        android:layout_height="@dimen/_120sdp"
+        android:layout_marginTop="@dimen/_20sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/llStatus"
+        app:srcCompat="@drawable/ic_logo"
+        tools:ignore="MissingConstraints" />
+
+    <Button
+        android:id="@+id/btnStart"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:padding="@dimen/_10sdp"
+        android:layout_gravity="bottom"
+        android:text="@string/start"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ivLogo" />
+
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cvPayWithCash"
+        style="@style/Widget.MaterialComponents.CardView"
+        android:layout_width="@dimen/_120sdp"
+        android:layout_height="@dimen/_80sdp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ivLogo">
+
+        <LinearLayout
+            android:id="@+id/llPayCash"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:weightSum="1.5">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_gravity="center"
+                android:layout_margin="@dimen/_2sdp"
+                android:layout_weight="1.5"
+                android:src="@drawable/pay_with_cash" />
+
+            <Button
+                android:id="@+id/btnPayWithCash"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:text="@string/pay_with_cash"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/ivLogo" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cvPayWithQR"
+        style="@style/Widget.MaterialComponents.CardView"
+        android:layout_width="@dimen/_120sdp"
+        android:layout_height="@dimen/_80sdp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/ivLogo">
+
+        <LinearLayout
+            android:id="@+id/llPayQR"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:weightSum="1.5">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_gravity="center"
+                android:layout_margin="@dimen/_2sdp"
+                android:layout_weight="1.5"
+                android:padding="@dimen/_2sdp"
+                android:src="@drawable/pay_with_qr" />
+
+
+            <Button
+                android:id="@+id/btnPayWithQr"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom"
+                android:text="@string/pay_using_upi_qr"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/ivLogo" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

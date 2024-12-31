@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".CashCollectorActivity">
+
+    <!-- <com.google.android.material.appbar.AppBarLayout
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
+         android:theme="@style/Theme.AppTheme">
+
+         <androidx.appcompat.widget.Toolbar
+             android:id="@+id/toolbar"
+             android:layout_width="match_parent"
+             android:layout_height="?attr/actionBarSize"
+             android:background="?attr/colorPrimary"
+             app:popupTheme="@style/Theme.AppTheme" />
+
+     </com.google.android.material.appbar.AppBarLayout>
+ -->
+    <include layout="@layout/content_main" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="@dimen/_16sdp"
+        android:importantForAccessibility="no"
+        app:backgroundTint="@android:color/white"
+        app:srcCompat="@mipmap/ic_launcher" />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    <GridView
+        android:id="@+id/gridViewCurrency"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:columnWidth="100dp"
+        android:gravity="center"
+        android:horizontalSpacing="10dp"
+        android:numColumns="3"
+        android:stretchMode="columnWidth"
+        android:verticalSpacing="10dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"/>
+
+    <Button
+        android:id="@+id/btnBackToHome"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/backToHome"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="@dimen/_40sdp"
+        android:textSize="@dimen/_10ssp"
+        android:drawableLeft="@drawable/ic_home_white"
+        android:drawableTint="@color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/gridViewCurrency"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <ProgressBar
+        android:id="@+id/progressBarConnect"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="140dp"
+        android:visibility="invisible" />
+
+    <TextView
+        android:id="@+id/txtConnection"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="220dp"
+        android:text="@string/waiting_for_connection"
+        android:textSize="14sp"
+        android:visibility="invisible" />
+
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

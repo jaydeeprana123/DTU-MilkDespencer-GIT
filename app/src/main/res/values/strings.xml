@@ -1,0 +1,130 @@
+<resources>
+
+
+    <!--    Merchant ID: MbhhU8U6wMnmjw
+
+    key_id: rzp_test_bfiWftOYB0MCR7
+
+    key_secret: VuX6RLVKtB6MBILQKRzcMeZy-->
+
+    <string name="app_name">Milk Vending Machine</string>
+    <string name="action_settings">Settings</string>
+    <string name="action_bill_view">View Stored Bill order</string>
+    <string name="enable_start">Click Run to start…</string>
+    <string name="check_connection">Check connection</string>
+    <string name="action_home">HOME</string>
+    <string name="action_download_file">Open download file</string>
+    <string name="title_activity_list_files">ListFiles</string>
+    <string name="no_file_data_error">No file data!</string>
+    <string name="unable_to_load">Unable to load file!</string>
+    <string name="title_activity_bill_validator">BillValidator</string>
+    <string name="main_instruction">Connect ITL device to USB and press the button to activate.</string>
+    <string name="connect_instruction">Connecting to device. Please wait…</string>
+    <string name="firmware_title">Firmware: </string>
+    <string name="device_title">Device: </string>
+    <string name="dataset_title">Dataset: </string>
+    <string name="serial_number_title">Serial number: </string>
+    <string name="title_activity_note_float">NoteFloat</string>
+    <string name="title_activity_smart_payout">SmartPayout</string>
+    <string name="title_activity_settings">Settings</string>
+    <string name="waiting_for_connection">Waiting for connection…</string>
+    <string name="pay_with_cash">Pay With Cash</string>
+    <string name="btnSetConfiguration">Set Configuration</string>
+    <string name="btnAddUser">Register User</string>
+    <string name="btnRegisterCustomerAdmin">Register Customer Admin</string>
+    <string name="btnAddEndUser">Register End User</string>
+    <string name="btnLogs">Show Transactions</string>
+    <string name="btnCalibration">Calibration</string>
+    <string name="cash">₹. xx</string>
+    <string name="pay_using_upi_qr">Pay Using UPI</string>
+    <string name="cancel">Cancel</string>
+    <string name="process_completed">Process Completed</string>
+    <string name="you_can_open_door">You can now open the door.</string>
+    <string name="set_configurations">Set Configurations</string>
+    <string name="api_configurations">API Configurations</string>
+    <string name="btnCIP">CIP</string>
+    <string name="submit">submit</string>
+    <string name="temperature_offset">Temperature Offset</string>
+    <string name="temperature">Temperature</string>
+    <string name="temperature_set">Set Temperature </string>
+    <string name="milk_base_price">Milk Base Price</string>
+
+    <string name="api_base_url">API Base Url</string>
+
+    <string name="milk_density">Milk Density (Kg/Ltr)</string>
+    <string name="screen_time_out">Screen Time Out</string>
+    <string name="machineId">Machine Id</string>
+    <string name="razorpay_customer_id">RazorPay Customer Id</string>
+    <string name="ownerName">Owner Name</string>
+
+    <string name="machineId_validation">Enter valid Machine Id</string>
+
+    <string name="login_title">Login</string>
+    <string name="beaker_title">Follow the Steps</string>
+    <string name="transaction_title">Transaction History</string>
+    <string name="logs_title">Logs</string>
+
+    <string name="calibration_title">Login</string>
+    <string name="calibration_Message">Calibration Message</string>
+    <string name="Admin_title">Login</string>
+    <string name="amtDetected">Amt: ₹ </string>
+    <string name="currencyMessage">Currency Message </string>
+    <string name="username_login">PhoneNumber or UserName</string>
+    <string name="litersOrAmount">Enter Value</string>
+    <string name="username">Enter EmailId</string>
+    <string name="mobileNo">Enter Mobile No</string>
+    <string name="alertForValidMobile">Please Enter Valid Mobile No</string>
+
+    <string name="fname">Enter First Name</string>
+    <string name="lname">Enter Last Name</string>
+
+
+    <string name="knownWeight">Known Weight In ( grams )</string>
+    <string name="knownWeightInKg">Known Weight In ( kg )</string>
+    <string name="maxKnownWeight">Maximum Known weight In ( grams )</string>
+    <string name="maxKnownWeightInKg">Maximum Known weight In ( kg )</string>
+
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="generateQr">Pay With Qr</string>
+    <string name="backToHome">Back To Home</string>
+    <string name="forgot_password">Forgot Password ?</string>
+    <string name="forgot_password_title">Forgot Password</string>
+    <string name="registration_title">Register User</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="register">Submit</string>
+    <string name="start_calibration">Start Calibration</string>
+    <string name="next">NEXT</string>
+    <string name="start">START</string>
+    <string name="send_otp">Send OTP</string>
+    <string name="enter_otp">Enter OTP</string>
+    <string name="new_password">New Password</string>
+    <string name="reset_password">Reset Password</string>
+    <string name="done">Done</string>
+    <string name="ok">OK</string>
+
+    <string name="milk_in_liters">Milk In Liters (Ml/L) </string>
+    <string name="milk_in_price">Milk In Price (₹)</string>
+    <string name="or">OR</string>
+    <string name="select_option">Select Option</string>
+    <string name="configuration">Configuration</string>
+    <string name="api_configuration">API Configuration</string>
+    <string-array name="milk_options">
+        <item>@string/select_option</item>
+        <item>@string/milk_in_liters</item>
+        <item>@string/milk_in_price</item>
+    </string-array>
+
+    <string-array name="milk_in_price_options">
+        <item>@string/select_option</item>
+        <item>@string/milk_in_liters</item>
+        <item>@string/milk_in_price</item>
+    </string-array>
+    <string-array name="milk_in_liters_options">
+        <item>@string/select_option</item>
+        <item>@string/milk_in_liters</item>
+        <item>@string/milk_in_price</item>
+    </string-array>
+
+
+</resources>
