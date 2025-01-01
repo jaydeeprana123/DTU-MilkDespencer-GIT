@@ -16,7 +16,6 @@ public class TransactionEntity {
     private String transactionDate;
     private String transactionTime;
     private String amount;
-
     private String transactionStatus;
     private String upiId;
     private String uniqueTransactionId;
@@ -79,16 +78,13 @@ public class TransactionEntity {
         this.transactionTime = transactionTime;
     }
 
-
-    public void setAmount(String amount) {
-        this.amount = amount;
-    }
-
     public String getAmount() {
         return amount;
     }
 
-
+    public void setAmount(String amount) {
+        this.amount = amount;
+    }
 
     public String getTransactionStatus() {
         return transactionStatus;

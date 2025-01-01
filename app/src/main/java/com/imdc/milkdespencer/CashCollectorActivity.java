@@ -410,9 +410,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 sendToDevice.setStatus(true);
                 sendToDevice.setCurtemperature(currentTemperature);
                 sendToDevice.setSettemperature(milkSetTemperature);
-
-
-
 //                UsbSerialCommunication.currentClass = "CCA";
                 Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
                 Log.e(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
@@ -436,10 +433,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                     }
                                 }
                                 if (milkDispense.getStatus()) {
-
-
-                                    Log.e("Cashcollector", milkDispense.getStatus().toString());
-
                                     try {
                                         if (lottieDialog.isShowing()) {
                                             lottieDialog.dismiss();
@@ -459,8 +452,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                         throw new RuntimeException(e);
                                     }
 
-                                }else {
-                                    Log.e("Cashcollector", milkDispense.getStatus().toString());
                                 }
                             }
                         }
@@ -477,9 +468,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
     public void showAndProcessDoneDialog(SendToDevice sendToDevice, double currency) {
-
-
-        Log.e("showAndProcessDoneDialog", "Show");
 
         runOnUiThread(new Runnable() {
             @Override
@@ -578,7 +566,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "");
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
                                 Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
@@ -1274,14 +1262,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     void goToHome(){
-        closeDevice();
-        finish();
-
-
-//        Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
-//        // Clear all previous activities
-//        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//        startActivity(intent);
+        Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+        // Clear all previous activities
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
 
     }
 

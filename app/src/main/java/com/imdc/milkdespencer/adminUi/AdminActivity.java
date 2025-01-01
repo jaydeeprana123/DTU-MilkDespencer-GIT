@@ -1,8 +1,5 @@
 package com.imdc.milkdespencer.adminUi;
 
-import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
-import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
-
 import android.content.Intent;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
@@ -31,7 +28,7 @@ import com.imdc.milkdespencer.roomdb.entities.User;
 public class AdminActivity extends AppCompatActivity {
 
 
-    Button btnSetConfigurations,btnApiConfiguration,btnCIP, btnCustomerAdmin, btnLogs, btnCalibration, btnAddEndUser;
+    Button btnSetConfigurations, btnAddUser, btnLogs, btnCalibration;
     AppDatabase appDatabase;
     User user;
     private RecyclerView recyclerView;
@@ -42,8 +39,6 @@ public class AdminActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin);
 
-        // When user comes first time isCip should be false
-        isCipOn = false;
 
         if (getIntent() != null) {
             if (getIntent().hasExtra(Constants.LoginUser)) {
@@ -53,8 +48,6 @@ public class AdminActivity extends AppCompatActivity {
                 if (getSupportActionBar() != null) {
                     if (user.getUserType() == 0) {
                         getSupportActionBar().setTitle("Admin Panel");
-                    }else if (user.getUserType() == 2) {
-                        getSupportActionBar().setTitle("Customer Admin Panel");
                     } else {
                         getSupportActionBar().setTitle("User Panel");
                     }
@@ -68,51 +61,20 @@ public class AdminActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this)); // Set the number of columns as needed
 
         btnSetConfigurations = findViewById(R.id.btnSetConfiguration);
-        btnApiConfiguration = findViewById(R.id.btnApiConfiguration);
-        btnCIP = findViewById(R.id.btnCIP);
-        btnCustomerAdmin = findViewById(R.id.btnAddUser);
-        btnAddEndUser = findViewById(R.id.btnAddEndUser);
+        btnAddUser = findViewById(R.id.btnAddUser);
         btnLogs = findViewById(R.id.btnLogs);
         btnCalibration = findViewById(R.id.btnCalibration);
 
         if (user.getUserType() == 0) {
             btnLogs.setText("Show Logs");
             btnCalibration.setVisibility(View.VISIBLE);
-            btnCustomerAdmin.setVisibility(View.VISIBLE);
-            btnAddEndUser.setVisibility(View.VISIBLE);
-            btnApiConfiguration.setVisibility(View.VISIBLE);
-            btnCIP.setVisibility(View.GONE);
-        }else if(user.getUserType() == 2){
+            btnAddUser.setVisibility(View.VISIBLE);
+        } else {
 
-            btnLogs.setText("Show Logs");
-            btnCalibration.setVisibility(View.VISIBLE);
-            btnCustomerAdmin.setVisibility(View.GONE);
-            btnAddEndUser.setVisibility(View.VISIBLE);
-            btnApiConfiguration.setVisibility(View.GONE);
-            btnCIP.setVisibility(View.GONE);
-        }
-
-        else if(user.getUserType() == 1){
-            btnCIP.setVisibility(View.VISIBLE);
-            btnSetConfigurations.setText("View Configurations");
             btnLogs.setText("Show Transactions");
             btnCalibration.setVisibility(View.GONE);
-            btnCustomerAdmin.setVisibility(View.GONE);
-            btnAddEndUser.setVisibility(View.GONE);
-            btnApiConfiguration.setVisibility(View.GONE);
+            btnAddUser.setVisibility(View.GONE);
         }
-
-        btnCIP.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                Log.e("btn CIP"," is pressed");
-                isCipOn = true;
-                showCIPRunningDialog(AdminActivity.this);
-
-            }
-        });
-
 
         btnCalibration.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -121,8 +83,6 @@ public class AdminActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
-
 
         btnLogs.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -142,19 +102,10 @@ public class AdminActivity extends AppCompatActivity {
         }).start();
 */
 
-        btnCustomerAdmin.setOnClickListener(new View.OnClickListener() {
+        btnAddUser.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(AdminActivity.this, CustomerAdminRegistrationActivity.class);
-                startActivity(intent);
-            }
-        });
-
-
-        btnAddEndUser.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(AdminActivity.this, EndUserRegistrationActivity.class);
+                Intent intent = new Intent(AdminActivity.this, RegistrationActivity.class);
                 startActivity(intent);
             }
         });
@@ -164,28 +115,13 @@ public class AdminActivity extends AppCompatActivity {
             public void onClick(View v) {
                 runOnUiThread(() -> {
                     if (user.getUserType() == 0) {
-                        Constants.showAdminConfigDialog(AdminActivity.this,0);
-                    }else if (user.getUserType() == 2) {
-                        Constants.showAdminConfigDialog(AdminActivity.this, 2);
-                    } else if (user.getUserType() == 1){
-                        Constants.showAdminConfigDialog(AdminActivity.this, 1);
+                        Constants.showAdminConfigDialog(AdminActivity.this);
+                    } else {
+                        Constants.showConfigDialog(AdminActivity.this);
                     }
                 });
             }
         });
-
-        btnApiConfiguration.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                runOnUiThread(() -> {
-                    if (user.getUserType() == 0) {
-                        Constants.showAPIConfigDialog(AdminActivity.this);
-                    }
-                });
-            }
-        });
-
     }
 
     @Override

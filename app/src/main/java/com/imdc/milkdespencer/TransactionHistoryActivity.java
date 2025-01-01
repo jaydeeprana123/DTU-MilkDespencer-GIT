@@ -70,7 +70,7 @@ public class TransactionHistoryActivity extends AppCompatActivity {
             public void run() {
                 AppDatabase appDatabase = AppDatabase.getInstance(TransactionHistoryActivity.this);
                 Log.e("TAG", "run: " + new Gson().toJson(user));
-                if (user.getUserType() == 0 || user.getUserType() == 2) {
+                if (user.getUserType() == 0) {
                     if (getActionBar() != null) {
                         getActionBar().setTitle("Logs");
                     }

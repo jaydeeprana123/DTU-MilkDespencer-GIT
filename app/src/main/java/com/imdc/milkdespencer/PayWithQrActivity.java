@@ -937,13 +937,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     void goToHome() {
-
-        finish();
-
-//        Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
-//        // Clear all previous activities
-//        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//        startActivity(intent);
+        Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
+        // Clear all previous activities
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
 
     }
 
