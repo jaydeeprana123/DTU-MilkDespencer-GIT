@@ -18,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.imdc.milkdespencer.R;
+import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.User;
@@ -138,22 +139,29 @@ public class CustomerAdminRegistrationActivity extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                User user = new User(username, password, 1); // You can customize userType as needed
+
+                /// Make Model
+                /// Here  user type is = 2 for customer admin
+                User user = new User(username, password, UserTypeEnum.CUSTOMER_ADMIN.value()); // You can customize userType as needed
                 user.setFirst_name(fName);
                 user.setLast_name(lName);
                 user.setMobileNo(phoneNo);
                 user.setStripeCustomerId(customerId);
 
-                /// Here  user type is = 2 for customer admin
-                user.setUserType(2);
+                /// Convert into json string
                 String userStr =   new Gson().toJson(user);
 
-                User existUser = appDatabase.userDao().getUserByUserType(2);
-                if(existUser != null){
-                    Log.e("exist user", existUser.getUsername());
 
+                /// Check that Customer Admin is available in Database.
+                User existUser = appDatabase.userDao().getUserByUserType(UserTypeEnum.CUSTOMER_ADMIN.value());
+
+                /// If end user is exist then update the details into database
+                if(existUser != null){
+                    Log.e("exist customer admin", existUser.getUsername());
                     appDatabase.userDao().update(user);
                 }else{
+
+                    /// Insert into database
                     long userId = appDatabase.userDao().insert(user);
                 }
 
@@ -162,11 +170,13 @@ public class CustomerAdminRegistrationActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         finish();
+
+                        ///Save into shared preference
                         preferencesManager.save(MachineId, machineId);
                         preferencesManager.save(RazorPayCustomerID, customerId);
                         preferencesManager.save(RegisterCustomerAdmin, userStr);
 
-                        Toast.makeText(CustomerAdminRegistrationActivity.this, "User Added Successfully!!!", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(CustomerAdminRegistrationActivity.this, getString(R.string.user_added_successfully), Toast.LENGTH_SHORT).show();
                     }
                 });
 

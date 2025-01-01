@@ -1,34 +1,27 @@
 package com.imdc.milkdespencer;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.airbnb.lottie.LottieAnimationView;
-import com.airbnb.lottie.LottieDrawable;
 import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import com.imdc.milkdespencer.adapter.LogsAdapter;
 import com.imdc.milkdespencer.adapter.TransactionAdapter;
 import com.imdc.milkdespencer.common.Constants;
-import com.imdc.milkdespencer.models.SendToDevice;
+import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.LogEntity;
 import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.entities.User;
-import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
-import java.text.SimpleDateFormat;
 import java.util.List;
 
 public class TransactionHistoryActivity extends AppCompatActivity {
@@ -70,7 +63,7 @@ public class TransactionHistoryActivity extends AppCompatActivity {
             public void run() {
                 AppDatabase appDatabase = AppDatabase.getInstance(TransactionHistoryActivity.this);
                 Log.e("TAG", "run: " + new Gson().toJson(user));
-                if (user.getUserType() == 0 || user.getUserType() == 2) {
+                if (user.getUserType() == UserTypeEnum.ADMIN.value() || user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
                     if (getActionBar() != null) {
                         getActionBar().setTitle("Logs");
                     }

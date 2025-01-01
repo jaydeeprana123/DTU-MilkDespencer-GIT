@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer;
 
+import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
 
@@ -24,7 +25,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
@@ -40,10 +40,10 @@ import com.google.gson.GsonBuilder;
 import com.imdc.milkdespencer.common.Constants;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
+import com.imdc.milkdespencer.enums.ScreenEnum;
 import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.User;
-import com.imdc.milkdespencer.roomdb.interfaces.UserDao;
 
 import java.util.concurrent.Executors;
 
@@ -109,11 +109,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
                 Log.e("isCharging if true", String.valueOf(isCharging));
 
-                btnStart.setVisibility(View.VISIBLE);
-                llCash.setVisibility(View.GONE);
-                llQr.setVisibility(View.GONE);
-                cvPayWithQr.setVisibility(View.GONE);
-                cvPayWithCash.setVisibility(View.GONE);
+//                btnStart.setVisibility(View.VISIBLE);
+//                llCash.setVisibility(View.GONE);
+//                llQr.setVisibility(View.GONE);
+//                cvPayWithQr.setVisibility(View.GONE);
+//                cvPayWithCash.setVisibility(View.GONE);
                 handler.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -124,7 +124,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                             Log.e("usbSerialCommunication connected", String.valueOf(isCharging));
 
                             /// If Cash and Pay with Qr button is not visible. that time btnStart visi
-                            if(llCash.getVisibility() == View.GONE){
+                            if (llCash.getVisibility() == View.GONE) {
                                 btnStart.setVisibility(View.VISIBLE);
                                 llCash.setVisibility(View.GONE);
                                 llQr.setVisibility(View.GONE);
@@ -134,11 +134,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
                         } else {
-                            llCash.setVisibility(View.GONE);
-                            llQr.setVisibility(View.GONE);
-                            cvPayWithQr.setVisibility(View.GONE);
-                            cvPayWithCash.setVisibility(View.GONE);
-                            btnStart.setVisibility(View.VISIBLE);
+//                            llCash.setVisibility(View.GONE);
+//                            llQr.setVisibility(View.GONE);
+//                            cvPayWithQr.setVisibility(View.GONE);
+//                            cvPayWithCash.setVisibility(View.GONE);
+//                            btnStart.setVisibility(View.VISIBLE);
 
                             Log.e("usbSerialCommunication disconnected", String.valueOf(isCharging));
 
@@ -169,7 +169,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                             cv_error.setVisibility(View.VISIBLE);
                             btnPayWithCash.setEnabled(false);
                             btnPayWithQr.setEnabled(false);
-                            tv_Message.setText("No Electricity please try after some time.");
+                            tv_Message.setText(getString(R.string.no_electricity));
                             lvAnimation.setAnimation(R.raw.no_electricity);
                             btnDone.setVisibility(View.GONE);
 //                            btnStart.setVisibility(View.GONE);
@@ -211,7 +211,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 //        preferencesManager.save(TemperatureSet, "4.0");
 
         appDatabase = AppDatabase.getInstance(this);
-
         alertDialog = new AlertDialog.Builder(this).setTitle("No Electricity Connections").setMessage("Please check again after sometime. Thank You!").setCancelable(false).create();
 
         btnPayWithCash = findViewById(R.id.btnPayWithCash);
@@ -327,7 +326,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                     return;
                 }
                 Intent intent = new Intent(MainActivity.this, CashCollectorActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, ScreenEnum.CASH_COLLECTOR.ordinal());
             }
         });
         btnPayWithQr.setOnClickListener(new View.OnClickListener() {
@@ -338,7 +337,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 }
 
                 Intent intent = new Intent(MainActivity.this, PayWithQrActivity.class);
-                startActivity(intent);
+                startActivityForResult(intent, ScreenEnum.PAY_WITH_QR.ordinal());
             }
         });
 
@@ -596,6 +595,24 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             }
         } else {
             alertDialog.dismiss();
+        }
+    }
+
+
+    /// When user comes from the screen
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if ((requestCode == ScreenEnum.CASH_COLLECTOR.ordinal() || requestCode == ScreenEnum.PAY_WITH_QR.ordinal()) && resultCode == RESULT_OK) {
+            // Retrieve the data from the intent
+            if (data.hasExtra(FromScreen)) {
+                btnStart.setVisibility(View.VISIBLE);
+                llCash.setVisibility(View.GONE);
+                llQr.setVisibility(View.GONE);
+                cvPayWithQr.setVisibility(View.GONE);
+                cvPayWithCash.setVisibility(View.GONE);
+            }
         }
     }
 

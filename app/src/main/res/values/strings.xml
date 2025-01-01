@@ -48,6 +48,10 @@
     <string name="temperature">Temperature</string>
     <string name="temperature_set">Set Temperature </string>
     <string name="milk_base_price">Milk Base Price</string>
+    <string name="user_added_successfully">User Added Successfully!!!</string>
+    <string name="no_electricity">No Electricity please try after some time.</string>
+
+
 
     <string name="api_base_url">API Base Url</string>
 

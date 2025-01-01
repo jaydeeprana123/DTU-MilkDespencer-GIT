@@ -1,7 +1,5 @@
 package com.imdc.milkdespencer.common;
 
-import static com.imdc.milkdespencer.CashCollectorActivity.getInstance;
-
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -25,6 +23,7 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.imdc.milkdespencer.R;
+import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adminUi.AdminActivity;
 import com.imdc.milkdespencer.models.Response.ResponseOTP;
 import com.imdc.milkdespencer.network.ApiManager;
@@ -36,7 +35,6 @@ import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.entities.User;
 import com.imdc.milkdespencer.roomdb.interfaces.LogDao;
 import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
-import com.imdc.milkdespencer.roomdb.interfaces.UserDao;
 
 import java.text.DecimalFormat;
 import java.util.HashMap;
@@ -65,7 +63,7 @@ public class Constants {
     public static final String MachineId = "MachineId";
     public static final String RazorPayCustomerID = "RazorPayCustomerID";
 
-    public static final String RegisterUser = "RegisterUser";
+    public static final String RegisterEndUser = "RegisterUser";
 
     public static final String RegisterCustomerAdmin = "RegisterCustomerAdmin";
 
@@ -98,6 +96,9 @@ public class Constants {
     private static final String PASSWORD_PATTERN = "^(?!.*\\s)(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9!@#$%]).{8,20}$";
     private static final Pattern pattern = Pattern.compile(PASSWORD_PATTERN);
     static SharedPreferencesManager preferencesManager;
+
+
+    public static final String FromScreen = "FromScreen";
 
     public static void showAlertDialog(Context context, String title, String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
@@ -732,9 +733,10 @@ public class Constants {
                             appDatabase.userDao().update(user);
 
                             /// If user type is end user
-                            if (user.getUserType() == 1) {
-                                preferencesManager.save(RegisterUser, new Gson().toJson(user));
-                            } else if (user.getUserType() == 2) {
+                            if (user.getUserType() == UserTypeEnum.END_USER.value()) {
+                                preferencesManager.save(RegisterEndUser, new Gson().toJson(user));
+
+                            } else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
                                 /// If user type is customer user
                                 preferencesManager.save(RegisterCustomerAdmin, new Gson().toJson(user));
                             }

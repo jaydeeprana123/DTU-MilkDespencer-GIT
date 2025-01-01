@@ -23,6 +23,7 @@ import com.google.gson.Gson;
 import com.imdc.milkdespencer.MainActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.TransactionHistoryActivity;
+import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adapter.UserAdapter;
 import com.imdc.milkdespencer.common.Constants;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
@@ -51,11 +52,11 @@ public class AdminActivity extends AppCompatActivity {
                 user = new Gson().fromJson(loginExtra, User.class);
                 Log.e("TAG", "onCreate: " + new Gson().toJson(user));
                 if (getSupportActionBar() != null) {
-                    if (user.getUserType() == 0) {
+                    if (user.getUserType() == UserTypeEnum.ADMIN.value()) {
                         getSupportActionBar().setTitle("Admin Panel");
-                    }else if (user.getUserType() == 2) {
+                    }else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
                         getSupportActionBar().setTitle("Customer Admin Panel");
-                    } else {
+                    } else if (user.getUserType() == UserTypeEnum.END_USER.value()){
                         getSupportActionBar().setTitle("User Panel");
                     }
                 }
@@ -75,14 +76,14 @@ public class AdminActivity extends AppCompatActivity {
         btnLogs = findViewById(R.id.btnLogs);
         btnCalibration = findViewById(R.id.btnCalibration);
 
-        if (user.getUserType() == 0) {
+        if (user.getUserType() == UserTypeEnum.ADMIN.value()) {
             btnLogs.setText("Show Logs");
             btnCalibration.setVisibility(View.VISIBLE);
             btnCustomerAdmin.setVisibility(View.VISIBLE);
             btnAddEndUser.setVisibility(View.VISIBLE);
             btnApiConfiguration.setVisibility(View.VISIBLE);
             btnCIP.setVisibility(View.GONE);
-        }else if(user.getUserType() == 2){
+        }else if(user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()){
 
             btnLogs.setText("Show Logs");
             btnCalibration.setVisibility(View.VISIBLE);
@@ -92,7 +93,7 @@ public class AdminActivity extends AppCompatActivity {
             btnCIP.setVisibility(View.GONE);
         }
 
-        else if(user.getUserType() == 1){
+        else if(user.getUserType() == UserTypeEnum.END_USER.value()){
             btnCIP.setVisibility(View.VISIBLE);
             btnSetConfigurations.setText("View Configurations");
             btnLogs.setText("Show Transactions");
@@ -163,11 +164,11 @@ public class AdminActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 runOnUiThread(() -> {
-                    if (user.getUserType() == 0) {
+                    if (user.getUserType() == UserTypeEnum.ADMIN.value()) {
                         Constants.showAdminConfigDialog(AdminActivity.this,0);
-                    }else if (user.getUserType() == 2) {
+                    }else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
                         Constants.showAdminConfigDialog(AdminActivity.this, 2);
-                    } else if (user.getUserType() == 1){
+                    } else if (user.getUserType() == UserTypeEnum.END_USER.value()){
                         Constants.showAdminConfigDialog(AdminActivity.this, 1);
                     }
                 });
@@ -179,7 +180,7 @@ public class AdminActivity extends AppCompatActivity {
             public void onClick(View view) {
 
                 runOnUiThread(() -> {
-                    if (user.getUserType() == 0) {
+                    if (user.getUserType() == UserTypeEnum.ADMIN.value()) {
                         Constants.showAPIConfigDialog(AdminActivity.this);
                     }
                 });

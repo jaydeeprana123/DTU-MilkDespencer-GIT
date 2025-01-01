@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer;
 
+import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
 
 import android.Manifest;
@@ -29,7 +30,6 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -52,6 +52,7 @@ import com.imdc.milkdespencer.common.LottieAddCashDialog;
 import com.imdc.milkdespencer.common.LottieDialog;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
+import com.imdc.milkdespencer.enums.ScreenEnum;
 import com.imdc.milkdespencer.models.ResponseMilkDispense;
 import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDevice;
@@ -281,6 +282,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     }
 
+
+    /// If Cash machine device is open then it will be close
     private static void closeDevice() {
 
         if (ftDev != null) {
@@ -581,9 +584,17 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                 long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
-                                startActivity(intent);
-                                finish();
+
+
+                                /// Close current dialog
+                                dialog1.dismiss();
+
+                                /// Go to Home screen
+                                goToHomeScreen();
+
+//                                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                                finish();
 
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -610,9 +621,17 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                 long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
-                                startActivity(intent);
-                                finish();
+
+
+                                /// Close current dialog
+                                dialog1.dismiss();
+
+                                /// Go to Home screen
+                                goToHomeScreen();
+
+//                                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                                finish();
 
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -891,7 +910,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 if (handler != null && runnable != null) {
                     handler.removeCallbacks(runnable);
                 }
-                goToHome();
+                goToHomeScreen();
             }
         });
 
@@ -934,8 +953,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     @Override
                     public void onClick(View view) {
                         lottieAddCashDialog.dismiss();
-                        closeDevice();
-                        goToHome();
+                        goToHomeScreen();
                     }
                 });
 
@@ -984,9 +1002,13 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 Log.e(TAG, "onClick: clicked!!!");
                 bttnReject.setVisibility(View.INVISIBLE);
                 bttnAccept.setVisibility(View.INVISIBLE);
-                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
-                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
+
+
+                /// Go to Home Page
+                goToHomeScreen();
+//                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+//                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//                startActivity(intent);
 
 
             }
@@ -1262,7 +1284,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         // Define the Runnable task
         runnable = () -> {
             // Task to execute after delay
-            goToHome(); // Closes the current activity
+            goToHomeScreen(); // Closes the current activity
         };
 
         // Post the Runnable with a 15-second delay
@@ -1272,10 +1294,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
 
-
-    void goToHome(){
+    /*It will redirect to the home screen*/
+    void goToHomeScreen(){
         closeDevice();
-        finish();
+        // Simulate finishing and sending data
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra(FromScreen, ScreenEnum.CASH_COLLECTOR.ordinal());
+        setResult(RESULT_OK, resultIntent); // Set the result to be OK
+        finish(); // Finish the activity
 
 
 //        Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
@@ -1306,10 +1332,15 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "");
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                    Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
-                    // Clear all previous activities
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
+
+
+                    /// Go to home page
+                    goToHomeScreen();
+
+//                    Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+//                    // Clear all previous activities
+//                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//                    startActivity(intent);
 
                 } catch (Exception e) {
                     e.printStackTrace();

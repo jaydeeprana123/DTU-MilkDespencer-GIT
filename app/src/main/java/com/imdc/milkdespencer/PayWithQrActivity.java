@@ -2,6 +2,7 @@ package com.imdc.milkdespencer;
 
 import static com.imdc.milkdespencer.CashCollectorActivity.getInstance;
 import static com.imdc.milkdespencer.CashCollectorActivity.milkSetTemperature;
+import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
 
 import android.annotation.SuppressLint;
@@ -18,17 +19,13 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -46,6 +43,7 @@ import com.imdc.milkdespencer.common.Constants;
 import com.imdc.milkdespencer.common.LottieDialog;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
+import com.imdc.milkdespencer.enums.ScreenEnum;
 import com.imdc.milkdespencer.models.ResponseMilkDispense;
 import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDevice;
@@ -428,7 +426,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                                                             }
 
-                                                            goToHome();
+                                                            goToHomeScreen();
 
                                                         } catch (Exception e) {
                                                             e.printStackTrace();
@@ -464,7 +462,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 if (handler != null && runnable != null) {
                     handler.removeCallbacks(runnable);
                 }
-                goToHome();
+                goToHomeScreen();
             }
         });
 
@@ -568,7 +566,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                                             }
 
-                                            goToHome();
+                                            goToHomeScreen();
 
                                         } catch (Exception e) {
                                             e.printStackTrace();
@@ -792,9 +790,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 long transactionId = Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "FAILED", payment.get("vpa"));
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                                Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
-                                startActivity(intent);
-                                finish();
+
+                                /// Close current dialog
+                                dialog1.dismiss();
+                                /// Go to Home screen
+                                goToHomeScreen();
+
+
+//                                Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                                finish();
 
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -821,9 +826,15 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 long transactionId = Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "FAILED", payment.get("vpa"));
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                                Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
-                                startActivity(intent);
-                                finish();
+
+                                /// Close current dialog
+                                dialog1.dismiss();
+                                /// Go to Home screen
+                                goToHomeScreen();
+
+//                                Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                                finish();
 
                             } catch (Exception e) {
                                 e.printStackTrace();
@@ -928,7 +939,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         // Define the Runnable task
         runnable = () -> {
             // Task to execute after delay
-            goToHome(); // Closes the current activity
+            goToHomeScreen(); // Closes the current activity
         };
 
         // Post the Runnable with a 15-second delay
@@ -936,9 +947,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
-    void goToHome() {
 
-        finish();
+    /// It will redirect to the home screen
+    void goToHomeScreen() {
+        // Simulate finishing and sending data
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra(FromScreen, ScreenEnum.PAY_WITH_QR.ordinal());
+        setResult(RESULT_OK, resultIntent); // Set the result to be OK
+        finish(); // Finish the activity
 
 //        Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
 //        // Clear all previous activities
@@ -968,10 +984,15 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     long transactionId = Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "SUCCESS", payment.get("vpa"));
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                    Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
-                    // Clear all previous activities
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
+
+
+                    /// Go to Home screen
+                    goToHomeScreen();
+
+//                    Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
+//                    // Clear all previous activities
+//                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//                    startActivity(intent);
 
 
                 } catch (Exception e) {
