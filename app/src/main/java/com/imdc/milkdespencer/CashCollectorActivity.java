@@ -1294,7 +1294,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
 
-    /*It will redirect to the home screen*/
+    /*
+     * It will redirect to the home screen
+     * */
     void goToHomeScreen(){
         closeDevice();
         // Simulate finishing and sending data

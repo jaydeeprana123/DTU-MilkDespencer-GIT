@@ -948,7 +948,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
 
-    /// It will redirect to the home screen
+  /*
+  * It will redirect to the home screen
+  * */
     void goToHomeScreen() {
         // Simulate finishing and sending data
         Intent resultIntent = new Intent();

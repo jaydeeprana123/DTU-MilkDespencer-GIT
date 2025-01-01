@@ -4,7 +4,7 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "transactions")
-public class TransactionEntity {
+public class TransactionEntity1 {
 
     @PrimaryKey(autoGenerate = true)
     private long id;
@@ -16,13 +16,10 @@ public class TransactionEntity {
     private String transactionDate;
     private String transactionTime;
     private String amount;
-
-    private String weight;
     private String transactionStatus;
     private String upiId;
     private String uniqueTransactionId;
     private String createdBy;
-
 
 
     public long getId() {
@@ -90,13 +87,7 @@ public class TransactionEntity {
         return amount;
     }
 
-    public String getWeight() {
-        return weight;
-    }
 
-    public void setWeight(String weight) {
-        this.weight = weight;
-    }
 
     public String getTransactionStatus() {
         return transactionStatus;
