@@ -17,13 +17,13 @@ public class TransactionEntity {
     private String transactionTime;
     private String amount;
 
-    private String weight;
+    private String volume;
+
+    private String machineId;
     private String transactionStatus;
     private String upiId;
     private String uniqueTransactionId;
     private String createdBy;
-
-
 
     public long getId() {
         return id;
@@ -90,12 +90,20 @@ public class TransactionEntity {
         return amount;
     }
 
-    public String getWeight() {
-        return weight;
+    public String getVolume() {
+        return volume;
     }
 
-    public void setWeight(String weight) {
-        this.weight = weight;
+    public void setVolume(String volume) {
+        this.volume = volume;
+    }
+
+    public String getMachineId() {
+        return machineId;
+    }
+
+    public void setMachineId(String machineId) {
+        this.machineId = machineId;
     }
 
     public String getTransactionStatus() {

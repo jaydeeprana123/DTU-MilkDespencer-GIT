@@ -16,14 +16,13 @@ import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CompoundButton;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -156,7 +155,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                             try {
                                 float amount = Float.parseFloat(amountStr);
                                 float adjustedAmount = amount / 100;
-                                showFailedProcessDoneDialog(adjustedAmount, "");
+
+
+                                /// Here payment is done. And Suddenly electricity lost
+                                showElectricityLostAndFailedProcessDialog(adjustedAmount, "");
                             } catch (NumberFormatException e) {
                                 Log.e("BatteryReceiver", "Invalid amount format: " + amountStr, e);
                             }
@@ -450,6 +452,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             float weight = (float) ((ev.value / milkSellingPrice) * milkDensity);
             double currentSavedTemp = responseTempStatus.getTemperature() / 10.0;
             float currentTemperature = (float) (currentSavedTemp + offSet);
+            float volume = (float) (ev.value) / milkSellingPrice;
 
             Log.e(TAG, "DisplayEvents: SEND COMMAND " + milkSellingPrice + " " + ev.value);
 
@@ -461,17 +464,53 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
             Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
             Log.e(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
-            usbSerialCommunication.sendData(gson.toJson(sendToDevice));
+
+
+            /// Show dialog
             lottieDialog.show();
 
-            usbSerialCommunication.setReadDataListener(data -> handleDeviceResponse(data, sendToDevice, ev.value, currentSavedTemp));
+            /// Here after 15 minute if status is not getting as a true.
+            // Dialog will be close and transaction will be add in the database as a TIME OUT
+            Handler timeoutHandler = new Handler(Looper.getMainLooper());
+            Runnable timeoutRunnable = () -> handleMilkSendingTimeout(lottieDialog, (float) ev.value, volume);
+            timeoutHandler.postDelayed(timeoutRunnable, 15 * 60 * 1000);
+
+
+
+            /// Send Data to the usb Serial Communication
+            usbSerialCommunication.sendData(gson.toJson(sendToDevice));
+
+
+            /// Read Data of the usb Serial Communication
+            usbSerialCommunication.setReadDataListener(data -> handleSerialReadingResponse(data, sendToDevice, ev.value, volume, currentSavedTemp, timeoutHandler, timeoutRunnable));
 
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void handleDeviceResponse(String data, SendToDevice sendToDevice, double currency, double currentSavedTemp) {
+    /*If 15 minutes done and status is not getting as a true. Transaction will be added as a TIME OUT*/
+    private void handleMilkSendingTimeout(LottieDialog lottieDialog, float amt, float volume) {
+        if (lottieDialog != null && lottieDialog.isShowing()) {
+            lottieDialog.dismiss();
+            new Thread(() -> {
+                try {
+                    String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
+                    String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
+                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
+                    Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", String.valueOf(volume));
+                    goToHomeScreen();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+    }
+
+
+
+    /*Read Listener Response*/
+    private void handleSerialReadingResponse(String data, SendToDevice sendToDevice, double currency, float volume, double currentSavedTemp, Handler timeoutHandler, Runnable timeoutRunnable) {
         Log.d(TAG, "DisplayEvents:onReadData: " + data);
 
         if (!data.contains("status")) return;
@@ -485,15 +524,16 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 lottieDialog.setPercentage(percentage);
             }
 
+            /// Here is Milk Dispense is true
             if (milkDispense.getStatus()) {
-                handleSuccessfulDispense(sendToDevice, currency, currentSavedTemp);
+                handleSuccessfulDispense(sendToDevice, currency,volume, currentSavedTemp);
             } else {
                 Log.e("Cashcollector", milkDispense.getStatus().toString());
             }
         }
     }
 
-    private void handleSuccessfulDispense(SendToDevice sendToDevice, double currency, double currentSavedTemp) {
+    private void handleSuccessfulDispense(SendToDevice sendToDevice, double currency,float volume, double currentSavedTemp) {
         Log.e("Cashcollector", "Dispense Successful");
 
         try {
@@ -504,32 +544,32 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             preferencesManager.save(Constants.CurrentTemperature, currentSavedTemp);
             deviceCom.SetEscrowAction(SSPSystem.BillAction.Accept);
 
-            showAndProcessDoneDialog(sendToDevice, currency);
+            showAndProcessDoneDialog(sendToDevice, currency,volume);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void showAndProcessDoneDialog(SendToDevice sendToDevice, double currency) {
+    public void showAndProcessDoneDialog(SendToDevice sendToDevice, double currency, float volume) {
         Log.e("showAndProcessDoneDialog", "Show");
 
         runOnUiThread(() -> {
-            AlertDialog dialog = createProcessDoneDialog(sendToDevice, currency);
+            AlertDialog dialog = createProcessDoneDialog(sendToDevice, currency, volume);
             dialog.show();
         });
     }
 
-    private AlertDialog createProcessDoneDialog(SendToDevice sendToDevice, double currency) {
+    private AlertDialog createProcessDoneDialog(SendToDevice sendToDevice, double currency, float volume) {
         AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity.this);
         LayoutInflater inflater = getLayoutInflater();
         View view = inflater.inflate(R.layout.dialog_lottie, null);
 
-        setupDialogView(view, sendToDevice, currency);
+        setupDialogView(view, sendToDevice, currency, volume);
         builder.setView(view).setCancelable(false);
         return builder.create();
     }
 
-    private void setupDialogView(View view, SendToDevice sendToDevice, double currency) {
+    private void setupDialogView(View view, SendToDevice sendToDevice, double currency, float volume) {
         LottieAnimationView lottieAnimationViewDone = view.findViewById(R.id.lottieAnimationViewDone);
         TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
         TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
@@ -544,10 +584,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
         lottieAnimationViewDone.playAnimation();
 
-        setupDialogHandlers(view, sendToDevice, currency);
+        setupDialogHandlers(view, sendToDevice, currency, volume);
     }
 
-    private void setupDialogHandlers(View view, SendToDevice sendToDevice, double currency) {
+    private void setupDialogHandlers(View view, SendToDevice sendToDevice, double currency, float volume) {
         MaterialButton btnDone = view.findViewById(R.id.doneButton);
         long screenTimeout = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0").toString()) * 1000;
 
@@ -555,7 +595,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         Runnable dismissTask = () -> {
             view.getRootView().setVisibility(View.GONE);
             closeDevice();
-            insertDataOnProcessDone(currency, String.valueOf(sendToDevice.getWeight()));
+            insertDataOnProcessDone(currency, String.valueOf(volume));
         };
 
         handler.postDelayed(dismissTask, screenTimeout);
@@ -566,8 +606,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         });
     }
 
-
-    private void showFailedProcessDoneDialog(float amt, String weight) {
+    /*
+     * If payment is done and electricity is lost. Then Show Fail Dialog*/
+    private void showElectricityLostAndFailedProcessDialog(float amt, String volume) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -589,7 +630,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "",weight);
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "",volume);
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -626,7 +667,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", weight);
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", volume);
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -1269,7 +1310,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
     /// When process is completed. Data will be insert into database
-    void insertDataOnProcessDone(double currency, String weight){
+    void insertDataOnProcessDone(double currency, String volume){
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1286,7 +1327,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                     TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                     assert date != null;
-                    long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", weight);
+                    long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", volume);
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 

@@ -896,7 +896,9 @@ public class Constants {
         return String.valueOf(timestamp) + randomNumber;
     }
 
-    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, String amount, String transactionStatus, String upiId, String weight) {
+    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, String amount, String transactionStatus, String upiId, String volume) {
+        SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(activity);
+
         TransactionEntity transaction = new TransactionEntity();
         transaction.setUserName("Admin");
         transaction.setPassword("QWRtaW4=");
@@ -905,21 +907,23 @@ public class Constants {
         transaction.setTransactionDate(transactionDate);
         transaction.setTransactionTime(transactionTime);
         transaction.setAmount(amount);
-        transaction.setWeight(weight);
+        transaction.setVolume(volume);
         transaction.setTransactionStatus(transactionStatus);
         transaction.setUpiId(upiId);
         transaction.setUniqueTransactionId(transactionDao.generateUniqueTransactionId());
 
+        /// Added on 1-1 2025
+        transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+
+        /// Insert into Sqlite database
         long transactionId = transactionDao.insert(transaction);
 
-        doPostTransaction("/api/Transaction/PostTransaction", transaction, activity);
+        doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, activity);
 
         return transactionId;
     }
 
-    public static void doPostTransaction(String url, TransactionEntity transaction, Activity activity) {
-
-        SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(activity);
+    public static void doPostTransaction(SharedPreferencesManager preferencesManager,String url, TransactionEntity transaction, Activity activity) {
 
         Log.e("base Url ", preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString());
         Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString()) // Replace with your base URL

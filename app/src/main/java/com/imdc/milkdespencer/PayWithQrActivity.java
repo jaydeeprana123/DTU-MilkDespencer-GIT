@@ -90,12 +90,13 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             } else {
                 Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity");
 
-
                 Payment payment = new Gson().fromJson(preferencesManager.get(Constants.PaymentReceived, "").toString(), Payment.class);
                 if (payment != null && payment.get("amount") != null) {
                     float amount = Float.parseFloat(payment.get("amount").toString());
                     float amt = amount / 100;
-                    showFailedProcessDoneDialog(amt, payment, "");
+
+                    /// Here payment is done. And Suddenly electricity lost
+                    showElectricityLostAndFailedProcessDialog(amt, payment, "");
                 }
             }
         }
@@ -280,7 +281,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 //                        paymentObject.put("amount", 100); // Amount in paise (e.g., 10000 paise = INR 100)
                         Constants.showAcceptDialog(PayWithQrActivity.this, "Please Confirm", "You need to pay the ₹" + cost + " for " + weightStr, (dialog, which) -> {
                             dialog.dismiss();
-                            executeGenerateQRCodeTask(paymentObject, customerId,weightStr);
+                            executeGenerateQRCodeTask(paymentObject, customerId, weightStr);
                         }, (dialog, which) -> dialog.dismiss());
 
                     } catch (Exception e) {
@@ -484,11 +485,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
-
-
-
     /*
-    * Generate QR Code*/
+     * Generate QR Code*/
     private void generateQRCode(JSONObject paymentObject, String customerId, String weight) {
         try {
             RazorpayClient razorpay = new RazorpayClient("rzp_live_oTrQqk0HauuUWZ", "7lBcCfNsgl7wKtshFz7QCm8F");
@@ -545,7 +543,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     /* Once QR code is generate from Razor paypay*/
     private void handleQrCodeResponse(QrCode qrcode, JSONObject paymentObject, String weight) {
 
-       /// Image of QR code
+        /// Image of QR code
         String imageUrl = qrcode.get("image_url").toString();
         String qrCodeId = qrcode.get("id").toString();
 
@@ -597,9 +595,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             }
         }).start();
     }
-
-
-
 
 
     public Double extractNumericValueFromString(String input) {
@@ -693,18 +688,22 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
+
+    /*
+    * When payment is done. Send for Vending the milk*/
     public void sendForMilkVending(float amt, Payment payment) {
         LottieDialog lottieDialog = new LottieDialog(PayWithQrActivity.this);
         try {
             ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
             float milkSellingPrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
-            float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+            float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, "0.0").toString());
 
-            float DENSITY_OF_MILK = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
-            float weight = Float.parseFloat(String.valueOf((amt / milkSellingPrice))) * DENSITY_OF_MILK;
+            float milkDensity = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
+            float volume = amt / milkSellingPrice;
+            float weight = volume * milkDensity;
 
-            double currentSavedTemp = responseTempStatus.getTemperature() / 10;
-            float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+            double currentSavedTemp = responseTempStatus.getTemperature() / 10.0;
+            float currentTemperature = (float) (currentSavedTemp + offSet);
 
             SendToDevice sendToDevice = new SendToDevice();
             sendToDevice.setWeight(weight);
@@ -713,69 +712,80 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             sendToDevice.setSettemperature(milkSetTemperature);
 
             Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
-            Log.e("TAG", "QR_PAYMENT: MSP" + milkSellingPrice);
             Log.e("TAG", "QR_PAYMENT: SEND COMMAND " + gson.toJson(sendToDevice));
 
             lottieDialog.show();
+
+            /// Here after 15 minute if status is not getting as a true.
+            // Dialog will be close and transaction will be add in the database as a TIME OUT
+            Handler timeoutHandler = new Handler(Looper.getMainLooper());
+            Runnable timeoutRunnable = () -> handleMilkSendingTimeout(lottieDialog, amt, volume);
+            timeoutHandler.postDelayed(timeoutRunnable, 15 * 60 * 1000);
+
+
+            /// Send Data to the usb Serial Communication
             usbSerialCommunication.sendData(gson.toJson(sendToDevice));
             isCommandSent = true;
-            usbSerialCommunication.setReadDataListener(new UsbSerialCommunication.ReadDataListener() {
-                @Override
-                public void onReadData(String data) {
-                    Log.d("TAG", "onReadData: " + data + "\n status " + data.contains("status"));
 
-                    if (data.contains("status")) {
-
-                        /*if (!isCharging) {
-                            Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity");
-                            showFailedProcessDoneDialog(amt, payment);
-                        }*/
-                        ResponseMilkDispense milkDispense = new Gson().fromJson(data, ResponseMilkDispense.class);
-                        if (milkDispense != null) {
-                            double percentage = (milkDispense.getCurTemperature() / milkDispense.getSetTemperature()) * 100;
-                            /*if (lottieDialog != null) {
-                                if (percentage > 0) {
-                                    lottieDialog.setPercentage(percentage);
-                                }
-                            }*/
-                            if (milkDispense.getStatus()) {
-
-                                // Cancel the delayed task
-                                if (handler != null && runnable != null) {
-                                    handler.removeCallbacks(runnable);
-                                }
-
-                                try {
-                                    if (lottieDialog.isShowing()) {
-                                        lottieDialog.dismiss();
-                                    }
-                                    isCommandSent = false;
-                                    preferencesManager.save(Constants.CurrentTemperature, currentSavedTemp);
-                                    preferencesManager = SharedPreferencesManager.getInstance(getInstance());
-                                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
-                                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
-                                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
-                                    usbSerialCommunication.fireOnStart(currentTemperature);
-                                    showAndProcessDoneDialog(amt, payment, String.valueOf(weight));
-                                } catch (Exception e) {
-                                    throw new RuntimeException(e);
-                                }
-
-                            }
-
-
-//
-                        }
-                    }
-                }
-            });
+            /// Read Data of the usb Serial Communication
+            usbSerialCommunication.setReadDataListener(data -> handleSerialReadingResponse(data, lottieDialog, amt, payment, volume, timeoutHandler, timeoutRunnable));
 
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
         }
     }
 
-    private void showFailedProcessDoneDialog(float amt, Payment payment, String weight) {
+
+    /*If 15 minutes done and status is not getting as a true. Transaction will be added as a TIME OUT*/
+    private void handleMilkSendingTimeout(LottieDialog lottieDialog, float amt, float volume) {
+        if (lottieDialog != null && lottieDialog.isShowing()) {
+            lottieDialog.dismiss();
+            new Thread(() -> {
+                try {
+                    String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
+                    String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
+                    TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
+                    Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "FAILED", "", String.valueOf(volume));
+                    goToHomeScreen();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+    }
+
+
+    /*Read Listener Response*/
+    private void handleSerialReadingResponse(String data, LottieDialog lottieDialog, float amt, Payment payment, float volume, Handler timeoutHandler, Runnable timeoutRunnable) {
+        Log.d("TAG", "onReadData: " + data);
+
+        /// If it contains status key
+        if (data.contains("status")) {
+            ResponseMilkDispense milkDispense = new Gson().fromJson(data, ResponseMilkDispense.class);
+
+
+            /// If status is true then show success dialog
+            // Here if milkDispense.getStatus == true. timeOutHandler will be stop
+            if (milkDispense != null && milkDispense.getStatus()) {
+
+                /// timeOutHandler removed here
+                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (lottieDialog.isShowing()) {
+                    lottieDialog.dismiss();
+                }
+                isCommandSent = false;
+                preferencesManager.save(Constants.CurrentTemperature, milkDispense.getCurTemperature());
+
+                /// Show process done dialog
+                showAndProcessDoneDialog(amt, payment, String.valueOf(volume));
+            }
+        }
+    }
+
+
+    /*
+    * If payment is done and electricity is lost. Then Show Fail Dialog*/
+    private void showElectricityLostAndFailedProcessDialog(float amt, Payment payment, String weight) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -797,7 +807,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "FAILED", payment.get("vpa"),weight);
+                                long transactionId = Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "FAILED", payment.get("vpa"), weight);
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -857,7 +867,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         });
     }
 
-    public void showAndProcessDoneDialog(float amt, Payment payment, String weight) {
+
+    /// If milk is send to the customer. Show process done dialog
+    public void showAndProcessDoneDialog(float amt, Payment payment, String volume) {
 
         runOnUiThread(new Runnable() {
             @Override
@@ -901,12 +913,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     dialog.dismiss();
 //                        onDestroy();
 
-                    insertDataOnProcessDone(amt, payment, weight);
+                    insertDataOnProcessDone(amt, payment, volume);
                 };
 
                 // Post the Runnable with a 15-second delay
                 handler.postDelayed(runnable, screenTimeOut * 1000);
-
 
 
                 btnDone.setOnClickListener(new View.OnClickListener() {
@@ -923,7 +934,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 //                        onDestroy();
                         Log.e(TAG, "onClick:Payment " + new Gson().toJson(payment));
 
-                        insertDataOnProcessDone(amt, payment, weight);
+                        insertDataOnProcessDone(amt, payment, volume);
                         /*Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
                         startActivity(intent);
                         finish();*/
@@ -957,10 +968,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
-
-  /*
-  * It will redirect to the home screen
-  * */
+    /*
+     * It will redirect to the home screen
+     * */
     void goToHomeScreen() {
         // Simulate finishing and sending data
         Intent resultIntent = new Intent();
@@ -976,7 +986,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
     /// When process is completed. Data will be insert into database
-    void insertDataOnProcessDone(float amt, Payment payment, String weight){
+    void insertDataOnProcessDone(float amt, Payment payment, String weight) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -993,7 +1003,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                     TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
                     assert date != null;
-                    long transactionId = Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "SUCCESS", payment.get("vpa"),weight);
+                    long transactionId = Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "SUCCESS", payment.get("vpa"), weight);
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
