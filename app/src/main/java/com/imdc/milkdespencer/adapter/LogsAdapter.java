@@ -23,7 +23,7 @@ public class LogsAdapter extends RecyclerView.Adapter<LogsAdapter.LogsViewHolder
     private final List<LogEntity> logs;
     Activity activity;
 
-    public LogsAdapter(TransactionHistoryActivity activity, List<LogEntity> logs) {
+    public LogsAdapter(Activity activity, List<LogEntity> logs) {
         this.logs = logs;
         this.activity = activity;
 

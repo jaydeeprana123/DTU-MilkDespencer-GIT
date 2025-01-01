@@ -34,65 +34,62 @@ public class TransactionHistoryActivity extends AppCompatActivity {
     private TransactionAdapter transactionAdapter;
     private LogsAdapter logsAdapter;
 
-    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transaction_history);
 
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
 
-        if (getIntent() != null) {
-            if (getIntent().hasExtra(Constants.LoginUser)) {
-                user = new Gson().fromJson(getIntent().getStringExtra(Constants.LoginUser), User.class);
-            }
+        // Retrieve user data from intent
+        if (getIntent() != null && getIntent().hasExtra(Constants.LoginUser)) {
+            user = new Gson().fromJson(getIntent().getStringExtra(Constants.LoginUser), User.class);
         }
 
         rvTransactions = findViewById(R.id.rvTransactions);
         tvTitle = findViewById(R.id.tvTitle);
         btnBackToHome = findViewById(R.id.btnBackToHome);
         rvTransactions.setLayoutManager(new LinearLayoutManager(this));
-        btnBackToHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                finish();
-            }
-        });
 
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                AppDatabase appDatabase = AppDatabase.getInstance(TransactionHistoryActivity.this);
-                Log.e("TAG", "run: " + new Gson().toJson(user));
-                if (user.getUserType() == UserTypeEnum.ADMIN.value() || user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
-                    if (getActionBar() != null) {
-                        getActionBar().setTitle("Logs");
-                    }
-                    if (getSupportActionBar() != null) {
-                        getSupportActionBar().setTitle("Logs");
-                    }
-                    tvTitle.setText("Logs");
-                    List<LogEntity> logs = appDatabase.logDao().getAllLogs();
-                    Log.e("TAG", "run:getAllLogs " + new Gson().toJson(logs));
-                    logsAdapter = new LogsAdapter(TransactionHistoryActivity.this, logs);
-                    rvTransactions.setAdapter(logsAdapter);
-                } else {
-                    if (getActionBar() != null) {
-                        getActionBar().setTitle("Transaction History");
-                    }
-                    tvTitle.setText("Transaction History");
-                    List<TransactionEntity> transactions = appDatabase.transactionDao().getAllTransactions();
-                    Log.e("TAG", "run:getAllTransactions " + new Gson().toJson(transactions));
-                    transactionAdapter = new TransactionAdapter(TransactionHistoryActivity.this, transactions);
-                    // Add divider to the RecyclerView
-                    DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(rvTransactions.getContext(), DividerItemDecoration.VERTICAL);
-                    dividerItemDecoration.setDrawable(ContextCompat.getDrawable(TransactionHistoryActivity.this, R.drawable.recycler_view_divider));
-                    rvTransactions.addItemDecoration(dividerItemDecoration);
-                    rvTransactions.setAdapter(transactionAdapter);
-                }
+        btnBackToHome.setOnClickListener(view -> finish());
+
+        // Use a background task to fetch data
+        new Thread(() -> {
+            AppDatabase appDatabase = AppDatabase.getInstance(TransactionHistoryActivity.this);
+            Log.e("TAG", "run: " + new Gson().toJson(user));
+
+            boolean isAdmin = user.getUserType() == UserTypeEnum.ADMIN.value() || user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value();
+            if (isAdmin) {
+                updateUI("Logs", appDatabase.logDao().getAllLogs(), true);
+            } else {
+                updateUI("Transaction History", appDatabase.transactionDao().getAllTransactions(), false);
             }
         }).start();
-
     }
+
+    // Helper method to update UI with fetched data
+    private void updateUI(String title, List<?> data, boolean isLog) {
+        runOnUiThread(() -> {
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle(title);
+            }
+
+            tvTitle.setText(title);
+
+            if (isLog) {
+                logsAdapter = new LogsAdapter(TransactionHistoryActivity.this, (List<LogEntity>) data);
+                rvTransactions.setAdapter(logsAdapter);
+            } else {
+                transactionAdapter = new TransactionAdapter(TransactionHistoryActivity.this, (List<TransactionEntity>) data);
+                rvTransactions.setAdapter(transactionAdapter);
+
+                // Add divider to the RecyclerView
+                DividerItemDecoration dividerItemDecoration = new DividerItemDecoration(rvTransactions.getContext(), DividerItemDecoration.VERTICAL);
+                dividerItemDecoration.setDrawable(ContextCompat.getDrawable(TransactionHistoryActivity.this, R.drawable.recycler_view_divider));
+                rvTransactions.addItemDecoration(dividerItemDecoration);
+            }
+        });
+    }
+
 
 
 }

@@ -22,7 +22,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
     private final List<TransactionEntity> transactions;
     Activity activity;
 
-    public TransactionAdapter(TransactionHistoryActivity activity, List<TransactionEntity> transactions) {
+    public TransactionAdapter(Activity activity, List<TransactionEntity> transactions) {
         this.transactions = transactions;
         this.activity = activity;
 
@@ -40,7 +40,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
     public void onBindViewHolder(@NonNull TransactionViewHolder holder, int position) {
         TransactionEntity transaction = transactions.get(position);
         // Bind transaction data to the view holder
-        holder.tvTransactionAmount.setText("₹ " + transaction.getAmount() + " (" + transaction.getWeight() + ")");
+        holder.tvTransactionAmount.setText("₹ " + transaction.getAmount() + " (" + transaction.getWeight());
         holder.tvTransactionId.setText(transaction.getUniqueTransactionId());
         holder.tvTransactionType.setText(transaction.getTransactionType());
         holder.tvTransactionDateTime.setText(transaction.getTransactionDate() + " at " + transaction.getTransactionTime());
