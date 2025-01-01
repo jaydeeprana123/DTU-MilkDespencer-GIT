@@ -41,11 +41,6 @@ public class User {
         this.userType = userType;
     }
 
-    public User() {
-
-    }
-
-
     // Getters and Setters for other fields
 
     public int getUserId() {

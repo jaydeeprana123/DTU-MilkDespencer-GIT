@@ -46,7 +46,7 @@
         android:numColumns="3"
         android:stretchMode="columnWidth"
         android:verticalSpacing="10dp"
-        app:layout_constraintBottom_toTopOf="@+id/llBottom"
+        app:layout_constraintBottom_toTopOf="@+id/btnGenerateQr"
         app:layout_constraintTop_toBottomOf="@+id/tabLayout" />
 
     <!--<LinearLayout
@@ -154,50 +154,21 @@
 
     </LinearLayout>-->
 
-    <LinearLayout
-        android:id="@+id/llBottom"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="@dimen/_12sdp"
-        android:layout_marginBottom="@dimen/_12sdp"
-        android:gravity="center">
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnGenerateQr"
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textSize="@dimen/_10ssp"
+        android:layout_marginTop="@dimen/_12sdp"
         android:gravity="center"
         android:paddingHorizontal="@dimen/_20sdp"
         android:text="@string/generateQr"
-        android:layout_marginRight="@dimen/_12sdp"
         android:textAlignment="center"
         android:textColor="@color/md_theme_light_onPrimary"
         app:backgroundTint="@color/md_theme_light_primary"
-       />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnBackToHome"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textSize="@dimen/_10ssp"
-            android:gravity="center"
-            android:paddingHorizontal="@dimen/_20sdp"
-            android:text="@string/backToHome"
-            android:drawableLeft="@drawable/ic_home_white"
-            android:textAlignment="center"
-            android:textColor="@color/md_theme_light_onPrimary"
-            app:backgroundTint="@color/md_theme_light_primary"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
-
-    </LinearLayout>
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

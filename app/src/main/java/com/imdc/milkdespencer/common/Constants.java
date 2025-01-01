@@ -1,7 +1,5 @@
 package com.imdc.milkdespencer.common;
 
-import static com.imdc.milkdespencer.CashCollectorActivity.getInstance;
-
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -9,7 +7,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
-import android.text.InputFilter;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -36,13 +33,10 @@ import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.entities.User;
 import com.imdc.milkdespencer.roomdb.interfaces.LogDao;
 import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
-import com.imdc.milkdespencer.roomdb.interfaces.UserDao;
 
 import java.text.DecimalFormat;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Random;
-import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -56,29 +50,14 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class Constants {
 
-
-
-    public static AlertDialog cipDialog;
-
-
     public static final String TAG = "MilkDespencer";
     public static final String MachineId = "MachineId";
     public static final String RazorPayCustomerID = "RazorPayCustomerID";
-
-    public static final String RegisterUser = "RegisterUser";
-
-    public static final String RegisterCustomerAdmin = "RegisterCustomerAdmin";
-
     public static final String OwnerName = "OwnerName";
     //    public static final String MachineId = "MachineId";
     public static final String MilkBasePrice = "MilkBasePrice";
     public static final String LoginUser = "LoginUser";
     public static final String MilkDensityPref = "MilkDensity";
-
-    public static final String ApiBaseUrl = "ApiBaseUrl";
-
-    public static final String ScreenTimeOutPref = "ScreenTimeOut";
-
     public static final String TemperatureOffSet = "TemperatureOffSet";
     public static final String TemperatureSet = "TemperatureSet";
     public static final String CurrentTemperature = "CurrentTemperature";
@@ -132,13 +111,12 @@ public class Constants {
         MaterialButton okButton = view.findViewById(R.id.okButton);
         MaterialButton cancelButton = view.findViewById(R.id.cancelButton);
         TextInputEditText tieMilkBasePrice = view.findViewById(R.id.tieMilkBasePrice);
+        TextInputLayout tilMilkDensity = view.findViewById(R.id.tilMilkDensity);
         TextInputEditText tieMilkDensity = view.findViewById(R.id.tieMilkDensity);
-        TextInputEditText tieTimeOut = view.findViewById(R.id.tieTimeOut);
 
 
         tieMilkBasePrice.setText(preferencesManager.get(MilkBasePrice, "0.0").toString());
         tieMilkDensity.setText(preferencesManager.get(MilkDensityPref, "0.0").toString());
-        tieTimeOut.setText(preferencesManager.get(ScreenTimeOutPref, "0").toString());
 
 
         // Set click listener for OK button
@@ -148,10 +126,8 @@ public class Constants {
                 // Handle OK button click
                 String milkBasePrice = tieMilkBasePrice.getText().toString();
                 String milkDensity = tieMilkDensity.getText().toString();
-                String screenTimeOut = tieTimeOut.getText().toString();
                 preferencesManager.save(MilkBasePrice, milkBasePrice);
                 preferencesManager.save(MilkDensityPref, milkDensity);
-                preferencesManager.save(ScreenTimeOutPref, screenTimeOut);
 
                 dialog.dismiss();
             }
@@ -171,62 +147,7 @@ public class Constants {
         dialog.show();
     }
 
-    /**
-     * Api configuration dialog
-     *
-     * @param context
-     */
-    public static void showAPIConfigDialog(Context context) {
-        // Create a layout inflater to inflate the custom dialog layout
-        LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.api_configuration_dialog, null);
-        final double[] density = new double[1];
-        preferencesManager = SharedPreferencesManager.getInstance(context);
-        // Create the AlertDialog builder
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setView(view);
-
-        // Create the AlertDialog
-        AlertDialog dialog = builder.create();
-
-        // Find views in the custom layout
-        MaterialButton okButton = view.findViewById(R.id.okButton);
-        MaterialButton cancelButton = view.findViewById(R.id.cancelButton);
-        TextInputEditText tieApiBaseUrl = view.findViewById(R.id.tieApiBaseUrl);
-
-        /// If url is not set in shared preference.. It will take default base url
-        tieApiBaseUrl.setText(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString());
-
-        // Set click listener for OK button
-        okButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Handle OK button click
-                String apiBaseUrl = tieApiBaseUrl.getText().toString();
-                preferencesManager.save(apiBaseUrl, apiBaseUrl);
-                dialog.dismiss();
-            }
-        });
-
-        // Set click listener for Cancel button
-        cancelButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Handle Cancel button click
-                // Dismiss the dialog
-                dialog.dismiss();
-            }
-        });
-
-        // Show the dialog
-        dialog.show();
-    }
-
-
-    /*
-    Show admin Config Dialog
-     */
-    public static void showAdminConfigDialog(Context context, int userType) {
+    public static void showAdminConfigDialog(Context context) {
         // Create a layout inflater to inflate the custom dialog layout
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.admin_configuration_dialog, null);
@@ -248,90 +169,39 @@ public class Constants {
         TextInputLayout tilTemperatureSet = view.findViewById(R.id.tilSetTemperature);
         TextInputLayout tilOwnerNameId = view.findViewById(R.id.tilOwnerNameId);
 
-        TextInputLayout tilMilkBasePrice = view.findViewById(R.id.tilMilkBasePrice);
-        TextInputLayout tilMilkDensity = view.findViewById(R.id.tilMilkDensity);
-        TextInputLayout tilTimeOut = view.findViewById(R.id.tilTimeOut);
-
         TextInputEditText tieTemperatureOffset = view.findViewById(R.id.tieTemperatureOffset);
         TextInputEditText tieTemperatureSet = view.findViewById(R.id.tieSetTemperature);
         TextInputEditText tieOwnerNameId = view.findViewById(R.id.tieOwnerNameId);
 
-        TextInputEditText tieMilkBasePrice = view.findViewById(R.id.tieMilkBasePrice);
-        TextInputEditText tieMilkDensity = view.findViewById(R.id.tieMilkDensity);
-        TextInputEditText tieTimeOut = view.findViewById(R.id.tieTimeOut);
 
-
-        /// Machine Id Caps Capital
         TextInputEditText tieMachineId = view.findViewById(R.id.tieMachineId);
-        tieMachineId.setFilters(new InputFilter[]{new InputFilter.AllCaps()});
-
-        if (userType == 0) {
-            tilMachineId.setEnabled(true);
-        } else if (userType == 2) {
-            tieMachineId.setEnabled(false);
-        }else if(userType == 1){
-            tieMachineId.setEnabled(false);
-            tilTemperatureOffset.setEnabled(false);
-            tilTemperatureSet.setEnabled(false);
-            tilMilkBasePrice.setEnabled(false);
-            tilMilkDensity.setEnabled(false);
-            tilTimeOut.setEnabled(false);
-            okButton.setText("Ok");
-
-        }
 
         tilMachineId.setErrorEnabled(true);
         tilTemperatureOffset.setErrorEnabled(true);
         tilTemperatureSet.setErrorEnabled(true);
-        tilMilkBasePrice.setErrorEnabled(true);
-        tilMilkDensity.setErrorEnabled(true);
-        tilTimeOut.setErrorEnabled(true);
 
         String machineId = preferencesManager.get(MachineId, "MachineId").toString();
 
-        //  tilMachineId.setEnabled(machineId.isEmpty() || machineId.equalsIgnoreCase("MachineId"));
+        tilMachineId.setEnabled(machineId.isEmpty() || machineId.equalsIgnoreCase("MachineId"));
         tieMachineId.setText(machineId);
         tieOwnerNameId.setText(preferencesManager.get(OwnerName, 0.0).toString());
-        tieTemperatureOffset.setText(preferencesManager.get(TemperatureOffSet, "0.0").toString());
+        tieTemperatureOffset.setText(preferencesManager.get(TemperatureOffSet, 0.0).toString());
         tieTemperatureSet.setText(preferencesManager.get(TemperatureSet, "0.0").toString());
-        tieMilkBasePrice.setText(preferencesManager.get(MilkBasePrice, "0.0").toString());
-        tieMilkDensity.setText(preferencesManager.get(MilkDensityPref, "0.0").toString());
-        tieTimeOut.setText(preferencesManager.get(ScreenTimeOutPref, "0").toString());
 
         // Set click listener for OK button
         okButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // Handle OK button click
+                String machineID = tieMachineId.getText().toString();
+                String ownerName = tieOwnerNameId.getText().toString();
+                String setTemperature = tieTemperatureSet.getText().toString();
+                String offSetTemperature = tieTemperatureOffset.getText().toString();
 
-
-                /// If user type is not equal 1. The add into shared preference
-                if(userType != 1){
-                    if (tieMachineId.getText().toString().length() != 15) {
-                        Toast.makeText(context, context.getString(R.string.machineId_validation), Toast.LENGTH_SHORT).show();
-                        return;
-                    }
-
-                    String machineID = tieMachineId.getText().toString();
-                    String ownerName = tieOwnerNameId.getText().toString();
-                    String setTemperature = tieTemperatureSet.getText().toString();
-                    String offSetTemperature = tieTemperatureOffset.getText().toString();
-                    String milkBasePrice = tieMilkBasePrice.getText().toString();
-                    String milkDensity = tieMilkDensity.getText().toString();
-                    String screenTimeOut = tieTimeOut.getText().toString();
-
-                    Log.e("offSetTemperature", offSetTemperature);
-
-                    preferencesManager.save(MachineId, machineID);
-                    preferencesManager.save(OwnerName, ownerName);
-                    preferencesManager.save(TemperatureSet, setTemperature);
-                    preferencesManager.save(TemperatureOffSet, offSetTemperature);
-                    preferencesManager.save(MilkBasePrice, milkBasePrice);
-                    preferencesManager.save(MilkDensityPref, milkDensity);
-                    preferencesManager.save(ScreenTimeOutPref, screenTimeOut);
-
-                }
-
+                preferencesManager.save(MachineId, machineID);
+                preferencesManager.save(OwnerName, ownerName);
+                preferencesManager.save(TemperatureSet, setTemperature);
+                preferencesManager.save(TemperatureOffSet, offSetTemperature);
 
                 dialog.dismiss();
             }
@@ -351,27 +221,6 @@ public class Constants {
         dialog.show();
     }
 
-    /*
-    * if CIP is true = > Show this dialog
-    * */
-    public static void showCIPRunningDialog(Context context) {
-        // Create a layout inflater to inflate the custom dialog layout
-        LayoutInflater inflater = LayoutInflater.from(context);
-        View view = inflater.inflate(R.layout.dialog_cip_running, null);
-
-        // Create the AlertDialog builder
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setView(view);
-
-        // Create the AlertDialog
-        cipDialog = builder.create();
-        cipDialog.setCancelable(false);
-
-        // Show the dialog
-        cipDialog.show();
-    }
-
-
     public static void showLoginDialog(Context context, AppDatabase appDatabase) {
         // Create a layout inflater to inflate the custom dialog layout
         LayoutInflater inflater = LayoutInflater.from(context);
@@ -381,14 +230,12 @@ public class Constants {
         // Create the AlertDialog builder
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setView(view);
-        builder.setCancelable(false);
+
         // Create the AlertDialog
         AlertDialog dialog = builder.create();
 
         // Find views in the custom layout
         MaterialButton loginButton = view.findViewById(R.id.loginButton);
-        MaterialButton cancelButton = view.findViewById(R.id.cancelButton);
-
         TextInputLayout tilUserName = view.findViewById(R.id.tilUsername);
         TextInputLayout tilPassword = view.findViewById(R.id.tilPassword);
         TextInputEditText tieUsername = view.findViewById(R.id.tieUsername);
@@ -400,14 +247,6 @@ public class Constants {
 //        tieUsername.setText("admin");
 //        tiePassword.setText("Admin@123");
         // Set click listener for Login button
-
-        cancelButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                dialog.cancel();
-            }
-        });
-
         loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -418,18 +257,9 @@ public class Constants {
                 new Thread(new Runnable() {
                     @Override
                     public void run() {
-
-                        List<User> userLIst = appDatabase.userDao().getAllUsers();
-                        Log.e("length of user", String.valueOf(userLIst.size()));
-                        for(int i=0;i<userLIst.size();i++){
-                            Log.e("email", userLIst.get(i).getUsername());
-                            Log.e("email", userLIst.get(i).getPassword());
-                        }
-
                         User login = appDatabase.userDao().login(username, password);
-
                         if (login != null) {
-                            Log.e(TAG, "onClick: " + new Gson().toJson(login));
+//                            Log.e(TAG, "onClick: " + new Gson().toJson(login));
                             preferencesManager.save(Constants.LoginUser, new Gson().toJson(login));
                             Intent intent = new Intent(context.getApplicationContext(), AdminActivity.class);
                             intent.putExtra(Constants.LoginUser, new Gson().toJson(login));
@@ -439,9 +269,6 @@ public class Constants {
                             handler.post(new Runnable() {
                                 @Override
                                 public void run() {
-
-                                    Log.e(TAG, "onClick: " + new Gson().toJson(login));
-
                                     Toast.makeText(context, "Please Enter Valid Username and Password!!", Toast.LENGTH_SHORT).show();
                                 }
                             });
@@ -527,8 +354,6 @@ public class Constants {
             public void onClick(View v) {
                 String phoneNo = tieMobileNo.getText().toString();
                 if (isValidMobileNumber(phoneNo)) {
-
-                    /// New code
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -537,156 +362,69 @@ public class Constants {
                                 Handler handler = new Handler(Looper.getMainLooper());
                                 handler.post(() -> Toast.makeText(context, "Please Enter Valid Mobile No!!", Toast.LENGTH_SHORT).show());
                             } else {
-                                // Run UI-related operations on the main thread
-                                Handler handler = new Handler(Looper.getMainLooper());
-                                handler.post(() -> {
-                                    ProgressDialog pd = new ProgressDialog(context);
-                                    pd.setTitle("Please Wait...");
-                                    pd.setCancelable(false);
-                                    pd.show();
+                                ProgressDialog pd = new ProgressDialog(context);
+                                pd.setTitle("Please Wait...");
+                                pd.setCancelable(false);
+                                pd.show();
 
-                                    // Perform network operation in a background thread
-                                    new Thread(() -> {
-                                        String otp = "OTP for MVM password reset is " + generateOtp(6) + ". -IDMC";
-                                        String content = "to=" + phoneNo + "&type=OTP&sender=IDMCCS&body=" + otp;
-                                        Log.e(TAG, "onClick: " + content);
+                                String otp = "OTP for MVM password reset is " + generateOtp(6) + ". -IDMC";
+                                String content = "to=" + phoneNo + "&type=OTP&sender=IDMCCS&body=" + otp;
+                                Log.e(TAG, "onClick: " + content);
 
-                                        HashMap<String, String> fields = new HashMap<>();
-                                        fields.put("to", "+91" + phoneNo);
-                                        fields.put("type", "OTP");
-                                        fields.put("sender", "IDMCCS");
-                                        fields.put("body", otp);
-                                        fields.put("api-key", "Ae0de2903bdeb26110fd03ccab96e92a1");
+                                HashMap<String, String> fields = new HashMap<>();
+                                fields.put("to", "+91" + phoneNo);
+                                fields.put("type", "OTP");
+                                fields.put("sender", "IDMCCS");
+                                fields.put("body", otp);
+                                fields.put("api-key", "A5b9c8ba406fbc9bf361ffeb8bf6cb120");
 
-                                        HashMap<String, String> headers = new HashMap<>();
-                                        headers.put("Content-Type", "application/x-www-form-urlencoded");
-                                        headers.put("api-key", "Ae0de2903bdeb26110fd03ccab96e92a1");
+                                HashMap<String, String> headers = new HashMap<>();
+                                headers.put("Content-Type", "application/x-www-form-urlencoded");
+                                headers.put("api-key", "A5b9c8ba406fbc9bf361ffeb8bf6cb120");
+                                DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
+                                    @Override
+                                    public void onNext(ResponseBody response) {
+                                        pd.dismiss();
+                                        if (!response.toString().isEmpty()) {
+                                            isOtpSend[0] = true;
+                                            ResponseOTP responseModel = new Gson().fromJson(response.charStream(), ResponseOTP.class);
+                                            if (responseModel != null) {
+                                                Log.e(TAG, "onNext: " + new Gson().toJson(responseModel));
+                                                if (responseModel.getError() != null) {
+                                                    tilOtp.setVisibility(View.VISIBLE);
+                                                    tilNewPassword.setVisibility(View.VISIBLE);
+                                                    tilConfirmPassword.setVisibility(View.VISIBLE);
+                                                    btnResetPassword.setVisibility(View.VISIBLE);
 
-                                        /// Old API : A5b9c8ba406fbc9bf361ffeb8bf6cb120
+                                                    btnSendOtp.setVisibility(View.GONE);
+                                                    tilUsername.setVisibility(View.GONE);
 
-                                        DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
-                                            @Override
-                                            public void onNext(ResponseBody response) {
-                                                handler.post(() -> {
-                                                    pd.dismiss(); // Dismiss the ProgressDialog on the main thread
-                                                    if (!response.toString().isEmpty()) {
-                                                        isOtpSend[0] = true;
-                                                        ResponseOTP responseModel = new Gson().fromJson(response.charStream(), ResponseOTP.class);
-                                                        if (responseModel != null) {
-                                                            Log.e(TAG, "onNext: " + new Gson().toJson(responseModel));
-                                                            if (responseModel.getError() != null) {
-                                                                tilOtp.setVisibility(View.VISIBLE);
-                                                                tilNewPassword.setVisibility(View.VISIBLE);
-                                                                tilConfirmPassword.setVisibility(View.VISIBLE);
-                                                                btnResetPassword.setVisibility(View.VISIBLE);
+                                                    String OTP = extractOTP(responseModel.getBody());
+                                                    preferencesManager.save(Constants.OTP, OTP);
 
-                                                                btnSendOtp.setVisibility(View.GONE);
-                                                                tilUsername.setVisibility(View.GONE);
 
-                                                                String OTP = extractOTP(responseModel.getBody());
-                                                                preferencesManager.save(Constants.OTP, OTP);
-                                                            }
-                                                        }
-                                                    }
-                                                });
+                                                }
                                             }
+                                        }
+                                    }
 
-                                            @Override
-                                            public void onError(Throwable e) {
-                                                handler.post(() -> {
-                                                    pd.dismiss(); // Dismiss the ProgressDialog on the main thread
-                                                    Utils.handleApiError(context, e, apiManager);
-                                                });
-                                            }
+                                    @Override
+                                    public void onError(Throwable e) {
+                                        // Handle the error
+                                        pd.dismiss();
+                                        Utils.handleApiError(context, e, apiManager);
+                                    }
 
-                                            @Override
-                                            public void onComplete() {
-                                                // Handle completion if needed
-                                            }
-                                        };
-
-                                        apiManager.makeOTPRequestCall("HXIN1764058706IN/messages/", fields, headers, disposableObserver);
-                                    }).start();
-                                });
+                                    @Override
+                                    public void onComplete() {
+                                        // Handle completion if needed
+                                    }
+                                };
+                                apiManager.makeOTPRequestCall("HXIN1764058706IN/messages/", fields, headers, disposableObserver);
                             }
                             Log.e(TAG, "onClick:mobileNoExists " + mobileNoExists);
                         }
                     }).start();
-
-
-//                    new Thread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            Integer mobileNoExists = appDatabase.userDao().mobileNoExists(phoneNo);
-//                            if (mobileNoExists <= 0) {
-//                                Handler handler = new Handler(Looper.getMainLooper());
-//                                handler.post(() -> Toast.makeText(context, "Please Enter Valid Mobile No!!", Toast.LENGTH_SHORT).show());
-//                            } else {
-//
-//
-//                                ProgressDialog pd = new ProgressDialog(context);
-//                                pd.setTitle("Please Wait...");
-//                                pd.setCancelable(false);
-//                                pd.show();
-//
-//                                String otp = "OTP for MVM password reset is " + generateOtp(6) + ". -IDMC";
-//                                String content = "to=" + phoneNo + "&type=OTP&sender=IDMCCS&body=" + otp;
-//                                Log.e(TAG, "onClick: " + content);
-//
-//                                HashMap<String, String> fields = new HashMap<>();
-//                                fields.put("to", "+91" + phoneNo);
-//                                fields.put("type", "OTP");
-//                                fields.put("sender", "IDMCCS");
-//                                fields.put("body", otp);
-//                                fields.put("api-key", "A5b9c8ba406fbc9bf361ffeb8bf6cb120");
-//
-//                                HashMap<String, String> headers = new HashMap<>();
-//                                headers.put("Content-Type", "application/x-www-form-urlencoded");
-//                                headers.put("api-key", "A5b9c8ba406fbc9bf361ffeb8bf6cb120");
-//                                DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
-//                                    @Override
-//                                    public void onNext(ResponseBody response) {
-//                                        pd.dismiss();
-//                                        if (!response.toString().isEmpty()) {
-//                                            isOtpSend[0] = true;
-//                                            ResponseOTP responseModel = new Gson().fromJson(response.charStream(), ResponseOTP.class);
-//                                            if (responseModel != null) {
-//                                                Log.e(TAG, "onNext: " + new Gson().toJson(responseModel));
-//                                                if (responseModel.getError() != null) {
-//                                                    tilOtp.setVisibility(View.VISIBLE);
-//                                                    tilNewPassword.setVisibility(View.VISIBLE);
-//                                                    tilConfirmPassword.setVisibility(View.VISIBLE);
-//                                                    btnResetPassword.setVisibility(View.VISIBLE);
-//
-//                                                    btnSendOtp.setVisibility(View.GONE);
-//                                                    tilUsername.setVisibility(View.GONE);
-//
-//                                                    String OTP = extractOTP(responseModel.getBody());
-//                                                    preferencesManager.save(Constants.OTP, OTP);
-//
-//
-//                                                }
-//                                            }
-//                                        }
-//                                    }
-//
-//                                    @Override
-//                                    public void onError(Throwable e) {
-//                                        // Handle the error
-//                                        pd.dismiss();
-//                                        Utils.handleApiError(context, e, apiManager);
-//                                    }
-//
-//                                    @Override
-//                                    public void onComplete() {
-//                                        // Handle completion if needed
-//                                    }
-//                                };
-//                                apiManager.makeOTPRequestCall("HXIN1764058706IN/messages/", fields, headers, disposableObserver);
-//                            }
-//                            Log.e(TAG, "onClick:mobileNoExists " + mobileNoExists);
-//                        }
-//                    }).start();
 
 
                 } else {
@@ -719,43 +457,7 @@ public class Constants {
 
 
                 if (isValid(password) && isValid(confirmPassword) && password.equalsIgnoreCase(confirmPassword)) {
-
-                    Executors.newSingleThreadExecutor().execute(() -> {
-                        // Perform the query in the background thread
-                        User user = appDatabase.userDao().getUserByMobile(tieMobileNo.getText().toString());
-
-                        if (user != null) {
-                            // Update the user object
-                            user.setPassword(password);
-
-                            // Update the user in the database
-                            appDatabase.userDao().update(user);
-
-                            /// If user type is end user
-                            if (user.getUserType() == 1) {
-                                preferencesManager.save(RegisterUser, new Gson().toJson(user));
-                            } else if (user.getUserType() == 2) {
-                                /// If user type is customer user
-                                preferencesManager.save(RegisterCustomerAdmin, new Gson().toJson(user));
-                            }
-
-                            // Optionally handle the UI on the main thread
-                            new Handler(Looper.getMainLooper()).post(() -> {
-                                Log.e("first name", user.getFirst_name());
-                                Log.e("new password", user.getPassword());
-                                Toast.makeText(context, "Password updated successfully!", Toast.LENGTH_SHORT).show();
-
-                                dialog.cancel();
-
-                            });
-                        } else {
-                            new Handler(Looper.getMainLooper()).post(() -> {
-                                Toast.makeText(context, "User not found!", Toast.LENGTH_SHORT).show();
-                            });
-                        }
-                    });
-
-
+                    // password is valid, proceed with form submission
                 } else {
                     // password is invalid, show error message
                     if (!isValid(password)) {
@@ -903,7 +605,6 @@ public class Constants {
         transaction.setTransactionDate(transactionDate);
         transaction.setTransactionTime(transactionTime);
         transaction.setAmount(amount);
-//        transaction.setVolume(volume);
         transaction.setTransactionStatus(transactionStatus);
         transaction.setUpiId(upiId);
         transaction.setUniqueTransactionId(transactionDao.generateUniqueTransactionId());
@@ -917,10 +618,8 @@ public class Constants {
 
     public static void doPostTransaction(String url, TransactionEntity transaction, Activity activity) {
 
-        SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(activity);
 
-        Log.e("base Url ", preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString());
-        Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString()) // Replace with your base URL
+        Retrofit retrofit = new Retrofit.Builder().baseUrl("https://portal.idmc.coop:5151/") // Replace with your base URL
                 .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
                 .addConverterFactory(GsonConverterFactory.create()).build();
 

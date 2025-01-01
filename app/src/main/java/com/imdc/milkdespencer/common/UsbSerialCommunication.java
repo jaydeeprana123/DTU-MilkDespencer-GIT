@@ -1,7 +1,5 @@
 package com.imdc.milkdespencer.common;
 
-import static com.imdc.milkdespencer.common.Constants.cipDialog;
-
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -50,8 +48,6 @@ public class UsbSerialCommunication {
     private UsbEndpoint inEndpoint;
     private UsbEndpoint outEndpoint;
     private boolean currencyReceived = false;
-
-    public static boolean isCipOn = false;
 
 
     public UsbSerialCommunication(Context context) {
@@ -203,25 +199,13 @@ public class UsbSerialCommunication {
     public void fireOnStart(float temperature) {
         try {
             SendToDevice sendToDevice = new SendToDevice();
-            float offSet = Float.parseFloat(SharedPreferencesManager.getInstance(context).get(Constants.TemperatureOffSet, "0.0").toString());
+            float offSet = Float.parseFloat(SharedPreferencesManager.getInstance(context).get(Constants.TemperatureOffSet, 0.0).toString());
             float setTemperature = Float.parseFloat(SharedPreferencesManager.getInstance(context).get(Constants.TemperatureSet, "0.0").toString());
             float weight = Float.parseFloat("0");
-
+            sendToDevice.setWeight(weight);
+            sendToDevice.setStatus(false);
             sendToDevice.setCurtemperature(temperature + offSet);
             sendToDevice.setSettemperature(setTemperature);
-
-            /// 31-12-2024 add isCIP
-            sendToDevice.setCIP(isCipOn);
-
-            if (isCipOn) {
-                sendToDevice.setWeight(2.0f);
-                sendToDevice.setStatus(true);
-            } else {
-                sendToDevice.setWeight(weight);
-                sendToDevice.setStatus(false);
-            }
-
-
             Log.d(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
             sendData(gson.toJson(sendToDevice));
         } catch (Exception e) {
@@ -276,7 +260,6 @@ public class UsbSerialCommunication {
                             if (fromCalibration) {
                                 if (sendToDevice != null) {
 //                                    Log.i(TAG, " run: Calibration Send " + gson.toJson(sendToDevice));
-
                                     sendData(gson.toJson(sendToDevice));
                                     return;
                                 }
@@ -290,7 +273,6 @@ public class UsbSerialCommunication {
                                         Log.i(TAG, "run: ==> BOOL Resend" + icCalibResponse + " CR " + currencyReceived);
 
                                         Log.i(TAG, " run: ==> Resend " + gson.toJson(sendToDevice));
-
                                         sendData(gson.toJson(sendToDevice));
                                     }
                                 }
@@ -307,22 +289,9 @@ public class UsbSerialCommunication {
                                     fireOnStart(currentTemperature);
                                 }
                                 if (completeData.contains("status")) {
-
                                     Log.d(TAG, "run: ==> Condition TWO: receivedData " + completeData);
 
                                     ResponseMilkDispense milkDispense = new Gson().fromJson(completeData, ResponseMilkDispense.class);
-
-                                    /// If status is true cip should be false and dialog will be close
-                                    if (milkDispense.getStatus()) {
-                                        Log.e("Status is truueeeee", milkDispense.getStatus().toString());
-
-                                        isCipOn = false;
-                                        cipDialog.cancel();
-
-                                    } else {
-
-                                        Log.e("Status is false", milkDispense.getStatus().toString());
-                                    }
 
                                     ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
                                     float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());

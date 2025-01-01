@@ -10,9 +10,6 @@ public class SendToDevice {
     private boolean status;
     private boolean calib = false;
 
-    /// Added new parameter on 31-12-2024
-    private boolean cip = false;
-
     public float getLowweight() {
         return lowweight;
     }
@@ -36,16 +33,6 @@ public class SendToDevice {
     public void setCalib(boolean calib) {
         this.calib = calib;
     }
-
-
-    public boolean isCIP() {
-        return cip;
-    }
-
-    public void setCIP(boolean cip) {
-        this.cip = cip;
-    }
-
 
     public float getWeight() {
         return weight;

@@ -111,7 +111,6 @@ public class Utils {
             HttpException httpException = (HttpException) e;
             int statusCode = httpException.code();
 
-
             switch (statusCode) {
                 case 401:
                     showAlertDialog(context, "Unauthorized Error", "You are not authorized to access this resource.", new DialogInterface.OnClickListener() {

@@ -1,7 +1,6 @@
 package com.imdc.milkdespencer.roomdb;
 
 import android.content.Context;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.room.Database;
@@ -29,17 +28,8 @@ public abstract class AppDatabase extends RoomDatabase {
             Executors.newSingleThreadExecutor().execute(new Runnable() {
                 @Override
                 public void run() {
-
-                    Log.e("Admin ", "inserted");
-
-//                    UserDao userDao = instance.userDao();
-//                    long userId = userDao.insert(new User("admin", "Mvb@idmc123", 0));
-//                    User existUser = userDao.getUserByUserType(0);
-//                    if(existUser == null){
-//                        long userId = userDao.insert(new User("admin", "Mvb@idmc123", 0));
-//                    }
-//                    UserDao userDao = instance.userDao();
-//                    userDao.insert(new User("admin", "Mvb@idmc123", 0));
+                    UserDao userDao = instance.userDao();
+                    userDao.insert(new User("admin", "Admin@123", 0));
                 }
             });
         }

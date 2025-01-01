@@ -45,9 +45,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         holder.tvTransactionType.setText(transaction.getTransactionType());
         holder.tvTransactionDateTime.setText(transaction.getTransactionDate() + " at " + transaction.getTransactionTime());
 
-        /// Add volume on 31-12-2024
-//        holder.tvVolume.setText("(" + transaction.get);
-        if (transaction.getTransactionStatus().equalsIgnoreCase("Failed") || transaction.getTransactionStatus().equalsIgnoreCase("Time Out")) {
+        if (transaction.getTransactionStatus().equalsIgnoreCase("Failed")) {
             holder.tvTransactionDateStatus.setTextColor(ContextCompat.getColor(activity, R.color.md_theme_dark_errorContainer));
         } else {
             holder.tvTransactionDateStatus.setTextColor(ContextCompat.getColor(activity, R.color.md_theme_dark_success));
@@ -63,7 +61,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
 
     public class TransactionViewHolder extends RecyclerView.ViewHolder {
 
-        TextView tvTransactionAmount, tvTransactionDateTime, tvTransactionType, tvTransactionId, tvTransactionDateStatus,tvVolume;
+        TextView tvTransactionAmount, tvTransactionDateTime, tvTransactionType, tvTransactionId, tvTransactionDateStatus;
 
         public TransactionViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -72,7 +70,6 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             tvTransactionType = itemView.findViewById(R.id.tvTransactionType);
             tvTransactionId = itemView.findViewById(R.id.tvTransactionId);
             tvTransactionDateStatus = itemView.findViewById(R.id.tvTransactionDateStatus);
-            tvVolume= itemView.findViewById(R.id.tvVolume);
         }
     }
 }

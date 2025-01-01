@@ -31,33 +31,24 @@
     <string name="pay_with_cash">Pay With Cash</string>
     <string name="btnSetConfiguration">Set Configuration</string>
     <string name="btnAddUser">Register User</string>
-    <string name="btnRegisterCustomerAdmin">Register Customer Admin</string>
-    <string name="btnAddEndUser">Register End User</string>
     <string name="btnLogs">Show Transactions</string>
     <string name="btnCalibration">Calibration</string>
     <string name="cash">₹. xx</string>
     <string name="pay_using_upi_qr">Pay Using UPI</string>
     <string name="cancel">Cancel</string>
-    <string name="process_completed">Process Completed</string>
-    <string name="you_can_open_door">You can now open the door.</string>
     <string name="set_configurations">Set Configurations</string>
-    <string name="api_configurations">API Configurations</string>
-    <string name="btnCIP">CIP</string>
     <string name="submit">submit</string>
     <string name="temperature_offset">Temperature Offset</string>
     <string name="temperature">Temperature</string>
     <string name="temperature_set">Set Temperature </string>
     <string name="milk_base_price">Milk Base Price</string>
 
-    <string name="api_base_url">API Base Url</string>
-
     <string name="milk_density">Milk Density (Kg/Ltr)</string>
-    <string name="screen_time_out">Screen Time Out</string>
+
     <string name="machineId">Machine Id</string>
     <string name="razorpay_customer_id">RazorPay Customer Id</string>
     <string name="ownerName">Owner Name</string>
 
-    <string name="machineId_validation">Enter valid Machine Id</string>
 
     <string name="login_title">Login</string>
     <string name="beaker_title">Follow the Steps</string>
@@ -87,7 +78,6 @@
     <string name="password">Password</string>
     <string name="login">Login</string>
     <string name="generateQr">Pay With Qr</string>
-    <string name="backToHome">Back To Home</string>
     <string name="forgot_password">Forgot Password ?</string>
     <string name="forgot_password_title">Forgot Password</string>
     <string name="registration_title">Register User</string>
@@ -108,7 +98,7 @@
     <string name="or">OR</string>
     <string name="select_option">Select Option</string>
     <string name="configuration">Configuration</string>
-    <string name="api_configuration">API Configuration</string>
+
     <string-array name="milk_options">
         <item>@string/select_option</item>
         <item>@string/milk_in_liters</item>

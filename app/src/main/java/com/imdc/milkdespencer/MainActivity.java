@@ -102,13 +102,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             // Check if the device is charging
             boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
 
-            Log.e("isCharging boolean", String.valueOf(isCharging));
-
             if (isCharging) {
                 // Device is charging
-
-                Log.e("isCharging if true", String.valueOf(isCharging));
-
                 btnStart.setVisibility(View.VISIBLE);
                 llCash.setVisibility(View.GONE);
                 llQr.setVisibility(View.GONE);
@@ -120,38 +115,23 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                         cv_error.setVisibility(View.GONE);
 //                        usbSerialCommunication.connect();
                         if (usbSerialCommunication.connected) {
-
-                            Log.e("usbSerialCommunication connected", String.valueOf(isCharging));
-
-                            /// If Cash and Pay with Qr button is not visible. that time btnStart visi
-                            if(llCash.getVisibility() == View.GONE){
-                                btnStart.setVisibility(View.VISIBLE);
-                                llCash.setVisibility(View.GONE);
-                                llQr.setVisibility(View.GONE);
-                                cvPayWithQr.setVisibility(View.GONE);
-                                cvPayWithCash.setVisibility(View.GONE);
-                            }
-
-
+                            btnStart.setVisibility(View.VISIBLE);
+                            llCash.setVisibility(View.GONE);
+                            llQr.setVisibility(View.GONE);
+                            cvPayWithQr.setVisibility(View.GONE);
+                            cvPayWithCash.setVisibility(View.GONE);
                         } else {
                             llCash.setVisibility(View.GONE);
                             llQr.setVisibility(View.GONE);
                             cvPayWithQr.setVisibility(View.GONE);
                             cvPayWithCash.setVisibility(View.GONE);
                             btnStart.setVisibility(View.VISIBLE);
-
-                            Log.e("usbSerialCommunication disconnected", String.valueOf(isCharging));
-
-
                         }
 //                        usbSerialCommunication.setBaudRate(115200);
                     }
                 }, DELAY_TIME_MILLIS);
 
             } else {
-
-                Log.e("isCharging if false", String.valueOf(isCharging));
-
                 // Device is not charging
                 // Disable the Ui and show the error message.
                 runOnUiThread(new Runnable() {
@@ -161,9 +141,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                         llQr.setVisibility(View.GONE);
                         cvPayWithQr.setVisibility(View.GONE);
                         cvPayWithCash.setVisibility(View.GONE);
-                        btnStart.setVisibility(View.GONE);
-
-                        Log.e("isCharging if false runOnUiThread", String.valueOf(isCharging));
+                        btnStart.setVisibility(View.VISIBLE);
 
                         if (cv_error.getVisibility() != View.VISIBLE) {
                             cv_error.setVisibility(View.VISIBLE);
@@ -193,10 +171,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main2);
-
-
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-
         preferencesManager = SharedPreferencesManager.getInstance(this);
         usbSerialCommunication = new UsbSerialCommunication(this);
         IntentFilter filter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
@@ -254,8 +228,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         btnStart.setOnClickListener(v -> {
 
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-
 /*
             Intent intent = new Intent(MainActivity.this, CashCollectorActivity.class);
             startActivity(intent);
@@ -299,7 +271,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                                 }
                             } else {
                                 submitBtn.setText(getResources().getString(R.string.next));
-                                //   Toast.makeText(MainActivity.this, "Please Close the Door " + responseTempStatus.getConnectivity(), Toast.LENGTH_SHORT).show();
+                                Toast.makeText(MainActivity.this, "Please Close the Door " + responseTempStatus.getConnectivity(), Toast.LENGTH_SHORT).show();
                             }
                         }
                     }
@@ -308,7 +280,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 }
             });
             dialog.show();
-            dialog.setCancelable(false);
 
             /*else {
                 Toast.makeText(MainActivity.this, "Please wait checking for the Door status", Toast.LENGTH_SHORT).show();
@@ -369,15 +340,10 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.action_Config) {
 
-            //    AppDatabase instance = AppDatabase.getInstance(MainActivity.this);
+            AppDatabase instance = AppDatabase.getInstance(MainActivity.this);
             Executors.newSingleThreadExecutor().execute(() -> {
-                User user = appDatabase.userDao().getUserByUserType(0);
-
-                if (user == null) {
-                    appDatabase.userDao().insert(new User("admin", "Mvb@idmc123", 0));
-
-                }
-
+                UserDao userDao = instance.userDao();
+                userDao.insert(new User("admin", "Admin@123", 0));
             });
             // Handle edit action
             Constants.showLoginDialog(MainActivity.this, appDatabase);
@@ -481,52 +447,24 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 */
                             if (responseTempStatus.getLowlevel() != null) {
                                 if (responseTempStatus.getLowlevel()) {
-
-                                    Log.e("low level", responseTempStatus.getLowlevel().toString());
-
-                                    cv_error.setVisibility(View.VISIBLE);
-                                    btnDone.setVisibility(View.GONE);
-                                    btnStart.setVisibility(View.GONE);
-                                    lvAnimation.setAnimation(R.raw.milk_loading);
-                                    tv_Message.setText("Low Milk level Please wait till refill.");
-                                    lvAnimation.setRepeatMode(LottieDrawable.RESTART);
+                                    if (cv_error.getVisibility() != View.VISIBLE) {
+                                        Log.e(TAG, "getLowlevel: True " + cv_error.getVisibility() + " ====> " + View.VISIBLE);
+                                        cv_error.setVisibility(View.VISIBLE);
+                                        btnDone.setVisibility(View.GONE);
+                                        btnStart.setVisibility(View.GONE);
+                                        lvAnimation.setAnimation(R.raw.milk_loading);
+                                        tv_Message.setText("Low Milk level Please wait till refill.");
+                                        lvAnimation.setRepeatMode(LottieDrawable.RESTART);
 //                                        lvAnimation.setProgress(Float.parseFloat("20.0"));
 
+                                    } else {
+                                        cv_error.setVisibility(View.GONE);
+                                        btnStart.setVisibility(View.VISIBLE);
+                                        btnPayWithCash.setVisibility(View.VISIBLE);
+                                        btnPayWithQr.setVisibility(View.VISIBLE);
+                                        btnDone.setVisibility(View.GONE);
 
-//                                    if (cv_error.getVisibility() != View.VISIBLE) {
-//
-//                                        Log.e("cv_error", "Not visible");
-//
-//
-//                                        Log.e(TAG, "getLowlevel: True " + cv_error.getVisibility() + " ====> " + View.VISIBLE);
-//                                        cv_error.setVisibility(View.VISIBLE);
-//                                        btnDone.setVisibility(View.GONE);
-//                                        btnStart.setVisibility(View.GONE);
-//                                        lvAnimation.setAnimation(R.raw.milk_loading);
-//                                        tv_Message.setText("Low Milk level Please wait till refill.");
-//                                        lvAnimation.setRepeatMode(LottieDrawable.RESTART);
-////                                        lvAnimation.setProgress(Float.parseFloat("20.0"));
-//
-//                                    } else {
-//
-//                                        Log.e("cv_error", "issssss visible");
-//
-//
-//                                        cv_error.setVisibility(View.GONE);
-//                                        btnStart.setVisibility(View.VISIBLE);
-//                                        btnPayWithCash.setVisibility(View.VISIBLE);
-//                                        btnPayWithQr.setVisibility(View.VISIBLE);
-//                                        btnDone.setVisibility(View.GONE);
-//
-//                                    }
-                                } else {
-                                    cv_error.setVisibility(View.GONE);
-//                                        btnStart.setVisibility(View.VISIBLE);
-                                    btnPayWithCash.setVisibility(View.VISIBLE);
-                                    btnPayWithQr.setVisibility(View.VISIBLE);
-                                    btnDone.setVisibility(View.GONE);
-
-                                    Log.e("low level is", responseTempStatus.getLowlevel().toString());
+                                    }
                                 }
                             }
                         }
@@ -569,10 +507,10 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             if (batteryStatus == BatteryManager.BATTERY_STATUS_CHARGING) {
                 // Device is charging
-                // Toast.makeText(context, "Charging", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Charging", Toast.LENGTH_SHORT).show();
             } else {
                 // Device is not charging
-                // Toast.makeText(context, "Not Charging", Toast.LENGTH_SHORT).show();
+                Toast.makeText(context, "Not Charging", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -598,6 +536,4 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             alertDialog.dismiss();
         }
     }
-
-
 }

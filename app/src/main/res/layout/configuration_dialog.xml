@@ -63,37 +63,7 @@
             android:imeOptions="actionNext"
             android:inputType="numberDecimal" />
 
-
-
-
     </com.google.android.material.textfield.TextInputLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/tilTimeOut"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/_10sdp"
-        android:layout_marginVertical="@dimen/_10sdp"
-        android:hint="@string/screen_time_out"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tilMilkDensity">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/tieTimeOut"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/screen_time_out"
-            android:imeOptions="actionNext"
-            android:inputType="number" />
-
-
-
-
-    </com.google.android.material.textfield.TextInputLayout>
-
 
 
     <com.google.android.material.button.MaterialButton
@@ -108,7 +78,7 @@
         app:backgroundTint="@color/md_theme_light_primary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tilTimeOut" />
+        app:layout_constraintTop_toBottomOf="@+id/tilMilkDensity" />
 
 
     <com.google.android.material.button.MaterialButton

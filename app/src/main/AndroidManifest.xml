@@ -43,15 +43,9 @@
             android:exported="false"
             android:screenOrientation="landscape" />
         <activity
-            android:name=".adminUi.CustomerAdminRegistrationActivity"
+            android:name=".adminUi.RegistrationActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
-
-        <activity
-            android:name=".adminUi.EndUserRegistrationActivity"
-            android:exported="false"
-            android:screenOrientation="landscape" />
-
         <activity
             android:name=".PayWithQrActivity"
             android:exported="false"

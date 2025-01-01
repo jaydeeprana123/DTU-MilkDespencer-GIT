@@ -1,7 +1,5 @@
 package com.imdc.milkdespencer;
 
-import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
-
 import android.Manifest;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
@@ -14,9 +12,10 @@ import android.hardware.usb.UsbManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.Handler;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
@@ -116,17 +115,12 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     static float milkBasePrice;
     static float milkSetTemperature;
     static SharedPreferencesManager preferencesManager;
-//    private static MenuItem downloadFileSelect = null;
+    private static MenuItem downloadFileSelect = null;
     private static ITLDeviceCom deviceCom;
     private static D2xxManager ftD2xx = null;
     private static FT_Device ftDev = null;
     private static SSPDevice sspDevice = null;
     private static CashCollectorActivity instance = null;
-
-
-    private Handler handler = new Handler(); // Create a Handler instance
-    private Runnable runnable; // Declare the Runnable
-
     /**********   USB functions   ******************************************/
 
 //    private static UsbSerialManager usbSerialManager;
@@ -160,9 +154,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     AlertDialog loadingDialog;
     LottieDialog lottieDialog;
     GridView grdCurrencyView;
-
-    Button btnBackToHome;
-
     Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
     ApiManager apiManager;
     BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
@@ -218,7 +209,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
         }
 
-//        downloadFileSelect.setEnabled(true);
+        downloadFileSelect.setEnabled(true);
 
         /* device details  */
         txtFirmware.append(" " + dev.firmwareVersion);
@@ -381,9 +372,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     private void connectToDevices() {
         if (ftDev != null) {
-           // Toast.makeText(CashCollectorActivity.this, milkSetTemperature + " MilkBase Price " + milkBasePrice, Toast.LENGTH_SHORT).show();
+            Toast.makeText(CashCollectorActivity.this, milkSetTemperature + " MilkBase Price " + milkBasePrice, Toast.LENGTH_SHORT).show();
         } else {
-         //   Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
+            Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
             openDevice();
         }
         usbSerialCommunication.connect();
@@ -410,9 +401,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 sendToDevice.setStatus(true);
                 sendToDevice.setCurtemperature(currentTemperature);
                 sendToDevice.setSettemperature(milkSetTemperature);
-
-
-
 //                UsbSerialCommunication.currentClass = "CCA";
                 Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
                 Log.e(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
@@ -436,10 +424,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                     }
                                 }
                                 if (milkDispense.getStatus()) {
-
-
-                                    Log.e("Cashcollector", milkDispense.getStatus().toString());
-
                                     try {
                                         if (lottieDialog.isShowing()) {
                                             lottieDialog.dismiss();
@@ -459,8 +443,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                         throw new RuntimeException(e);
                                     }
 
-                                }else {
-                                    Log.e("Cashcollector", milkDispense.getStatus().toString());
                                 }
                             }
                         }
@@ -478,9 +460,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     public void showAndProcessDoneDialog(SendToDevice sendToDevice, double currency) {
 
-
-        Log.e("showAndProcessDoneDialog", "Show");
-
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -489,20 +468,13 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 View view = inflater.inflate(R.layout.dialog_lottie, null);
 
                 LottieAnimationView lottieAnimationView = view.findViewById(R.id.lottieAnimationView);
-                LottieAnimationView lottieAnimationViewDone = view.findViewById(R.id.lottieAnimationViewDone);
                 TextView tvProgressDialog = view.findViewById(R.id.tvProgressDialog);
                 MaterialButton btnDone = view.findViewById(R.id.doneButton);
-                TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
-                TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
                 btnDone.setVisibility(View.VISIBLE);
-                lottieAnimationView.setVisibility(View.GONE);
-                lottieAnimationViewDone.setVisibility(View.VISIBLE);
-                tvProcessDoneText.setVisibility(View.VISIBLE);
-                tvOpenTheDoor.setVisibility(View.VISIBLE);
                 tvProgressDialog.setVisibility(View.GONE);
-                lottieAnimationViewDone.setAnimation(R.raw.process_done);
-                lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
-                lottieAnimationViewDone.playAnimation();
+                lottieAnimationView.setAnimation(R.raw.process_done);
+                lottieAnimationView.setRepeatMode(LottieDrawable.RESTART);
+                lottieAnimationView.playAnimation();
 
                 // Customize the LottieAnimationView and TextView here
 
@@ -512,40 +484,41 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 AlertDialog dialog = builder.create();
                 dialog.show();
 
-
-                /// Initialize the handler
-                handler = new Handler();
-                Long screenTimeOut = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0.0").toString());
-
-                // Define the Runnable task
-                runnable = () -> {
-                    // Task to execute after delay
-                    dialog.dismiss();
-                    closeDevice();
-//                        onDestroy();
-
-                    insertDataOnProcessDone(currency);
-                };
-
-                // Post the Runnable with a 15-second delay
-                handler.postDelayed(runnable, screenTimeOut * 1000);
-
-
                 btnDone.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-
-                      //  If User clicks on the done button. Runnable should be close
-                        // Cancel the delayed task
-                        if (handler != null && runnable != null) {
-                            handler.removeCallbacks(runnable);
-                        }
-
                         dialog.dismiss();
                         closeDevice();
 //                        onDestroy();
 
-                        insertDataOnProcessDone(currency);
+                        new Thread(new Runnable() {
+                            @Override
+                            public void run() {
+
+                                try {
+                                    String dateFormat = "yyyy-MM-dd";
+                                    String timeFormat = "HH:mm:ss";
+                                    SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
+                                    SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
+
+                                    String date = dateFormatter.format(System.currentTimeMillis());
+                                    String time = timeFormatter.format(System.currentTimeMillis());
+                                    // Print the combined date and time
+
+                                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
+                                    assert date != null;
+                                    long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "");
+                                    Log.e(TAG, "onCreate: " + transactionId);
+                                    Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
+                                    Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+                                    startActivity(intent);
+                                    finish();
+
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }).start();
 
 //                doPostTransaction(Constants.PostTransactionURL);
                     }
@@ -578,7 +551,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "");
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
                                 Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
@@ -795,15 +768,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-        Log.e("Cash collector ", "Screen");
-
-        screenClose();
-
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         grdCurrencyView = findViewById(R.id.gridViewCurrency);
-        btnBackToHome= findViewById(R.id.btnBackToHome);
         bvDisplay = findViewById(R.id.content_bill_validator);
         bvDisplay.setVisibility(View.INVISIBLE);
         cashCollectorActivity = this;
@@ -884,17 +851,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         deviceCom.setDeviceFileUpdateListener(this);
         fab = findViewById(R.id.fab);
         fab.setVisibility(View.GONE);
-
-        btnBackToHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (handler != null && runnable != null) {
-                    handler.removeCallbacks(runnable);
-                }
-                goToHome();
-            }
-        });
-
         /*fab = findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -915,35 +871,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         grdCurrencyView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-
-//                If User clicks on the grid item. Runnable should be close
-                // Cancel the delayed task
-                if (handler != null && runnable != null) {
-                    handler.removeCallbacks(runnable);
-                }
-
-
                 selectedCurrency = grdCurrencyView.getAdapter().getItem(i).toString();
                 milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
                 milkSetTemperature = Float.parseFloat(preferencesManager.get(Constants.TemperatureSet, "0.0").toString());
                 lottieAddCashDialog.show();
-                lottieAddCashDialog.setCancelable(false);
-
-                MaterialButton btnCancel = lottieAddCashDialog.findViewById(R.id.btnCancel);
-                btnCancel.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        lottieAddCashDialog.dismiss();
-                        closeDevice();
-                        goToHome();
-                    }
-                });
-
-
                 if (ftDev != null) {
-                   // Toast.makeText(CashCollectorActivity.this, milkSetTemperature + " MilkBase Price " + milkBasePrice, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(CashCollectorActivity.this, milkSetTemperature + " MilkBase Price " + milkBasePrice, Toast.LENGTH_SHORT).show();
                 } else {
-                  //  Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
                 }
                 openDevice();
             }
@@ -1046,50 +981,41 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     }
 
-//    @Override
-//    public boolean onCreateOptionsMenu(Menu menu) {
-//        // Inflate the menu; this adds items to the action bar if it is present.
-//        getMenuInflater().inflate(R.menu.menu_main, menu);
-//
-//        MenuItem menuItem = menu.findItem(R.id.action_home);
-//        // Set the tint color dynamically
-//        Drawable icon = menuItem.getIcon();
-//        if (icon != null) {
-//            icon.mutate(); // Ensure the drawable is mutable
-//            icon.setColorFilter(ContextCompat.getColor(this, R.color.white), PorterDuff.Mode.SRC_IN);
-//        }
-//
-//        downloadFileSelect = menu.getItem(0);
-//        downloadFileSelect.setEnabled(false);
-//
-//        return true;
-//    }
-//
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//
-//
-//        if (item.getItemId() == R.id.action_home) {
-//            Log.e("Home button", "Pressed");
-//            Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
-//            startActivity(intent);
-//            finish();
-//        }
-//        // Handle item selection
-//        /*switch (item.getItemId()) {
-//            case R.id.action_downloadFile:
-//                openFolder();
-//                return true;
-//            case R.id.action_shutdown:
-//                deviceCom.Stop();
-//                closeDevice();
-//                finish();
-//            default:
-//                return super.onOptionsItemSelected(item);
-//        }*/
-//
-//        return super.onOptionsItemSelected(item);
-//    }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+
+        downloadFileSelect = menu.getItem(0);
+        downloadFileSelect.setEnabled(false);
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+
+        if (item.getItemId() == R.id.action_home) {
+            Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+            startActivity(intent);
+            finish();
+        }
+        // Handle item selection
+        /*switch (item.getItemId()) {
+            case R.id.action_downloadFile:
+                openFolder();
+                return true;
+            case R.id.action_shutdown:
+                deviceCom.Stop();
+                closeDevice();
+                finish();
+            default:
+                return super.onOptionsItemSelected(item);
+        }*/
+
+        return super.onOptionsItemSelected(item);
+    }
 
     public void openFolder() {
 
@@ -1248,74 +1174,5 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         runOnUiThread(() -> DeviceDisconnected(sspDevice));
     }
 
-
-    /*
-    * Here we are getting time out from shared preference
-    * And after that screen automatically off
-    * */
-    void screenClose(){
-        preferencesManager = SharedPreferencesManager.getInstance(getInstance());
-        Log.e("timeOut", preferencesManager.get(ScreenTimeOutPref, "0").toString());
-
-        Long screenTimeOut = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0.0").toString());
-
-        // Define the Runnable task
-        runnable = () -> {
-            // Task to execute after delay
-            goToHome(); // Closes the current activity
-        };
-
-        // Post the Runnable with a 15-second delay
-        handler.postDelayed(runnable, screenTimeOut * 1000);
-    }
-
-
-
-
-
-    void goToHome(){
-        closeDevice();
-        finish();
-
-
-//        Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
-//        // Clear all previous activities
-//        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-//        startActivity(intent);
-
-    }
-
-    /// When process is completed. Data will be insert into database
-    void insertDataOnProcessDone(double currency){
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-
-                try {
-                    String dateFormat = "yyyy-MM-dd";
-                    String timeFormat = "HH:mm:ss";
-                    SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
-                    SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
-
-                    String date = dateFormatter.format(System.currentTimeMillis());
-                    String time = timeFormatter.format(System.currentTimeMillis());
-                    // Print the combined date and time
-
-                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
-                    assert date != null;
-                    long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "");
-                    Log.e(TAG, "onCreate: " + transactionId);
-                    Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                    Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
-                    // Clear all previous activities
-                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-    }
 
 }

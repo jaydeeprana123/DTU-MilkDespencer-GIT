@@ -36,7 +36,6 @@ public class TransactionHistoryActivity extends AppCompatActivity {
 
     RecyclerView rvTransactions;
     TextView tvTitle;
-    MaterialButton btnBackToHome;
     User user;
     private TransactionAdapter transactionAdapter;
     private LogsAdapter logsAdapter;
@@ -46,8 +45,6 @@ public class TransactionHistoryActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transaction_history);
 
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-
         if (getIntent() != null) {
             if (getIntent().hasExtra(Constants.LoginUser)) {
                 user = new Gson().fromJson(getIntent().getStringExtra(Constants.LoginUser), User.class);
@@ -56,21 +53,15 @@ public class TransactionHistoryActivity extends AppCompatActivity {
 
         rvTransactions = findViewById(R.id.rvTransactions);
         tvTitle = findViewById(R.id.tvTitle);
-        btnBackToHome = findViewById(R.id.btnBackToHome);
         rvTransactions.setLayoutManager(new LinearLayoutManager(this));
-        btnBackToHome.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                finish();
-            }
-        });
+
 
         new Thread(new Runnable() {
             @Override
             public void run() {
                 AppDatabase appDatabase = AppDatabase.getInstance(TransactionHistoryActivity.this);
                 Log.e("TAG", "run: " + new Gson().toJson(user));
-                if (user.getUserType() == 0 || user.getUserType() == 2) {
+                if (user.getUserType() == 0) {
                     if (getActionBar() != null) {
                         getActionBar().setTitle("Logs");
                     }

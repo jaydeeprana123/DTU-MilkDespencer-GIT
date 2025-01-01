@@ -6,10 +6,6 @@
         android:id="@+id/action_home"
         android:icon="@drawable/ic_action_home"
         android:orderInCategory="100"
-
-        app:theme="@style/MyActionBarTheme"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
-        android:iconTint="@android:color/white"
         android:title="@string/action_home"
         app:showAsAction="always" />
 
