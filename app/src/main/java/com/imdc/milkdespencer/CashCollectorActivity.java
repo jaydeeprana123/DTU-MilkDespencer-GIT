@@ -817,7 +817,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
         Log.e("Cash collector ", "Screen");
 
-        screenClose();
+        screenTimeOut();
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -1275,7 +1275,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     * Here we are getting time out from shared preference
     * And after that screen automatically off
     * */
-    void screenClose(){
+    void screenTimeOut(){
         preferencesManager = SharedPreferencesManager.getInstance(getInstance());
         Log.e("timeOut", preferencesManager.get(ScreenTimeOutPref, "0").toString());
 

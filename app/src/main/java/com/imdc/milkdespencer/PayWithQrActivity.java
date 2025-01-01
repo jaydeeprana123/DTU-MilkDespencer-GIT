@@ -160,7 +160,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         registerReceiver(batteryReceiver, battertyFilter);
 
-        screenClose();
+        screenTimeOut();
 
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
         if (!usbSerialCommunication.connected) {
@@ -930,7 +930,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
      * Here we are getting time out from shared preference
      * And after that screen automatically off
      * */
-    void screenClose() {
+    void screenTimeOut() {
         preferencesManager = SharedPreferencesManager.getInstance(getInstance());
         Log.e("timeOut", preferencesManager.get(ScreenTimeOutPref, "0").toString());
 
