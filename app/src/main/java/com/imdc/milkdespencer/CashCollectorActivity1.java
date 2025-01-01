@@ -80,7 +80,7 @@ import device.itl.sspcoms.SSPDeviceType;
 import device.itl.sspcoms.SSPSystem;
 import device.itl.sspcoms.SSPUpdate;
 
-public class CashCollectorActivity extends AppCompatActivity implements DeviceSetupListener, DeviceEventListener, DeviceFileUpdateListener {
+public class CashCollectorActivity1 extends AppCompatActivity implements DeviceSetupListener, DeviceEventListener, DeviceFileUpdateListener {
 
     //TODO:
     // 1) Read Continuous data from Serial
@@ -93,10 +93,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     private static final int MY_PERMISSIONS_REQUEST_READ_STORAGE = 0;
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
-    private static final String TAG = CashCollectorActivity.class.getSimpleName();
+    private static final String TAG = CashCollectorActivity1.class.getSimpleName();
     static FloatingActionButton fab;
     static LinearLayout bvDisplay;
-    static CashCollectorActivity cashCollectorActivity;
+    static CashCollectorActivity1 cashCollectorActivity;
     static ListView listChannels;
     static ListView listEvents;
     static Button bttnAccept;
@@ -122,7 +122,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     private static D2xxManager ftD2xx = null;
     private static FT_Device ftDev = null;
     private static SSPDevice sspDevice = null;
-    private static CashCollectorActivity instance = null;
+    private static CashCollectorActivity1 instance = null;
 
 
     private Handler handler = new Handler(); // Create a Handler instance
@@ -132,41 +132,31 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 //    private static UsbSerialManager usbSerialManager;
     private static UsbSerialCommunication usbSerialCommunication;
-
-
-    /*Battery Receiver. In this is battery is not in charging then */
     private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             // Get the current battery status
             int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+
+            // Check if the device is charging
             boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
 
-            if (!isCharging) {
-                // Log the loss of electricity
-                Constants.saveLogs(CashCollectorActivity.this, "Lost Electricity");
+            if (isCharging) {
 
-                // Retrieve and parse payment details
-                String paymentData = preferencesManager.get(Constants.PaymentCashReceived, "").toString();
-                if (paymentData != null && !paymentData.isEmpty()) {
-                    Payment payment = new Gson().fromJson(paymentData, Payment.class);
-                    if (payment != null) {
-                        String amountStr = payment.get("amount");
-                        if (amountStr != null) {
-                            try {
-                                float amount = Float.parseFloat(amountStr);
-                                float adjustedAmount = amount / 100;
-                                showFailedProcessDoneDialog(adjustedAmount, "");
-                            } catch (NumberFormatException e) {
-                                Log.e("BatteryReceiver", "Invalid amount format: " + amountStr, e);
-                            }
-                        }
-                    }
+
+            } else {
+                Constants.saveLogs(CashCollectorActivity1.this, "Lost Electricity");
+
+
+                Payment payment = new Gson().fromJson(preferencesManager.get(Constants.PaymentCashReceived, "").toString(), Payment.class);
+                if (payment != null && payment.get("amount") != null) {
+                    float amount = Float.parseFloat(payment.get("amount").toString());
+                    float amt = amount / 100;
+                    showFailedProcessDoneDialog(amt);
                 }
             }
         }
     };
-
     LottieAddCashDialog lottieAddCashDialog;
     AlertDialog loadingDialog;
     LottieDialog lottieDialog;
@@ -176,39 +166,24 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
     ApiManager apiManager;
-
-    /*
-    * Broadcast receiver for USB*/
-    private final BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
-        @Override
+    BroadcastReceiver mUsbReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-            if (action == null) return;
-
-            switch (action) {
-                case UsbManager.ACTION_USB_DEVICE_ATTACHED:
-                    // Handle USB device attachment
-                    openDevice();
-                    break;
-
-                case UsbManager.ACTION_USB_DEVICE_DETACHED:
-                    // Handle USB device detachment
-                    closeDevice();
-                    bvDisplay.setVisibility(View.INVISIBLE);
-                    fab.setVisibility(View.VISIBLE);
-                    fab.setEnabled(true);
-                    break;
-
-                default:
-                    // No action needed for other intents
-                    break;
+            if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                // never come here(when attached, go to onNewIntent)
+                openDevice();
+            } else if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                closeDevice();
+                bvDisplay.setVisibility(View.INVISIBLE);
+                fab.setVisibility(View.VISIBLE);
+                fab.setEnabled(true);
             }
         }
     };
-
     private SSPUpdate sspUpdate = null;
 
-    public static CashCollectorActivity getInstance() {
+    public static CashCollectorActivity1 getInstance() {
+
         return instance;
     }
 
@@ -225,7 +200,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
         // check for type comapable
         if (dev.type != SSPDeviceType.BillValidator) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity.getInstance());
+            AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity1.getInstance());
             // 2. Chain together various setter methods to set the dialog characteristics
             builder.setMessage("Connected device is not BNV (" + dev.type.toString() + ")").setTitle("BNV");
             builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -419,160 +394,177 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         usbSerialCommunication.setBaudRate(115200);
     }
 
-
-
-    /* If Submit button is pressed*/
     private void sendToMilkDevice(DeviceEvent ev) {
-        double selectedCurrencyValue = Double.parseDouble(selectedCurrency.replace("₹", ""));
+        if (ev.value == Double.parseDouble(selectedCurrency.replace("₹", ""))) {
+            Log.e("TAG", "Currency: " + ev.currency + "<C  Vd>" + String.format("%.2f", ev.value) + "\n AMT " + ev.value + " Condition " + (ev.value == Double.parseDouble(selectedCurrency.replace("₹", ""))));
+            try {
+                ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+                float milkSellingPrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
+                float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+                float DENSITY_OF_MILK = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
+                float weight = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice))) * DENSITY_OF_MILK;
+//                float weight = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice)));
+                double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+                float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
 
-        if (ev.value != selectedCurrencyValue) {
-            Constants.showAlertDialog(
-                    cashCollectorActivity,
-                    "Please insert correct note",
-                    "Please insert correct note. The selected note didn't match! Please enter the correct note."
-            );
+                Log.e(TAG, "DisplayEvents: SEND COMMAND " + milkSellingPrice + " " + ev.value);
+                SendToDevice sendToDevice = new SendToDevice();
+                sendToDevice.setWeight(weight);
+                sendToDevice.setStatus(true);
+                sendToDevice.setCurtemperature(currentTemperature);
+                sendToDevice.setSettemperature(milkSetTemperature);
+
+
+
+//                UsbSerialCommunication.currentClass = "CCA";
+                Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+                Log.e(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
+//                Toast.makeText(CashCollectorActivity.this, "Command SEND TO DEVICE On START ->\n " + new Gson().toJson(sendToDevice), Toast.LENGTH_LONG).show();
+                usbSerialCommunication.sendData(gson.toJson(sendToDevice));
+                lottieDialog.show();
+                usbSerialCommunication.setReadDataListener(new UsbSerialCommunication.ReadDataListener() {
+                    @Override
+                    public void onReadData(String data) {
+                        Log.d(TAG, "DisplayEvents:onReadData: " + data + "\n status " + data.contains("status"));
+
+                        if (data.contains("status")) {
+                            ResponseMilkDispense milkDispense = new Gson().fromJson(data, ResponseMilkDispense.class);
+                            Log.i(TAG, "run: ==>< onReadData: " + new Gson().toJson(milkDispense));
+
+                            if (milkDispense != null) {
+                                double percentage = (milkDispense.getCurTemperature() / milkDispense.getSetTemperature()) * 100;
+                                if (lottieDialog != null) {
+                                    if (percentage > 0) {
+                                        lottieDialog.setPercentage(percentage);
+                                    }
+                                }
+                                if (milkDispense.getStatus()) {
+
+
+                                    Log.e("Cashcollector", milkDispense.getStatus().toString());
+
+                                    try {
+                                        if (lottieDialog.isShowing()) {
+                                            lottieDialog.dismiss();
+                                        }
+                                        preferencesManager.save(Constants.CurrentTemperature, currentSavedTemp);
+                                        preferencesManager = SharedPreferencesManager.getInstance(getInstance());
+                                        deviceCom.SetEscrowAction(SSPSystem.BillAction.Accept);
+                                        /*float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+                                        double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+                                        float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+                                        usbSerialCommunication.fireOnStart(currentTemperature);
+                                        usbSerialCommunication.fireOnStart(currentTemperature);*/
+//                                        usbSerialCommunication.fireOnStart(currentTemperature);
+                                        //                                        bttnAccept.performClick();
+                                        showAndProcessDoneDialog(sendToDevice, ev.value);
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+
+                                }else {
+                                    Log.e("Cashcollector", milkDispense.getStatus().toString());
+                                }
+                            }
+                        }
+
+                    }
+                });
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            Constants.showAlertDialog(cashCollectorActivity, "Please insert correct note", "Please insert correct note and selected note didn't match!!! please enter correct note!");
             deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
-            return;
-        }
-
-        Log.e("TAG", "Currency: " + ev.currency + "<C  Vd>" + String.format("%.2f", ev.value));
-
-        try {
-            ResponseTempStatus responseTempStatus = new Gson().fromJson(
-                    preferencesManager.get(Constants.ResponseTempStatus, "").toString(),
-                    ResponseTempStatus.class
-            );
-
-            float milkSellingPrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
-            float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, "0.0").toString());
-            float milkDensity = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
-
-            float weight = (float) ((ev.value / milkSellingPrice) * milkDensity);
-            double currentSavedTemp = responseTempStatus.getTemperature() / 10.0;
-            float currentTemperature = (float) (currentSavedTemp + offSet);
-
-            Log.e(TAG, "DisplayEvents: SEND COMMAND " + milkSellingPrice + " " + ev.value);
-
-            SendToDevice sendToDevice = new SendToDevice();
-            sendToDevice.setWeight(weight);
-            sendToDevice.setStatus(true);
-            sendToDevice.setCurtemperature(currentTemperature);
-            sendToDevice.setSettemperature(milkSetTemperature);
-
-            Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
-            Log.e(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
-            usbSerialCommunication.sendData(gson.toJson(sendToDevice));
-            lottieDialog.show();
-
-            usbSerialCommunication.setReadDataListener(data -> handleDeviceResponse(data, sendToDevice, ev.value, currentSavedTemp));
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void handleDeviceResponse(String data, SendToDevice sendToDevice, double currency, double currentSavedTemp) {
-        Log.d(TAG, "DisplayEvents:onReadData: " + data);
-
-        if (!data.contains("status")) return;
-
-        ResponseMilkDispense milkDispense = new Gson().fromJson(data, ResponseMilkDispense.class);
-        Log.i(TAG, "onReadData: " + new Gson().toJson(milkDispense));
-
-        if (milkDispense != null) {
-            double percentage = (milkDispense.getCurTemperature() / milkDispense.getSetTemperature()) * 100;
-            if (lottieDialog != null && percentage > 0) {
-                lottieDialog.setPercentage(percentage);
-            }
-
-            if (milkDispense.getStatus()) {
-                handleSuccessfulDispense(sendToDevice, currency, currentSavedTemp);
-            } else {
-                Log.e("Cashcollector", milkDispense.getStatus().toString());
-            }
-        }
-    }
-
-    private void handleSuccessfulDispense(SendToDevice sendToDevice, double currency, double currentSavedTemp) {
-        Log.e("Cashcollector", "Dispense Successful");
-
-        try {
-            if (lottieDialog.isShowing()) {
-                lottieDialog.dismiss();
-            }
-
-            preferencesManager.save(Constants.CurrentTemperature, currentSavedTemp);
-            deviceCom.SetEscrowAction(SSPSystem.BillAction.Accept);
-
-            showAndProcessDoneDialog(sendToDevice, currency);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
         }
     }
 
     public void showAndProcessDoneDialog(SendToDevice sendToDevice, double currency) {
+
+
         Log.e("showAndProcessDoneDialog", "Show");
 
-        runOnUiThread(() -> {
-            AlertDialog dialog = createProcessDoneDialog(sendToDevice, currency);
-            dialog.show();
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity1.this);
+                LayoutInflater inflater = getLayoutInflater();
+                View view = inflater.inflate(R.layout.dialog_lottie, null);
+
+                LottieAnimationView lottieAnimationView = view.findViewById(R.id.lottieAnimationView);
+                LottieAnimationView lottieAnimationViewDone = view.findViewById(R.id.lottieAnimationViewDone);
+                TextView tvProgressDialog = view.findViewById(R.id.tvProgressDialog);
+                MaterialButton btnDone = view.findViewById(R.id.doneButton);
+                TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
+                TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
+                btnDone.setVisibility(View.VISIBLE);
+                lottieAnimationView.setVisibility(View.GONE);
+                lottieAnimationViewDone.setVisibility(View.VISIBLE);
+                tvProcessDoneText.setVisibility(View.VISIBLE);
+                tvOpenTheDoor.setVisibility(View.VISIBLE);
+                tvProgressDialog.setVisibility(View.GONE);
+                lottieAnimationViewDone.setAnimation(R.raw.process_done);
+                lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
+                lottieAnimationViewDone.playAnimation();
+
+                // Customize the LottieAnimationView and TextView here
+
+                builder.setView(view);
+                builder.setCancelable(false); // Set to true if you want the dialog to be cancellable
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+
+
+                /// Initialize the handler
+                handler = new Handler();
+                Long screenTimeOut = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0.0").toString());
+
+                // Define the Runnable task
+                runnable = () -> {
+                    // Task to execute after delay
+                    dialog.dismiss();
+                    closeDevice();
+//                        onDestroy();
+
+                    insertDataOnProcessDone(currency);
+                };
+
+                // Post the Runnable with a 15-second delay
+                handler.postDelayed(runnable, screenTimeOut * 1000);
+
+
+                btnDone.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+
+                      //  If User clicks on the done button. Runnable should be close
+                        // Cancel the delayed task
+                        if (handler != null && runnable != null) {
+                            handler.removeCallbacks(runnable);
+                        }
+
+                        dialog.dismiss();
+                        closeDevice();
+//                        onDestroy();
+
+                        insertDataOnProcessDone(currency);
+
+//                doPostTransaction(Constants.PostTransactionURL);
+                    }
+                });
+            }
         });
+
+
     }
 
-    private AlertDialog createProcessDoneDialog(SendToDevice sendToDevice, double currency) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity.this);
-        LayoutInflater inflater = getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_lottie, null);
-
-        setupDialogView(view, sendToDevice, currency);
-        builder.setView(view).setCancelable(false);
-        return builder.create();
-    }
-
-    private void setupDialogView(View view, SendToDevice sendToDevice, double currency) {
-        LottieAnimationView lottieAnimationViewDone = view.findViewById(R.id.lottieAnimationViewDone);
-        TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
-        TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
-        MaterialButton btnDone = view.findViewById(R.id.doneButton);
-
-        btnDone.setVisibility(View.VISIBLE);
-        lottieAnimationViewDone.setVisibility(View.VISIBLE);
-        tvProcessDoneText.setVisibility(View.VISIBLE);
-        tvOpenTheDoor.setVisibility(View.VISIBLE);
-
-        lottieAnimationViewDone.setAnimation(R.raw.process_done);
-        lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
-        lottieAnimationViewDone.playAnimation();
-
-        setupDialogHandlers(view, sendToDevice, currency);
-    }
-
-    private void setupDialogHandlers(View view, SendToDevice sendToDevice, double currency) {
-        MaterialButton btnDone = view.findViewById(R.id.doneButton);
-        long screenTimeout = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0").toString()) * 1000;
-
-        Handler handler = new Handler();
-        Runnable dismissTask = () -> {
-            view.getRootView().setVisibility(View.GONE);
-            closeDevice();
-            insertDataOnProcessDone(currency, String.valueOf(sendToDevice.getWeight()));
-        };
-
-        handler.postDelayed(dismissTask, screenTimeout);
-
-        btnDone.setOnClickListener(v -> {
-            handler.removeCallbacks(dismissTask);
-            dismissTask.run();
-        });
-    }
-
-
-    private void showFailedProcessDoneDialog(float amt, String weight) {
+    private void showFailedProcessDoneDialog(float amt) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
 
-                Constants.showAcceptDialog(CashCollectorActivity.this, "Error", "Lost Electricity Connection!! Please Try after sometime.", (dialog1, which) -> {
+                Constants.showAcceptDialog(CashCollectorActivity1.this, "Error", "Lost Electricity Connection!! Please Try after sometime.", (dialog1, which) -> {
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
@@ -587,9 +579,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                 String time = timeFormatter.format(System.currentTimeMillis());
                                 // Print the combined date and time
 
-                                TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
+                                TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity1.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "",weight);
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -624,9 +616,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                 String time = timeFormatter.format(System.currentTimeMillis());
                                 // Print the combined date and time
 
-                                TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
+                                TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity1.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", weight);
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -816,173 +808,226 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         adapterEvents.notifyDataSetChanged();
     }
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_main);
 
-        // Keep screen on and hide navigation
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+        Log.e("Cash collector ", "Screen");
 
-        Log.e("Cash Collector", "Screen Initialized");
         screenTimeOut();
 
-        // Initialize UI components
-        initializeUIComponents();
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
-        // Set up permissions
-        checkStoragePermission();
-
-        // Set up title
-        setTitle("Pay With Cash");
-
-        // Register USB and battery receivers
-        registerReceivers();
-
-        // Set up device communication
-        setupDeviceCommunication();
-
-        // Handle grid item clicks
-        grdCurrencyView.setOnItemClickListener((adapterView, view, position, id) -> handleCurrencyClick(position));
-
-        // Set up toggle switches
-        setupSwitchListeners();
-
-        // Set up accept and reject buttons
-        setupActionButtons();
-
-        // Configure floating action button (if needed in the future)
-        fab.setVisibility(View.GONE);
-    }
-
-    // Separate method to initialize UI components
-    private void initializeUIComponents() {
         grdCurrencyView = findViewById(R.id.gridViewCurrency);
-        btnBackToHome = findViewById(R.id.btnBackToHome);
+        btnBackToHome= findViewById(R.id.btnBackToHome);
         bvDisplay = findViewById(R.id.content_bill_validator);
         bvDisplay.setVisibility(View.INVISIBLE);
-        fab = findViewById(R.id.fab);
-
+        cashCollectorActivity = this;
+        instance = this;
         preferencesManager = SharedPreferencesManager.getInstance(this);
-        lottieDialog = new LottieDialog(this);
+        lottieDialog = new LottieDialog(getInstance());
         lottieAddCashDialog = new LottieAddCashDialog(this);
-
         CurrencyAdapter adapter = new CurrencyAdapter(this);
         grdCurrencyView.setAdapter(adapter);
 
-        txtConnect = findViewById(R.id.txtConnection);
-        prgConnect = findViewById(R.id.progressBarConnect);
+        usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
+
+        IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        registerReceiver(batteryReceiver, battertyFilter);
+
+        progress = new ProgressDialog(CashCollectorActivity1.this);
+        /* ask for permission to storeage read  */
+        int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
+        if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+
+                txtConnect.setText("This app requires access to the downloads directory in order to load download files.");
+                txtConnect.setVisibility(View.VISIBLE);
+
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_READ_STORAGE);
+
+
+            } else {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_READ_STORAGE);
+            }
+        }
+
+        setTitle("Pay With Cash");
 
         listEvents = findViewById(R.id.listEvents);
         listChannels = findViewById(R.id.listChannels);
 
-        adapterEvents = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new String[]{"", ""});
+        eventValues = new String[]{"", ""};
+        channelValues = new ArrayList<String>();
+
+        adapterEvents = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, eventValues);
         listEvents.setAdapter(adapterEvents);
 
-        adapterChannels = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new ArrayList<>());
+        adapterChannels = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, channelValues);
         listChannels.setAdapter(adapterChannels);
 
         bttnAccept = findViewById(R.id.bttnAccept);
         bttnReject = findViewById(R.id.bttnReject);
-
         txtFirmware = findViewById(R.id.txtFirmware);
+//        txtFirmware.setText(getResources().getString(R.string.firmware_title));
         txtDevice = findViewById(R.id.txtDevice);
+//        txtDevice.setText(getResources().getString(R.string.device_title));
         txtDataset = findViewById(R.id.txtDataset);
+//        txtDataset.setText(getResources().getString(R.string.dataset_title));
         txtSerial = findViewById(R.id.txtSerialNumber);
-    }
+//        txtSerial.setText(getResources().getString(R.string.serial_number_title));
 
-    // Method to check and request storage permissions
-    private void checkStoragePermission() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
-                txtConnect.setText("This app requires access to the downloads directory.");
-                txtConnect.setVisibility(View.VISIBLE);
-            }
-            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, MY_PERMISSIONS_REQUEST_READ_STORAGE);
-        }
-    }
+        prgConnect = findViewById(R.id.progressBarConnect);
+        txtConnect = findViewById(R.id.txtConnection);
 
-    // Method to register USB and battery receivers
-    private void registerReceivers() {
-        IntentFilter batteryFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        registerReceiver(batteryReceiver, batteryFilter);
 
-        IntentFilter usbFilter = new IntentFilter();
-        usbFilter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        usbFilter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        usbFilter.setPriority(500);
-        registerReceiver(mUsbReceiver, usbFilter);
-    }
-
-    // Method to set up device communication
-    private void setupDeviceCommunication() {
         try {
             ftD2xx = D2xxManager.getInstance(this);
         } catch (D2xxManager.D2xxException ex) {
-            Log.e("SSP FTManager", ex.toString());
+            Log.e("SSP FTmanager", ex.toString());
         }
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.setPriority(500);
+        this.registerReceiver(mUsbReceiver, filter);
+
 
         deviceCom = new ITLDeviceCom();
         deviceCom.setDeviceSetupListener(this);
         deviceCom.setDeviceEventListener(this);
         deviceCom.setDeviceFileUpdateListener(this);
-    }
+        fab = findViewById(R.id.fab);
+        fab.setVisibility(View.GONE);
 
-    // Method to handle currency grid item clicks
-    private void handleCurrencyClick(int position) {
-        if (handler != null && runnable != null) {
-            handler.removeCallbacks(runnable);
-        }
-
-        selectedCurrency = grdCurrencyView.getAdapter().getItem(position).toString();
-        milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
-        milkSetTemperature = Float.parseFloat(preferencesManager.get(Constants.TemperatureSet, "0.0").toString());
-
-        lottieAddCashDialog.show();
-        lottieAddCashDialog.setCancelable(false);
-
-        MaterialButton btnCancel = lottieAddCashDialog.findViewById(R.id.btnCancel);
-        btnCancel.setOnClickListener(view -> {
-            lottieAddCashDialog.dismiss();
-            goToHomeScreen();
+        btnBackToHome.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (handler != null && runnable != null) {
+                    handler.removeCallbacks(runnable);
+                }
+                goToHomeScreen();
+            }
         });
 
-        openDevice();
-    }
+        /*fab = findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openDevice();
+                if (ftDev != null) {
+                    prgConnect.setVisibility(View.VISIBLE);
+                    txtConnect.setVisibility(View.VISIBLE);
+                    fab.setEnabled(false);
 
-    // Method to set up toggle switch listeners
-    private void setupSwitchListeners() {
+                    deviceCom.setup(ftDev, 0x00, false, false, 0);
+                    deviceCom.start();
+                } else {
+                    Toast.makeText(MainActivity.this, "No USB connection detected!", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });*/
+        grdCurrencyView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+
+//                If User clicks on the grid item. Runnable should be close
+                // Cancel the delayed task
+                if (handler != null && runnable != null) {
+                    handler.removeCallbacks(runnable);
+                }
+
+
+                selectedCurrency = grdCurrencyView.getAdapter().getItem(i).toString();
+                milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
+                milkSetTemperature = Float.parseFloat(preferencesManager.get(Constants.TemperatureSet, "0.0").toString());
+                lottieAddCashDialog.show();
+                lottieAddCashDialog.setCancelable(false);
+
+                MaterialButton btnCancel = lottieAddCashDialog.findViewById(R.id.btnCancel);
+                btnCancel.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View view) {
+                        lottieAddCashDialog.dismiss();
+                        goToHomeScreen();
+                    }
+                });
+
+
+                if (ftDev != null) {
+                   // Toast.makeText(CashCollectorActivity.this, milkSetTemperature + " MilkBase Price " + milkBasePrice, Toast.LENGTH_SHORT).show();
+                } else {
+                  //  Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
+                }
+                openDevice();
+            }
+        });
+
+
+        /**
+         * Escrow enable/disable toggle
+         */
         swEscrow = findViewById(R.id.swEscrow);
-        swEscrow.setOnCheckedChangeListener((buttonView, isChecked) -> deviceCom.SetEscrowMode(isChecked));
-
+        swEscrow.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                deviceCom.SetEscrowMode(isChecked);
+            }
+        });
+        /**
+         * Device enable/disable toggle
+         */
         SwitchCompat swDisable = findViewById(R.id.swEnable);
         swDisable.setChecked(true);
-        swDisable.setOnCheckedChangeListener((buttonView, isChecked) -> deviceCom.SetDeviceEnable(isChecked));
-    }
+        swDisable.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                deviceCom.SetDeviceEnable(isChecked);
 
-    // Method to set up action buttons
-    private void setupActionButtons() {
+            }
+        });
+        /**
+         * Accept a bill from escrow button
+         */
+        bttnAccept = findViewById(R.id.bttnAccept);
         bttnAccept.setVisibility(View.INVISIBLE);
-        bttnAccept.setOnClickListener(v -> {
-            bttnReject.setVisibility(View.INVISIBLE);
-            bttnAccept.setVisibility(View.INVISIBLE);
-            goToHomeScreen();
-        });
+        bttnAccept.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+//                deviceCom.SetEscrowAction(SSPSystem.BillAction.Accept);
+                Log.e(TAG, "onClick: clicked!!!");
+                bttnReject.setVisibility(View.INVISIBLE);
+                bttnAccept.setVisibility(View.INVISIBLE);
 
+
+                /// Go to Home Page
+                goToHomeScreen();
+//                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+//                intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//                startActivity(intent);
+
+
+            }
+        });
+        /**
+         * Reject a bill from escrow button
+         */
+        bttnReject = findViewById(R.id.bttnReject);
         bttnReject.setVisibility(View.INVISIBLE);
-        bttnReject.setOnClickListener(v -> {
-            deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
-            bttnReject.setVisibility(View.INVISIBLE);
-            bttnAccept.setVisibility(View.INVISIBLE);
+        bttnReject.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
+                bttnReject.setVisibility(View.INVISIBLE);
+                bttnAccept.setVisibility(View.INVISIBLE);
+            }
         });
+
     }
-
-
-
-
 
     @Override
     protected void onStart() {
@@ -1269,7 +1314,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
     /// When process is completed. Data will be insert into database
-    void insertDataOnProcessDone(double currency, String weight){
+    void insertDataOnProcessDone(double currency){
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1284,9 +1329,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     String time = timeFormatter.format(System.currentTimeMillis());
                     // Print the combined date and time
 
-                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
+                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity1.this).transactionDao();
                     assert date != null;
-                    long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", weight);
+                    long transactionId = Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", "");
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 

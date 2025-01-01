@@ -896,7 +896,7 @@ public class Constants {
         return String.valueOf(timestamp) + randomNumber;
     }
 
-    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, String amount, String transactionStatus, String upiId) {
+    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, String amount, String transactionStatus, String upiId, String weight) {
         TransactionEntity transaction = new TransactionEntity();
         transaction.setUserName("Admin");
         transaction.setPassword("QWRtaW4=");
@@ -905,7 +905,7 @@ public class Constants {
         transaction.setTransactionDate(transactionDate);
         transaction.setTransactionTime(transactionTime);
         transaction.setAmount(amount);
-//        transaction.setVolume(volume);
+        transaction.setWeight(weight);
         transaction.setTransactionStatus(transactionStatus);
         transaction.setUpiId(upiId);
         transaction.setUniqueTransactionId(transactionDao.generateUniqueTransactionId());
