@@ -60,6 +60,10 @@
             android:name=".CashCollectorActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
+        <activity
+            android:name=".CashCollectorActivity1"
+            android:exported="false"
+            android:screenOrientation="landscape" />
 
         <service
             android:name=".Workers.PaymentStatusService"

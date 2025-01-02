@@ -210,9 +210,10 @@ public class AdminActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
 
         if (item.getItemId() == R.id.action_logout) {
-            Intent intent = new Intent(AdminActivity.this, MainActivity.class);
-            startActivity(intent);
             finish();
+//            Intent intent = new Intent(AdminActivity.this, MainActivity.class);
+//            startActivity(intent);
+//            finish();
         }
         return super.onOptionsItemSelected(item);
     }

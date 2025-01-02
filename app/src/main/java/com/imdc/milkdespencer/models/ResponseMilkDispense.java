@@ -10,28 +10,28 @@ public class ResponseMilkDispense {
 
     @SerializedName("currentweight")
     @Expose
-    private Double curTemperature;
+    private Double currentWeight;
     @SerializedName("setweight")
     @Expose
-    private Double setTemperature;
+    private Double setWeight;
     @SerializedName("status")
     @Expose
     private Boolean status;
 
-    public Double getCurTemperature() {
-        return curTemperature;
+    public Double getCurrentWeight() {
+        return currentWeight;
     }
 
-    public void setCurTemperature(Double curTemperature) {
-        this.curTemperature = curTemperature;
+    public void setCurrentWeight(Double currentWeight) {
+        this.currentWeight = currentWeight;
     }
 
-    public Double getSetTemperature() {
-        return setTemperature;
+    public Double getSetWeight() {
+        return setWeight;
     }
 
-    public void setSetTemperature(Double setTemperature) {
-        this.setTemperature = setTemperature;
+    public void setSetWeight(Double setWeight) {
+        this.setWeight = setWeight;
     }
 
     public Boolean getStatus() {

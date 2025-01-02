@@ -722,7 +722,7 @@ public class PayWithQrActivity1 extends AppCompatActivity implements PaymentResu
                         }*/
                         ResponseMilkDispense milkDispense = new Gson().fromJson(data, ResponseMilkDispense.class);
                         if (milkDispense != null) {
-                            double percentage = (milkDispense.getCurTemperature() / milkDispense.getSetTemperature()) * 100;
+                            double percentage = (milkDispense.getCurrentWeight() / milkDispense.getSetWeight()) * 100;
                             /*if (lottieDialog != null) {
                                 if (percentage > 0) {
                                     lottieDialog.setPercentage(percentage);

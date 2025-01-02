@@ -313,11 +313,14 @@ public class UsbSerialCommunication {
                                     ResponseMilkDispense milkDispense = new Gson().fromJson(completeData, ResponseMilkDispense.class);
 
                                     /// If status is true cip should be false and dialog will be close
-                                    if (milkDispense.getStatus()) {
+                                    if (milkDispense.getStatus() && isCipOn) {
                                         Log.e("Status is truueeeee", milkDispense.getStatus().toString());
 
                                         isCipOn = false;
-                                        cipDialog.cancel();
+                                        if(cipDialog != null && cipDialog.isShowing()){
+                                            cipDialog.dismiss();
+                                        }
+
 
                                     } else {
 

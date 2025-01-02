@@ -266,11 +266,11 @@ public class Constants {
         TextInputEditText tieMachineId = view.findViewById(R.id.tieMachineId);
         tieMachineId.setFilters(new InputFilter[]{new InputFilter.AllCaps()});
 
-        if (userType == 0) {
+        if (userType == UserTypeEnum.ADMIN.value()) {
             tilMachineId.setEnabled(true);
-        } else if (userType == 2) {
+        } else if (userType == UserTypeEnum.CUSTOMER_ADMIN.value()) {
             tieMachineId.setEnabled(false);
-        }else if(userType == 1){
+        }else if(userType == UserTypeEnum.END_USER.value()){
             tieMachineId.setEnabled(false);
             tilTemperatureOffset.setEnabled(false);
             tilTemperatureSet.setEnabled(false);
@@ -288,16 +288,16 @@ public class Constants {
         tilMilkDensity.setErrorEnabled(true);
         tilTimeOut.setErrorEnabled(true);
 
-        String machineId = preferencesManager.get(MachineId, "MachineId").toString();
+        String machineId = preferencesManager.get(MachineId, "000000A31122024").toString();
 
         //  tilMachineId.setEnabled(machineId.isEmpty() || machineId.equalsIgnoreCase("MachineId"));
         tieMachineId.setText(machineId);
-        tieOwnerNameId.setText(preferencesManager.get(OwnerName, 0.0).toString());
-        tieTemperatureOffset.setText(preferencesManager.get(TemperatureOffSet, "0.0").toString());
-        tieTemperatureSet.setText(preferencesManager.get(TemperatureSet, "0.0").toString());
-        tieMilkBasePrice.setText(preferencesManager.get(MilkBasePrice, "0.0").toString());
-        tieMilkDensity.setText(preferencesManager.get(MilkDensityPref, "0.0").toString());
-        tieTimeOut.setText(preferencesManager.get(ScreenTimeOutPref, "0").toString());
+        tieOwnerNameId.setText(preferencesManager.get(OwnerName, "0.0").toString());
+        tieTemperatureOffset.setText(preferencesManager.get(TemperatureOffSet, "2.26").toString());
+        tieTemperatureSet.setText(preferencesManager.get(TemperatureSet, "8.0").toString());
+        tieMilkBasePrice.setText(preferencesManager.get(MilkBasePrice, "100.0").toString());
+        tieMilkDensity.setText(preferencesManager.get(MilkDensityPref, "1.0").toString());
+        tieTimeOut.setText(preferencesManager.get(ScreenTimeOutPref, "15").toString());
 
         // Set click listener for OK button
         okButton.setOnClickListener(new View.OnClickListener() {
@@ -542,6 +542,7 @@ public class Constants {
                                 Handler handler = new Handler(Looper.getMainLooper());
                                 handler.post(() -> {
                                     ProgressDialog pd = new ProgressDialog(context);
+                                    pd.setTitle("Please Wait...");
                                     pd.setTitle("Please Wait...");
                                     pd.setCancelable(false);
                                     pd.show();
@@ -918,7 +919,7 @@ public class Constants {
         /// Insert into Sqlite database
         long transactionId = transactionDao.insert(transaction);
 
-        doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, activity);
+     //   doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, activity);
 
         return transactionId;
     }

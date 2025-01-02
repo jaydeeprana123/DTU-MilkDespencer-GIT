@@ -218,7 +218,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
         sspDevice = dev;
 
-
         fab.setVisibility(View.INVISIBLE);
         fab.setVisibility(View.INVISIBLE);
         prgConnect.setVisibility(View.INVISIBLE);
@@ -519,7 +518,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         Log.i(TAG, "onReadData: " + new Gson().toJson(milkDispense));
 
         if (milkDispense != null) {
-            double percentage = (milkDispense.getCurTemperature() / milkDispense.getSetTemperature()) * 100;
+            double percentage = (milkDispense.getCurrentWeight() / milkDispense.getSetWeight()) * 100;
             if (lottieDialog != null && percentage > 0) {
                 lottieDialog.setPercentage(percentage);
             }
@@ -901,6 +900,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     // Separate method to initialize UI components
     private void initializeUIComponents() {
+
+        usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
+
         grdCurrencyView = findViewById(R.id.gridViewCurrency);
         btnBackToHome = findViewById(R.id.btnBackToHome);
         bvDisplay = findViewById(R.id.content_bill_validator);
@@ -914,11 +916,16 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         CurrencyAdapter adapter = new CurrencyAdapter(this);
         grdCurrencyView.setAdapter(adapter);
 
+
+
         txtConnect = findViewById(R.id.txtConnection);
         prgConnect = findViewById(R.id.progressBarConnect);
 
         listEvents = findViewById(R.id.listEvents);
         listChannels = findViewById(R.id.listChannels);
+
+        eventValues = new String[]{"", ""};
+        channelValues = new ArrayList<String>();
 
         adapterEvents = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, new String[]{"", ""});
         listEvents.setAdapter(adapterEvents);

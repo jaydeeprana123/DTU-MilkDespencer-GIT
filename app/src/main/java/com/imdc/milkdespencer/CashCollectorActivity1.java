@@ -16,6 +16,7 @@ import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -61,6 +62,9 @@ import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 import com.razorpay.Payment;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -81,6 +85,8 @@ import device.itl.sspcoms.SSPSystem;
 import device.itl.sspcoms.SSPUpdate;
 
 public class CashCollectorActivity1 extends AppCompatActivity implements DeviceSetupListener, DeviceEventListener, DeviceFileUpdateListener {
+
+    int tempIndex = 0;
 
     //TODO:
     // 1) Read Continuous data from Serial
@@ -117,7 +123,7 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
     static float milkBasePrice;
     static float milkSetTemperature;
     static SharedPreferencesManager preferencesManager;
-//    private static MenuItem downloadFileSelect = null;
+    //    private static MenuItem downloadFileSelect = null;
     private static ITLDeviceCom deviceCom;
     private static D2xxManager ftD2xx = null;
     private static FT_Device ftDev = null;
@@ -127,6 +133,11 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
 
     private Handler handler = new Handler(); // Create a Handler instance
     private Runnable runnable; // Declare the Runnable
+
+
+    private Handler timeoutHandler;
+    private Runnable timeoutRunnable;
+
 
     /**********   USB functions   ******************************************/
 
@@ -146,14 +157,29 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
 
             } else {
                 Constants.saveLogs(CashCollectorActivity1.this, "Lost Electricity");
+                JSONObject paymentObject = null;
+                String paymentJson = preferencesManager.get(Constants.PaymentCashReceived, "").toString();
 
+                if (!paymentJson.isEmpty()) {
+                    try {
 
-                Payment payment = new Gson().fromJson(preferencesManager.get(Constants.PaymentCashReceived, "").toString(), Payment.class);
-                if (payment != null && payment.get("amount") != null) {
-                    float amount = Float.parseFloat(payment.get("amount").toString());
-                    float amt = amount / 100;
-                    showFailedProcessDoneDialog(amt);
+                        Log.e("paymentJson","is available");
+                        paymentObject = new JSONObject(paymentJson);
+                        if (paymentObject.has("amount")) {
+                            // Safely parse the amount as a float
+                            float amount = (float) paymentObject.optDouble("amount", 0.0);
+
+                            Log.e("Amount","is availableeee");
+                            showFailedProcessDoneDialog(amount);
+                        }else{
+                            Log.e("Amount","is not available");
+                        }
+                    } catch (JSONException e) {
+                        Log.e("PaymentError", "Error parsing payment JSON", e);
+                        // Handle error (optional: show error dialog or default value)
+                    }
                 }
+
             }
         }
     };
@@ -384,9 +410,9 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
 
     private void connectToDevices() {
         if (ftDev != null) {
-           // Toast.makeText(CashCollectorActivity.this, milkSetTemperature + " MilkBase Price " + milkBasePrice, Toast.LENGTH_SHORT).show();
+            // Toast.makeText(CashCollectorActivity.this, milkSetTemperature + " MilkBase Price " + milkBasePrice, Toast.LENGTH_SHORT).show();
         } else {
-         //   Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
+            //   Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
             openDevice();
         }
         usbSerialCommunication.connect();
@@ -403,6 +429,7 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                 float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
                 float DENSITY_OF_MILK = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
                 float weight = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice))) * DENSITY_OF_MILK;
+
 //                float weight = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice)));
                 double currentSavedTemp = responseTempStatus.getTemperature() / 10;
                 float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
@@ -415,13 +442,27 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                 sendToDevice.setSettemperature(milkSetTemperature);
 
 
-
 //                UsbSerialCommunication.currentClass = "CCA";
                 Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
                 Log.e(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
 //                Toast.makeText(CashCollectorActivity.this, "Command SEND TO DEVICE On START ->\n " + new Gson().toJson(sendToDevice), Toast.LENGTH_LONG).show();
-                usbSerialCommunication.sendData(gson.toJson(sendToDevice));
+
                 lottieDialog.show();
+
+                /// Here after 15 minute if status is not getting as a true.
+                // Dialog will be close and transaction will be add in the database as a TIME OUT
+                // Initialize the Handler and Runnable
+                timeoutHandler = new Handler(Looper.getMainLooper());
+                timeoutRunnable = () -> handleMilkSendingTimeout(lottieDialog, ev.value, 0);
+
+                // Post the Runnable with a delay
+                timeoutHandler.postDelayed(timeoutRunnable, 15 * 60 * 1000); // 15 minutes
+
+
+
+                /// Send Data to the usb Serial Communication
+                usbSerialCommunication.sendData(gson.toJson(sendToDevice));
+
                 usbSerialCommunication.setReadDataListener(new UsbSerialCommunication.ReadDataListener() {
                     @Override
                     public void onReadData(String data) {
@@ -432,16 +473,35 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                             Log.i(TAG, "run: ==>< onReadData: " + new Gson().toJson(milkDispense));
 
                             if (milkDispense != null) {
-                                double percentage = (milkDispense.getCurTemperature() / milkDispense.getSetTemperature()) * 100;
-                                if (lottieDialog != null) {
-                                    if (percentage > 0) {
-                                        lottieDialog.setPercentage(percentage);
+
+                                Log.e("Cashcollector status outside", milkDispense.getStatus().toString());
+
+                                //  double percentage = (milkDispense.getCurTemperature() / milkDispense.getSetTemperature()) * 100;
+//                                if (lottieDialog != null) {
+//                                    if (percentage > 0) {
+//                                        lottieDialog.setPercentage(percentage);
+//                                    }
+//                                }
+
+                                /// Here true status getting two times.
+                                // So put condition that if lottieDialog is showing that time only goes to this condition
+                                if (milkDispense.getStatus() && lottieDialog.isShowing()) {
+
+                                    float volumeOfMilk = (float) ((milkDispense.getCurrentWeight()) / DENSITY_OF_MILK);
+                                    Log.e("VOLUME OF MILK", String.valueOf(volumeOfMilk));
+
+                                    /// when status get as a true, timeOutHandler removed here
+                                    timeoutHandler.removeCallbacks(timeoutRunnable);
+                                    if (lottieDialog.isShowing()) {
+                                        lottieDialog.dismiss();
                                     }
-                                }
-                                if (milkDispense.getStatus()) {
 
 
-                                    Log.e("Cashcollector", milkDispense.getStatus().toString());
+                                    tempIndex++;
+
+                                    Log.e("tempIndex ", String.valueOf(tempIndex));
+
+                                    Log.e("milkDispense status ", milkDispense.getStatus().toString());
 
                                     try {
                                         if (lottieDialog.isShowing()) {
@@ -457,13 +517,13 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                                         usbSerialCommunication.fireOnStart(currentTemperature);*/
 //                                        usbSerialCommunication.fireOnStart(currentTemperature);
                                         //                                        bttnAccept.performClick();
-                                        showAndProcessDoneDialog(sendToDevice, ev.value);
+                                        showAndProcessDoneDialog(sendToDevice, ev.value, volumeOfMilk);
                                     } catch (Exception e) {
                                         throw new RuntimeException(e);
                                     }
 
-                                }else {
-                                    Log.e("Cashcollector", milkDispense.getStatus().toString());
+                                } else {
+                                    Log.e("milkDispense status ", milkDispense.getStatus().toString());
                                 }
                             }
                         }
@@ -479,7 +539,31 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
         }
     }
 
-    public void showAndProcessDoneDialog(SendToDevice sendToDevice, double currency) {
+
+    /*If 15 minutes done and status is not getting as a true.
+   Transaction will be added as a FAILED*/
+    private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volumeOfMilk) {
+        if (lottieDialog != null && lottieDialog.isShowing()) {
+            lottieDialog.dismiss();
+            new Thread(() -> {
+                try {
+                    String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
+                    String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
+                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity1.this).transactionDao();
+                    Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", String.valueOf(volumeOfMilk));
+
+                    Log.e("Time is out", "After 15 minutes");
+
+                    goToHomeScreen();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+    }
+
+
+    public void showAndProcessDoneDialog(SendToDevice sendToDevice, double currency, float volumeOfMilk) {
 
 
         Log.e("showAndProcessDoneDialog", "Show");
@@ -527,7 +611,7 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                     closeDevice();
 //                        onDestroy();
 
-                    insertDataOnProcessDone(currency);
+                    insertDataOnProcessDone(currency, volumeOfMilk);
                 };
 
                 // Post the Runnable with a 15-second delay
@@ -538,7 +622,7 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                     @Override
                     public void onClick(View v) {
 
-                      //  If User clicks on the done button. Runnable should be close
+                        //  If User clicks on the done button. Runnable should be close
                         // Cancel the delayed task
                         if (handler != null && runnable != null) {
                             handler.removeCallbacks(runnable);
@@ -548,7 +632,7 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                         closeDevice();
 //                        onDestroy();
 
-                        insertDataOnProcessDone(currency);
+                        insertDataOnProcessDone(currency, volumeOfMilk);
 
 //                doPostTransaction(Constants.PostTransactionURL);
                     }
@@ -569,6 +653,8 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                         @Override
                         public void run() {
 
+                            Log.e("Error Electricity" ,"First");
+
                             try {
                                 String dateFormat = "yyyy-MM-dd";
                                 String timeFormat = "HH:mm:ss";
@@ -581,14 +667,13 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity1.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "", "");
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "0");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
 
                                 /// Close current dialog
                                 dialog1.dismiss();
-
                                 /// Go to Home screen
                                 goToHomeScreen();
 
@@ -605,6 +690,8 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                     new Thread(new Runnable() {
                         @Override
                         public void run() {
+                            Log.e("Error Electricity" ,"Second");
+
 
                             try {
                                 String dateFormat = "yyyy-MM-dd";
@@ -618,7 +705,7 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity1.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "");
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "0");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -722,6 +809,24 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
                     dialog.dismiss();
                 });
                 submitBtn.setOnClickListener(v -> {
+
+                    /// Here if submit button is pressed,
+                    // Payment is set as a received and amount will be save in a shared preference
+                    JSONObject paymentObject = new JSONObject();
+                    try {
+                        paymentObject.put("name", "Milk Vending Machine");
+                        paymentObject.put("description", "Payment For Milk");
+                        paymentObject.put("currency", "INR");
+                        paymentObject.put("amount", ev.value);
+                    } catch (JSONException e) {
+                        throw new RuntimeException(e);
+                    }
+
+                    // Convert JSONObject to String
+                    String paymentObjectString = paymentObject.toString();
+                    /// Save into shared preference
+                    preferencesManager.save(Constants.PaymentCashReceived, paymentObjectString);
+
                     sendToMilkDevice(ev);
                     dialog.dismiss();
                 });
@@ -822,7 +927,7 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         grdCurrencyView = findViewById(R.id.gridViewCurrency);
-        btnBackToHome= findViewById(R.id.btnBackToHome);
+        btnBackToHome = findViewById(R.id.btnBackToHome);
         bvDisplay = findViewById(R.id.content_bill_validator);
         bvDisplay.setVisibility(View.INVISIBLE);
         cashCollectorActivity = this;
@@ -959,9 +1064,9 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
 
 
                 if (ftDev != null) {
-                   // Toast.makeText(CashCollectorActivity.this, milkSetTemperature + " MilkBase Price " + milkBasePrice, Toast.LENGTH_SHORT).show();
+                    // Toast.makeText(CashCollectorActivity.this, milkSetTemperature + " MilkBase Price " + milkBasePrice, Toast.LENGTH_SHORT).show();
                 } else {
-                  //  Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
+                    //  Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
                 }
                 openDevice();
             }
@@ -1047,6 +1152,18 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
         unregisterReceiver(mUsbReceiver);
         unregisterReceiver(batteryReceiver);
 //        usbSerialCommunication.disconnect();
+
+        /// Here if handler and runnable remove
+        if (handler != null && runnable != null) {
+            handler.removeCallbacks(runnable);
+        }
+
+        // Remove the Runnable from the Handler to avoid memory leaks
+        if (timeoutHandler != null && timeoutRunnable != null) {
+            timeoutHandler.removeCallbacks(timeoutRunnable);
+        }
+
+
         super.onDestroy();
     }
 
@@ -1272,10 +1389,10 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
 
 
     /*
-    * Here we are getting time out from shared preference
-    * And after that screen automatically off
-    * */
-    void screenTimeOut(){
+     * Here we are getting time out from shared preference
+     * And after that screen automatically off
+     * */
+    void screenTimeOut() {
         preferencesManager = SharedPreferencesManager.getInstance(getInstance());
         Log.e("timeOut", preferencesManager.get(ScreenTimeOutPref, "0").toString());
 
@@ -1292,16 +1409,14 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
     }
 
 
-
-
     /*
      * It will redirect to the home screen
      * */
-    void goToHomeScreen(){
+    void goToHomeScreen() {
         closeDevice();
         // Simulate finishing and sending data
         Intent resultIntent = new Intent();
-        resultIntent.putExtra(FromScreen, ScreenEnum.CASH_COLLECTOR.ordinal());
+        resultIntent.putExtra("FromScreen", ScreenEnum.CASH_COLLECTOR.ordinal());
         setResult(RESULT_OK, resultIntent); // Set the result to be OK
         finish(); // Finish the activity
 
@@ -1314,7 +1429,7 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
     }
 
     /// When process is completed. Data will be insert into database
-    void insertDataOnProcessDone(double currency){
+    void insertDataOnProcessDone(double currency, float volumeOfMilk) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1331,7 +1446,11 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
 
                     TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity1.this).transactionDao();
                     assert date != null;
-                    long transactionId = Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", "");
+
+                    /// Here I convert volume of milk into string and set 3 digits after dot(.)
+                    String strMilkOfVolume = String.format("%.3f", volumeOfMilk);
+
+                    long transactionId = Constants.insertTransaction(CashCollectorActivity1.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", strMilkOfVolume);
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -1350,5 +1469,6 @@ public class CashCollectorActivity1 extends AppCompatActivity implements DeviceS
             }
         }).start();
     }
+
 
 }
