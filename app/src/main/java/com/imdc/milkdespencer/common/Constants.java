@@ -57,6 +57,10 @@ public class Constants {
     public static AlertDialog cipDialog;
 
 
+    private static final String PREFS_NAME = "usb_permission_prefs";
+    public static final String PREF_PERMISSION_GRANTED = "permission_granted";
+
+
     public static final String TAG = "MilkDespencer";
     public static final String MachineId = "MachineId";
     public static final String RazorPayCustomerID = "RazorPayCustomerID";
@@ -97,6 +101,19 @@ public class Constants {
 
 
     public static final String FromScreen = "FromScreen";
+
+    // Save the permission granted state
+    private void handlePermissionGranted() {
+        preferencesManager.save(PREF_PERMISSION_GRANTED, true);
+    }
+
+    // Reset the permission granted state when USB device is disconnected
+    private void handlePermissionRevoked() {
+        preferencesManager.save(PREF_PERMISSION_GRANTED, false);
+    }
+
+
+
 
     public static void showAlertDialog(Context context, String title, String message) {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);

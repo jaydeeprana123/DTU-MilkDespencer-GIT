@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer.common;
 
+import static com.imdc.milkdespencer.common.Constants.PREF_PERMISSION_GRANTED;
 import static com.imdc.milkdespencer.common.Constants.cipDialog;
 
 import android.app.PendingIntent;
@@ -31,7 +32,7 @@ import java.util.concurrent.Executors;
 public class UsbSerialCommunication {
 
     private static final String TAG = "UsbSerialCommunication";
-    private static final String ACTION_USB_PERMISSION = "your.package.name.USB_PERMISSION";
+    private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
     private static final int TIMEOUT = 1000;
     private final Context context;
     private final UsbManager usbManager;
@@ -157,12 +158,20 @@ public class UsbSerialCommunication {
     }
 
     private void requestPermission(UsbDevice device) {
-        PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), 0);
 
-        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-        context.registerReceiver(usbPermissionReceiver, filter);
+        SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
+        boolean isPermissionGranted = (boolean) preferencesManager.get(PREF_PERMISSION_GRANTED, false);
 
-        usbManager.requestPermission(device, permissionIntent);
+        if(!isPermissionGranted){
+            PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), 0);
+
+            IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+            context.registerReceiver(usbPermissionReceiver, filter);
+
+            usbManager.requestPermission(device, permissionIntent);
+        }
+
+
     }
 
     public void openConnection(UsbDevice device) {
