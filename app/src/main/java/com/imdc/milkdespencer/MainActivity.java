@@ -1,6 +1,5 @@
 package com.imdc.milkdespencer;
 
-import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
 
@@ -54,8 +53,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private boolean isUsbPermissionGranted = false; // Flag for USB permission
-    private boolean getChargingState = false;
-    private boolean getUsbShowState = false;
+    private boolean getChargingState = false; // Flag for Charging State
+    private boolean getUsbShowState = false;// Flag for state is in usb check state
 
 
 
@@ -513,7 +512,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     /*Go To CashCollector Screen*/
     private void onPayWithCash() {
         if (cv_error.getVisibility() == View.VISIBLE) return;
-        Intent intent = new Intent(this, CashCollectorActivity1.class);
+        Intent intent = new Intent(this, CashCollectorActivity.class);
         startActivityForResult(intent, ScreenEnum.CASH_COLLECTOR.ordinal());
     }
 

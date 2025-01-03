@@ -57,11 +57,11 @@
             android:exported="false"
             android:screenOrientation="landscape" />
         <activity
-            android:name=".CashCollectorActivity"
+            android:name=".CashCollectorActivityBackup"
             android:exported="false"
             android:screenOrientation="landscape" />
         <activity
-            android:name=".CashCollectorActivity1"
+            android:name=".CashCollectorActivity"
             android:exported="false"
             android:screenOrientation="landscape" />
 

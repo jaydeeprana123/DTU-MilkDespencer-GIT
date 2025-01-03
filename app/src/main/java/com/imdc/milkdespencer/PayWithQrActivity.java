@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer;
 
+
 import static com.imdc.milkdespencer.CashCollectorActivity.getInstance;
 import static com.imdc.milkdespencer.CashCollectorActivity.milkSetTemperature;
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
@@ -176,6 +177,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         tabLayout = findViewById(R.id.tabLayout);
 
         preferencesManager = SharedPreferencesManager.getInstance(getInstance());
+        /// When user comes first delete the previously saved payment data in shared preference
+        preferencesManager.delete(Constants.PaymentReceived);
+        preferencesManager.delete(Constants.PaidAmt);
+
 
         gv_CurrencyLiters = findViewById(R.id.gridViewCurrencyLiters);
 
@@ -465,10 +470,17 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         btnBackToHome.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
                 // Cancel the delayed task
                 if (handler != null && runnable != null) {
                     handler.removeCallbacks(runnable);
                 }
+
+                // Remove the Runnable from the Handler to avoid memory leaks
+                if (timeoutHandler != null && timeoutRunnable != null) {
+                    timeoutHandler.removeCallbacks(timeoutRunnable);
+                }
+
                 goToHomeScreen();
             }
         });

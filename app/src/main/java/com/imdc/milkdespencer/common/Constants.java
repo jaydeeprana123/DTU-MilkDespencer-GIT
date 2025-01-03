@@ -54,8 +54,6 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class Constants {
 
-
-
     public static AlertDialog cipDialog;
 
 

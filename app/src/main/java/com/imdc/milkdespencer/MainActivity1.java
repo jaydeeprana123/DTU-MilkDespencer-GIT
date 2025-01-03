@@ -325,7 +325,7 @@ public class MainActivity1 extends AppCompatActivity implements UsbSerialCommuni
                 if (cv_error.getVisibility() == View.VISIBLE) {
                     return;
                 }
-                Intent intent = new Intent(MainActivity1.this, CashCollectorActivity1.class);
+                Intent intent = new Intent(MainActivity1.this, CashCollectorActivity.class);
                 startActivityForResult(intent, ScreenEnum.CASH_COLLECTOR.ordinal());
             }
         });

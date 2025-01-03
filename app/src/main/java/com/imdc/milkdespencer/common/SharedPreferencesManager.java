@@ -22,6 +22,12 @@ public class SharedPreferencesManager {
         return instance;
     }
 
+
+
+    public boolean hasValue(String key) {
+        return sharedPreferences.contains(key);
+    }
+
     public void save(String key, Object value) {
         if (value instanceof String) {
             editor.putString(key, (String) value);
@@ -35,12 +41,6 @@ public class SharedPreferencesManager {
 
         editor.apply();
     }
-
-    public boolean hasValue(String key) {
-        return sharedPreferences.contains(key);
-    }
-
-
     public Object get(String key, Object defaultValue) {
         if (defaultValue instanceof String) {
             return sharedPreferences.getString(key, (String) defaultValue);
@@ -54,6 +54,16 @@ public class SharedPreferencesManager {
 
         return defaultValue;
     }
+
+
+    /*Delete from shared preference*/
+    public void delete(String key) {
+        if (sharedPreferences.contains(key)) {
+            editor.remove(key);
+            editor.apply();
+        }
+    }
+
 
     public void saveUsername(String username) {
         save("username", username);

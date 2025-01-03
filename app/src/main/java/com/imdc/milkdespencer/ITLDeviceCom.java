@@ -104,10 +104,10 @@ public class ITLDeviceCom extends Thread implements DeviceSetupListener, DeviceE
             final SSPComsConfig cfg = ssp.GetComsConfig();
             if (cfg.configUpdate == SSPComsConfig.ComsConfigChangeState.ccNewConfig) {
                 cfg.configUpdate = SSPComsConfig.ComsConfigChangeState.ccUpdating;
-                CashCollectorActivity.cashCollectorActivity.runOnUiThread(new Runnable() {
+                CashCollectorActivityBackup.cashCollectorActivity.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        CashCollectorActivity.SetConfig(cfg.baud, cfg.dataBits, cfg.stopBits, cfg.parity, cfg.flowControl);
+                        CashCollectorActivityBackup.SetConfig(cfg.baud, cfg.dataBits, cfg.stopBits, cfg.parity, cfg.flowControl);
                     }
                 });
                 cfg.configUpdate = SSPComsConfig.ComsConfigChangeState.ccUpdated;
