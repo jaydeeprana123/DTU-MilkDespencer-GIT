@@ -441,7 +441,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 sendToDevice.setCurtemperature(currentTemperature);
                 sendToDevice.setSettemperature(milkSetTemperature);
 
-
 //                UsbSerialCommunication.currentClass = "CCA";
                 Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
                 Log.e(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
@@ -550,7 +549,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
                     String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
                     TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
-                    Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", String.valueOf(volumeOfMilk));
+                    Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", String.valueOf(volumeOfMilk), "");
 
                     Log.e("Time is out", "After 15 minutes");
 
@@ -611,7 +610,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     closeDevice();
 //                        onDestroy();
 
-                    insertDataOnProcessDone(currency, volumeOfMilk);
+                    insertDataOnProcessDone(currency, volumeOfMilk, sendToDevice.getCurtemperature());
                 };
 
                 // Post the Runnable with a 15-second delay
@@ -632,7 +631,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                         closeDevice();
 //                        onDestroy();
 
-                        insertDataOnProcessDone(currency, volumeOfMilk);
+                        insertDataOnProcessDone(currency, volumeOfMilk,sendToDevice.getCurtemperature());
 
 //                doPostTransaction(Constants.PostTransactionURL);
                     }
@@ -667,7 +666,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "0");
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "0", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -705,7 +704,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "0");
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "0", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -1440,7 +1439,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
     /// When process is completed. Data will be insert into database
-    void insertDataOnProcessDone(double currency, float volumeOfMilk) {
+    void insertDataOnProcessDone(double currency, float volumeOfMilk, float milkTemperature) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1460,8 +1459,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                     /// Here I convert volume of milk into string and set 3 digits after dot(.)
                     String strMilkOfVolume = String.format("%.3f", volumeOfMilk);
+                    /// Here I convert temperature of milk into string and set 3 digits after dot(.)
+                    String strMilkTemperature = String.format("%.3f", milkTemperature);
 
-                    long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", strMilkOfVolume);
+                    long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", strMilkOfVolume, strMilkTemperature);
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 

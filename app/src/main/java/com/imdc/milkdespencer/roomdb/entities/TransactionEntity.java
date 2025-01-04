@@ -19,6 +19,10 @@ public class TransactionEntity {
 
     private String volume;
 
+    private String milkPrice;
+
+    private String milkTemperature;
+
     private String machineId;
     private String transactionStatus;
     private String upiId;
@@ -96,6 +100,22 @@ public class TransactionEntity {
 
     public void setVolume(String volume) {
         this.volume = volume;
+    }
+
+    public String getMilkPrice() {
+        return milkPrice;
+    }
+
+    public void setMilkPrice(String milkPrice) {
+        this.milkPrice = milkPrice;
+    }
+
+    public String getMilkTemperature() {
+        return milkTemperature;
+    }
+
+    public void setMilkTemperature(String milkTemperature) {
+        this.milkTemperature = milkTemperature;
     }
 
     public String getMachineId() {

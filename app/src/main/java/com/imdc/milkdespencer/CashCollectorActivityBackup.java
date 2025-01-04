@@ -497,7 +497,7 @@ public class CashCollectorActivityBackup extends AppCompatActivity implements De
                     String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
                     String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
                     TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivityBackup.this).transactionDao();
-                    Constants.insertTransaction(CashCollectorActivityBackup.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", String.valueOf(volume));
+                    Constants.insertTransaction(CashCollectorActivityBackup.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", String.valueOf(volume), "");
                     goToHomeScreen();
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -629,7 +629,7 @@ public class CashCollectorActivityBackup extends AppCompatActivity implements De
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivityBackup.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivityBackup.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "",volume);
+                                long transactionId = Constants.insertTransaction(CashCollectorActivityBackup.this, transactionDao, "CASH", "", date, time, String.valueOf(amt) ,"FAILED", "",volume, "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -666,7 +666,7 @@ public class CashCollectorActivityBackup extends AppCompatActivity implements De
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivityBackup.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivityBackup.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", volume);
+                                long transactionId = Constants.insertTransaction(CashCollectorActivityBackup.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", volume, "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -1334,7 +1334,7 @@ public class CashCollectorActivityBackup extends AppCompatActivity implements De
 
                     TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivityBackup.this).transactionDao();
                     assert date != null;
-                    long transactionId = Constants.insertTransaction(CashCollectorActivityBackup.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", volume);
+                    long transactionId = Constants.insertTransaction(CashCollectorActivityBackup.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", volume, "");
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 

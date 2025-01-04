@@ -419,7 +419,7 @@ public class PayWithQrActivity1 extends AppCompatActivity implements PaymentResu
 
                                                                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity1.this).transactionDao();
                                                                 assert date != null;
-                                                                long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "TIME OUT", "", "");
+                                                                long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "TIME OUT", "", "", "");
                                                                 Log.e(TAG, "onCreate: " + transactionId);
                                                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -559,7 +559,7 @@ public class PayWithQrActivity1 extends AppCompatActivity implements PaymentResu
 
                                                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity1.this).transactionDao();
                                                 assert date != null;
-                                                long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "TIME OUT", "", "");
+                                                long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "TIME OUT", "", "", "");
                                                 Log.e(TAG, "onCreate: " + transactionId);
                                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -787,7 +787,7 @@ public class PayWithQrActivity1 extends AppCompatActivity implements PaymentResu
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity1.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "FAILED", payment.get("vpa"), "");
+                                long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "FAILED", payment.get("vpa"), "", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -823,7 +823,7 @@ public class PayWithQrActivity1 extends AppCompatActivity implements PaymentResu
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity1.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "FAILED", payment.get("vpa"), "");
+                                long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "FAILED", payment.get("vpa"), "", "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -983,7 +983,7 @@ public class PayWithQrActivity1 extends AppCompatActivity implements PaymentResu
 
                     TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity1.this).transactionDao();
                     assert date != null;
-                    long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "SUCCESS", payment.get("vpa"), "");
+                    long transactionId = Constants.insertTransaction(PayWithQrActivity1.this, transactionDao, "ONLINE", "", date, time, String.valueOf(amt), "SUCCESS", payment.get("vpa"), "", "");
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 

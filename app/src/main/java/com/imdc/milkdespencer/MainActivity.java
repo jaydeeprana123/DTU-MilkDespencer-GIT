@@ -57,8 +57,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private boolean getChargingState = false; // Flag for Charging State
     private boolean getUsbShowState = false;// Flag for state is in usb check state
 
-
-
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int DELAY_TIME_MILLIS = 16000; // 16 seconds
@@ -230,8 +228,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             // If permission is granted, skip asking for permission again
             if (isPermissionGranted) {
-                registerReceiver(usbPermissionReceiver, filter);
-                registerReceiver(usbDeviceDetachReceiver, filterUSBDetached);
+
                 handlePermissionGranted();
                 return;  // Skip permission request if granted
             }
@@ -656,6 +653,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     protected void onStart() {
         super.onStart();
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        registerReceiver(usbPermissionReceiver, filter);
+        registerReceiver(usbDeviceDetachReceiver, filterUSBDetached);
 //        registerReceiver(usbPermissionReceiver, filter);
 
 //        sendInitialData();

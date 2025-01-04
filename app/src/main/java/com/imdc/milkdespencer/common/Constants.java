@@ -25,6 +25,8 @@ import com.google.gson.JsonElement;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adminUi.AdminActivity;
+import com.imdc.milkdespencer.models.Response.ConfigurationResponse;
+import com.imdc.milkdespencer.models.Response.Datum;
 import com.imdc.milkdespencer.models.Response.ResponseOTP;
 import com.imdc.milkdespencer.network.ApiManager;
 import com.imdc.milkdespencer.network.ApiService;
@@ -37,6 +39,7 @@ import com.imdc.milkdespencer.roomdb.interfaces.LogDao;
 import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -90,6 +93,29 @@ public class Constants {
     public static final String PaidAmt = "PaidAmt";
 
     public static final String BASE_URL = "https://portal.idmc.coop:5151/api/";
+
+
+
+
+    public static final String GetConfigurationUrl = "SMSConfiguration/GetSMSConfiguration";
+
+    public static final String SMSApiUrl = "SMSApiUrl";
+
+    public static final String SMSSid = "SMSSid";
+
+    public static final String SMSApiKey = "SMSApiKey";
+
+    public static final String SMSSender = "SMSSender";
+
+    public static final String SMSTemplateId = "SMSTemplateId";
+
+    public static final String SMSTemplateContent = "SMSTemplateContent";
+
+    public static final String RazorPayKey = "RazorPayKey";
+
+    public static final String RazorPaySecretKey = "RazorPaySecretKey";
+
+
     public static final String PostTransactionURL = "/Transaction/PostTransaction";
     public static final String PostMerchantURL = "/Merchant/PostMerchant";
     public static final DecimalFormat df = new DecimalFormat("0.00");
@@ -485,10 +511,21 @@ public class Constants {
 
     public static void showForgotPasswordDialog(Context context, AppDatabase appDatabase) {
 
+        preferencesManager = SharedPreferencesManager.getInstance(context);
+
+
+
         final boolean[] isOtpSend = {false};
-        Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.kaleyra.io/v1/") // Replace with your base URL
+
+        /// Url get from shared preference
+        Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(SMSApiUrl, "https://api.kaleyra.io/v1/").toString()) // Replace with your base URL
                 .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
                 .addConverterFactory(GsonConverterFactory.create()).build();
+
+
+//        Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.kaleyra.io/v1/") // Replace with your base URL
+//                .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
+//                .addConverterFactory(GsonConverterFactory.create()).build();
 
         ApiService apiService = retrofit.create(ApiService.class);
 
@@ -565,19 +602,26 @@ public class Constants {
                                     // Perform network operation in a background thread
                                     new Thread(() -> {
                                         String otp = "OTP for MVM password reset is " + generateOtp(6) + ". -IDMC";
-                                        String content = "to=" + phoneNo + "&type=OTP&sender=IDMCCS&body=" + otp;
+                                        String content = "to=" + phoneNo + "&type=OTP&sender=" + preferencesManager.get(SMSSender, "IDMCCS").toString() + "&body=" + otp;
                                         Log.e(TAG, "onClick: " + content);
 
                                         HashMap<String, String> fields = new HashMap<>();
                                         fields.put("to", "+91" + phoneNo);
                                         fields.put("type", "OTP");
-                                        fields.put("sender", "IDMCCS");
+
+                                        /// Get from shared preference
+                                        fields.put("sender",preferencesManager.get(SMSSender, "IDMCCS").toString());
+
+//                                        fields.put("sender", "IDMCCS");
                                         fields.put("body", otp);
-                                        fields.put("api-key", "Ae0de2903bdeb26110fd03ccab96e92a1");
+
+                                        /// Get from shared preference
+                                        fields.put("api-key", preferencesManager.get(SMSApiKey, "Ae0de2903bdeb26110fd03ccab96e92a1").toString());
+//                                        fields.put("api-key", "Ae0de2903bdeb26110fd03ccab96e92a1");
 
                                         HashMap<String, String> headers = new HashMap<>();
                                         headers.put("Content-Type", "application/x-www-form-urlencoded");
-                                        headers.put("api-key", "Ae0de2903bdeb26110fd03ccab96e92a1");
+                                        headers.put("api-key", preferencesManager.get(SMSApiKey, "Ae0de2903bdeb26110fd03ccab96e92a1").toString());
 
                                         /// Old API : A5b9c8ba406fbc9bf361ffeb8bf6cb120
 
@@ -622,7 +666,12 @@ public class Constants {
                                             }
                                         };
 
-                                        apiManager.makeOTPRequestCall("HXIN1764058706IN/messages/", fields, headers, disposableObserver);
+                                    /// Get from shared preference
+                                        apiManager.makeOTPRequestCall((preferencesManager.get(SMSSid, "https://api.kaleyra.io/v1/").toString())
+                                                +"/messages/", fields, headers, disposableObserver);
+
+
+                                        //  apiManager.makeOTPRequestCall("HXIN1764058706IN/messages/", fields, headers, disposableObserver);
                                     }).start();
                                 });
                             }
@@ -912,7 +961,7 @@ public class Constants {
         return String.valueOf(timestamp) + randomNumber;
     }
 
-    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, String amount, String transactionStatus, String upiId, String volume) {
+    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, String amount, String transactionStatus, String upiId, String volume, String milkTemperature) {
         SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(activity);
 
         TransactionEntity transaction = new TransactionEntity();
@@ -924,6 +973,11 @@ public class Constants {
         transaction.setTransactionTime(transactionTime);
         transaction.setAmount(amount);
         transaction.setVolume(volume);
+
+        /// Added new on 4-1-2025
+        transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
+        transaction.setMilkTemperature(milkTemperature);
+
         transaction.setTransactionStatus(transactionStatus);
         transaction.setUpiId(upiId);
         transaction.setUniqueTransactionId(transactionDao.generateUniqueTransactionId());
@@ -934,7 +988,7 @@ public class Constants {
         /// Insert into Sqlite database
         long transactionId = transactionDao.insert(transaction);
 
-     //   doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, activity);
+        doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, activity);
 
         return transactionId;
     }
@@ -997,5 +1051,76 @@ public class Constants {
 
 
     }
+
+
+    /*Here in this getting the configuration data (SMS, Razorpay). We have to save it into shared preference*/
+    public static void doGetConfigurationData(Activity activity) {
+
+
+        Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/api/").toString()) // Replace with your base URL
+                .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
+                .addConverterFactory(GsonConverterFactory.create()).build();
+
+        ApiService apiService = retrofit.create(ApiService.class);
+
+        ApiManager apiManager = new ApiManager(apiService);
+
+        Handler handler = new Handler(Looper.getMainLooper());
+        handler.post(() -> {
+            ProgressDialog pd = new ProgressDialog(activity);
+            pd.setTitle("Please Wait...");
+            pd.setCancelable(false);
+            pd.show();
+            DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
+                @Override
+                public void onNext(ResponseBody response) {
+                    pd.dismiss();
+                    if (!response.toString().isEmpty()) {
+                        String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
+                        Log.e(TAG, "Configuration Data: " + json);
+
+                        preferencesManager = SharedPreferencesManager.getInstance(activity);
+                        ConfigurationResponse configurationResponse = new Gson().fromJson(json, ConfigurationResponse.class);
+
+
+                        /// Save in shared preference
+                        Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
+                        preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL());
+                        preferencesManager.save(SMSSid, configurationResponse.getData().get(0).getSmsSid());
+                        preferencesManager.save(SMSApiKey, configurationResponse.getData().get(0).getSmsAPIKey());
+                        preferencesManager.save(SMSSender, configurationResponse.getData().get(0).getSmsSender());
+                        preferencesManager.save(SMSTemplateId, configurationResponse.getData().get(0).getSmsTemplateID());
+                        preferencesManager.save(SMSTemplateContent, configurationResponse.getData().get(0).getSmsTemplateContent());
+                        preferencesManager.save(RazorPayKey, configurationResponse.getData().get(0).getRazorPayKey());
+                        preferencesManager.save(RazorPaySecretKey, configurationResponse.getData().get(0).getRazorPaySecretKey());
+                    }
+                }
+
+                @Override
+                public void onError(Throwable e) {
+                    // Handle the error
+                    if (pd != null && pd.isShowing()) {
+                        pd.dismiss();
+                    }
+                    e.printStackTrace();
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Utils.handleApiError(activity, e, apiManager);
+                        }
+                    });
+                }
+
+                @Override
+                public void onComplete() {
+                    // Handle completion if needed
+                }
+            };
+            apiManager.makeGetResponseCall(GetConfigurationUrl, disposableObserver);
+        });
+
+
+    }
+
 
 }

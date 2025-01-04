@@ -11,6 +11,8 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 
 import com.google.gson.Gson;
+import com.imdc.milkdespencer.common.Constants;
+import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.razorpay.Payment;
 import com.razorpay.QrCode;
 import com.razorpay.RazorpayClient;
@@ -23,9 +25,12 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class PaymentStatusService extends Service {
+
+    static SharedPreferencesManager preferencesManager;
+
     private static final String TAG = "PaymentStatusService";
-    private static final String RAZORPAY_KEY_ID = "rzp_live_oTrQqk0HauuUWZ"; //"rzp_test_bfiWftOYB0MCR7";
-    private static final String RAZORPAY_KEY_SECRET = "7lBcCfNsgl7wKtshFz7QCm8F"; //"VuX6RLVKtB6MBILQKRzcMeZy";
+//    private static final String RAZORPAY_KEY_ID = "rzp_live_oTrQqk0HauuUWZ"; //"rzp_test_bfiWftOYB0MCR7";
+//    private static final String RAZORPAY_KEY_SECRET = "7lBcCfNsgl7wKtshFz7QCm8F"; //"VuX6RLVKtB6MBILQKRzcMeZy";
     private String qrCodeId; // Provide your QR code ID here
     private Timer timer;
     private Handler handler;
@@ -36,11 +41,11 @@ public class PaymentStatusService extends Service {
         super.onCreate();
         handler = new Handler();
         timer = new Timer();
-
+        preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
         try {
             // Initialize Razorpay client with your key and secret
 //            razorpayClient = new RazorpayClient("YOUR_KEY_ID", "YOUR_KEY_SECRET");
-            razorpayClient = new RazorpayClient(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET);
+            razorpayClient = new RazorpayClient(preferencesManager.get(Constants.RazorPayKey, "rzp_live_oTrQqk0HauuUWZ").toString(), preferencesManager.get(Constants.RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F").toString());
 
         } catch (RazorpayException e) {
             e.printStackTrace();

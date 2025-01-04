@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer.adminUi;
 
+import static com.imdc.milkdespencer.common.Constants.doGetConfigurationData;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
 
@@ -42,6 +43,8 @@ public class AdminActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin);
+
+        doGetConfigurationData(AdminActivity.this);
 
         // When user comes first time isCip should be false
         isCipOn = false;
