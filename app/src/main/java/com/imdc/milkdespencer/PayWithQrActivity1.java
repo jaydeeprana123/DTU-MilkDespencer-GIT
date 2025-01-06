@@ -242,7 +242,7 @@ public class PayWithQrActivity1 extends AppCompatActivity implements PaymentResu
                     String inputVal = numericValueFromString != null ? String.valueOf(numericValueFromString) : "0.0";
 
                     double ltrs = Double.parseDouble(inputVal);
-                    double amt = Constants.calculateMilkWeight(ltrs, PayWithQrActivity1.this);
+                    double amt = Constants.calculateMilkPrice(ltrs, PayWithQrActivity1.this);
 
                     try {
                         paymentObject.put("name", "Milk Vending Machine");
@@ -307,7 +307,7 @@ public class PayWithQrActivity1 extends AppCompatActivity implements PaymentResu
                 if (selectedId == 0) {
 
                     double ltrs = Double.parseDouble(inputVal);
-                    double amt = Constants.calculateMilkWeight(ltrs, PayWithQrActivity1.this);
+                    double amt = Constants.calculateMilkPrice(ltrs, PayWithQrActivity1.this);
 
                     try {
                         paymentObject.put("name", "Milk Vending Machine");

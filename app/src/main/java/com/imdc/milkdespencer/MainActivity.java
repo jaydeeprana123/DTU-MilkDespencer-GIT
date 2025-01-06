@@ -1,7 +1,7 @@
 package com.imdc.milkdespencer;
 
+import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
-import static com.imdc.milkdespencer.common.Constants.PREF_PERMISSION_GRANTED;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
 
 import android.annotation.SuppressLint;
@@ -54,8 +54,10 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private boolean isUsbPermissionGranted = false; // Flag for USB permission
-    private boolean getChargingState = false; // Flag for Charging State
-    private boolean getUsbShowState = false;// Flag for state is in usb check state
+    private boolean getChargingState = false;
+    private boolean getUsbShowState = false;
+
+
 
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -64,9 +66,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private final Handler handler = new Handler();
     Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
     IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-
-    IntentFilter filterUSBDetached = new IntentFilter(UsbManager.ACTION_USB_DEVICE_DETACHED);
-
     LinearLayout llCash, llQr, lvStatus, llAlert;
     ImageView ivAgitator, ivCompressor;
     AlertDialog alertDialog;
@@ -94,7 +93,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 if (usbDevice != null) {
                   // Set flag to true
                     usbSerialCommunication.openConnection(usbDevice);
-                    preferencesManager.save(PREF_PERMISSION_GRANTED, true);  // Store the permission granted state
                 } else {
                     Log.e(TAG, "USB device is null.");
                 }
@@ -111,22 +109,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             }
         }
     };
-
-
-
-    // New reciever
-    // BroadcastReceiver to detect USB device detach
-    private final BroadcastReceiver usbDeviceDetachReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
-            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
-                preferencesManager.save(PREF_PERMISSION_GRANTED, false);  // Store the permission granted state // Reset permission state when USB is detached
-            }
-        }
-    };
-
-
 
     private Button btnPayWithCash, btnPayWithQr, btnStart, btnDone;
     private CardView cvPayWithCash, cvPayWithQr, cv_error;
@@ -148,6 +130,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             if (isCharging) {
                 getChargingState = true;
+
                 checkAndRequestUsbPermission();
 
             } else {
@@ -168,9 +151,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
                 /// If Usb Serial Communication is connected
                 if (usbSerialCommunication.connected) {
-
-                    Log.e("usbSerialCommunication ", "is connected");
-
                     /// Charging is not available screen will be hide
                     cv_error.setVisibility(View.GONE);
                     getUsbShowState = true;
@@ -207,8 +187,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         }
 
 
-
-        /// New Method (Chat gpt)
         private void checkAndRequestUsbPermission() {
             UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
@@ -225,90 +203,25 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 return;
             }
 
-            // Check if permission has been granted before
+            boolean allPermissionsGranted = true;
 
-            boolean isPermissionGranted = (boolean) preferencesManager.get(PREF_PERMISSION_GRANTED, false);
-
-            // If permission is granted, skip asking for permission again
-            if (isPermissionGranted) {
-
-                handlePermissionGranted();
-                return;  // Skip permission request if granted
-            }
-
-            // Loop through each device and check permissions
             for (UsbDevice device : deviceList.values()) {
                 if (!usbManager.hasPermission(device)) {
-                    // Request permission if not already granted
+                    allPermissionsGranted = false;
                     showPermissionRequestUI(usbManager, device);
-                    break;  // Stop checking further devices
+                    break; // Stop checking further as one permission is not granted
                 }
+            }
+
+            if (allPermissionsGranted) {
+                registerReceiver(usbPermissionReceiver, filter);
+                handlePermissionGranted();
             }
         }
 
-
-
-
-        /// Old Method
-//        private void checkAndRequestUsbPermission() {
-//            UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-//
-//            if (usbManager == null) {
-//                Log.e("USB", "USB Manager is not available.");
-//                return;
-//            }
-//
-//            // Get connected USB devices
-//            HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
-//
-//            if (deviceList.isEmpty()) {
-//                Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
-//                return;
-//            }
-//
-//            boolean allPermissionsGranted = true;
-//
-//            for (UsbDevice device : deviceList.values()) {
-//                if (!usbManager.hasPermission(device)) {
-//                    allPermissionsGranted = false;
-//                    showPermissionRequestUI(usbManager, device);
-//                    break; // Stop checking further as one permission is not granted
-//                }
-//            }
-//
-//            if (allPermissionsGranted) {
-//                registerReceiver(usbPermissionReceiver, filter);
-//                handlePermissionGranted();
-//            }
-//        }
-
-
-        /// Old method
-//        private void showPermissionRequestUI(UsbManager usbManager, UsbDevice device) {
-//            getUsbShowState = false;
-//
-//            cv_error.setVisibility(View.VISIBLE);
-//            btnStart.setVisibility(View.GONE);
-//            btnDone.setVisibility(View.VISIBLE);
-//            btnDone.setText("GRANT PERMISSION");
-//            tv_Message.setText("USB permission is not granted");
-//            lvAnimation.setAnimation(R.raw.no_usb);
-//
-//            btnDone.setOnClickListener(v -> checkAndRequestUsbPermission());
-//
-//            // Request USB permission
-//            PendingIntent permissionIntent = PendingIntent.getBroadcast(
-//                    MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
-//            );
-//            usbManager.requestPermission(device, permissionIntent);
-//        }
-
-
-
-        /// New method
         private void showPermissionRequestUI(UsbManager usbManager, UsbDevice device) {
-            // Display UI to inform the user to grant permission
             getUsbShowState = false;
+
             cv_error.setVisibility(View.VISIBLE);
             btnStart.setVisibility(View.GONE);
             btnDone.setVisibility(View.VISIBLE);
@@ -316,24 +229,14 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             tv_Message.setText("USB permission is not granted");
             lvAnimation.setAnimation(R.raw.no_usb);
 
-            // Handle button click to trigger permission request
-            btnDone.setOnClickListener(v -> requestPermission(usbManager, device));
+            btnDone.setOnClickListener(v -> checkAndRequestUsbPermission());
 
-            // Request USB permission only if it's not granted
+            // Request USB permission
             PendingIntent permissionIntent = PendingIntent.getBroadcast(
                     MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
             );
             usbManager.requestPermission(device, permissionIntent);
         }
-
-        private void requestPermission(UsbManager usbManager, UsbDevice device) {
-            PendingIntent permissionIntent = PendingIntent.getBroadcast(
-                    MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
-            );
-            usbManager.requestPermission(device, permissionIntent);
-        }
-
-
 
         private void handlePermissionGranted() {
             tv_Message.setText("Please wait...");
@@ -579,8 +482,13 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
 
+            Log.e("responseTempStatus", preferencesManager.get(Constants.ResponseTempStatus, "").toString());
+
             if (responseTempStatus.getConnectivity() != null) {
                 if (!responseTempStatus.getConnectivity()) {
+
+                    Log.e("responseTempStatus getConnectivity", responseTempStatus.getConnectivity().toString());
+
                     submitBtn.setText(getString(R.string.start));
                     dialog.dismiss();
                     startUsbCommunication();
@@ -657,7 +565,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         super.onStart();
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         registerReceiver(usbPermissionReceiver, filter);
-        registerReceiver(usbDeviceDetachReceiver, filterUSBDetached);
 //        registerReceiver(usbPermissionReceiver, filter);
 
 //        sendInitialData();
@@ -699,6 +606,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         unregisterReceiver(usbPermissionReceiver);
         unregisterReceiver(batteryReceiver);
         usbSerialCommunication.disconnect();
+        unregisterReceiver(usbPermissionReceiver);
         super.onDestroy();
     }
 

@@ -68,14 +68,28 @@ public class TransactionHistoryActivity extends AppCompatActivity {
             boolean isAdmin = user.getUserType() == UserTypeEnum.ADMIN.value() || user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value();
             if (isAdmin) {
                 updateUI("Logs", appDatabase.logDao().getAllLogs(), true);
+                tvTodayTotalAmount.setVisibility(View.GONE);
+                tvTodayTotalVolume.setVisibility(View.GONE);
+
             } else {
                 updateUI("Transaction History", appDatabase.transactionDao().getAllTransactions(), false);
-
+                tvTodayTotalAmount.setVisibility(View.VISIBLE);
+                tvTodayTotalVolume.setVisibility(View.VISIBLE);
 
                 /// Get Today date
                 String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-                tvTodayTotalAmount.setText(appDatabase.transactionDao().getTodayAmountSum(todayDate));
-                tvTodayTotalVolume.setText(appDatabase.transactionDao().getTodayVolumeSum(todayDate));
+
+
+                double totalAmount =  appDatabase.transactionDao().getTodayAmountSum(todayDate, "SUCCESS");
+                float totalVolume =  appDatabase.transactionDao().getTodayVolumeSum(todayDate,"SUCCESS");
+
+                 totalAmount = Double.parseDouble(String.format("%.2f", totalAmount));
+                 totalVolume = Float.parseFloat(String.format("%.2f", totalVolume));
+
+                Log.e("totalAmount", String.valueOf(totalAmount));
+                Log.e("totalVolume", String.valueOf(totalVolume));
+                tvTodayTotalAmount.setText("Today's Summary     ₹" + (String.valueOf(totalAmount)));
+                tvTodayTotalVolume.setText(String.valueOf(totalVolume) + "L");
 
             }
         }).start();

@@ -142,6 +142,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 //    private static UsbSerialManager usbSerialManager;
     private static UsbSerialCommunication usbSerialCommunication;
+
+
     private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -440,6 +442,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 sendToDevice.setWeight(weight);
                 sendToDevice.setStatus(true);
                 sendToDevice.setCurtemperature(currentTemperature);
+
+                Log.e("milkSetTemperature sendForMilkVending", String.valueOf(milkSetTemperature));
+
                 sendToDevice.setSettemperature(milkSetTemperature);
 
 //                UsbSerialCommunication.currentClass = "CCA";
@@ -774,6 +779,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                         float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, "0.0").toString());
                         float milkDensity = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
                         float weight = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice))) * milkDensity; //TODO : multiply with Den.
+                        float volumeToDisplay = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice)));
+                        volumeToDisplay = Float.parseFloat(String.format("%.2f", volumeToDisplay));
+
+
                         Log.e(TAG, "DisplayEvents: milkDensity " + milkDensity);
                         switch ((int) ev.value) {
                             case 10:
@@ -798,7 +807,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                 ivCurrency.setImageResource(R.drawable.pay_with_cash);
                         }
 
-                        msg = eventValues[1] + " is detected you will get " + weight + " liters of Milk.\n Please ensure the door is closed starting the dispensation!! Press Start to Confirm!!!";
+                        msg = eventValues[1] + " is detected you will get " + volumeToDisplay + " liters of Milk.\n Please ensure the door is closed starting the dispensation!! Press Start to Confirm!!!";
                         tvMessage.setText(msg);
                         tvCurrencyAmt.setText(eventValues[1]);
                     }
@@ -812,25 +821,54 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 });
                 submitBtn.setOnClickListener(v -> {
 
-                    /// Here if submit button is pressed,
-                    // Payment is set as a received and amount will be save in a shared preference
-                    JSONObject paymentObject = new JSONObject();
-                    try {
-                        paymentObject.put("name", "Milk Vending Machine");
-                        paymentObject.put("description", "Payment For Milk");
-                        paymentObject.put("currency", "INR");
-                        paymentObject.put("amount", ev.value);
-                    } catch (JSONException e) {
-                        throw new RuntimeException(e);
+                    float milkSellingPrice = Float.parseFloat(String.valueOf(milkBasePrice));
+                    float volumeToDisplay = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice)));
+                    volumeToDisplay = Float.parseFloat(String.format("%.2f", volumeToDisplay));
+
+                    /// Check that volume amount is more than 5 lites
+                    if(volumeToDisplay > 5){
+
+                        // If door is open then close the cash machine and send to the home page
+                        deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
+                        dialog.dismiss();
+                        showAlertExceedLimit();
+                    }else{
+
+                        ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+
+                        /// Here it will check that door is open or close
+                        // If door is close then allow to start milking
+                        if(!responseTempStatus.getConnectivity()){
+
+                            /// Here if submit button is pressed,
+                            // Payment is set as a received and amount will be save in a shared preference
+                            JSONObject paymentObject = new JSONObject();
+                            try {
+                                paymentObject.put("name", "Milk Vending Machine");
+                                paymentObject.put("description", "Payment For Milk");
+                                paymentObject.put("currency", "INR");
+                                paymentObject.put("amount", ev.value);
+                            } catch (JSONException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                            // Convert JSONObject to String
+                            String paymentObjectString = paymentObject.toString();
+                            /// Save into shared preference
+                            preferencesManager.save(Constants.PaymentCashReceived, paymentObjectString);
+
+                            sendForMilkVending(ev);
+                            dialog.dismiss();
+                        }else{
+
+                            // If door is open then close the cash machine and send to the home page
+                            deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
+                            dialog.dismiss();
+                            goToHomeScreen();
+
+                        }
                     }
 
-                    // Convert JSONObject to String
-                    String paymentObjectString = paymentObject.toString();
-                    /// Save into shared preference
-                    preferencesManager.save(Constants.PaymentCashReceived, paymentObjectString);
-
-                    sendForMilkVending(ev);
-                    dialog.dismiss();
                 });
                 // Show the dialog
 
@@ -1485,6 +1523,31 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             }
         }).start();
     }
+
+
+
+    /// If volume amount is more than 5 liters.
+    // It will show error tha vending volume can not be more than 5 liters
+        private void showAlertExceedLimit() {
+            // Create AlertDialog.Builder instance
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Exceed Limit");
+            builder.setMessage("Vending volume can not be more than 5 liters.");
+
+            // Positive button
+            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                   dialog.dismiss();
+                    goToHomeScreen();
+                }
+            });
+
+            // Show the dialog
+            AlertDialog dialog = builder.create();
+            dialog.setCancelable(false);
+            dialog.show();
+        }
 
 
 }

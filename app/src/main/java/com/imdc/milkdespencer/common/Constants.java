@@ -904,6 +904,19 @@ public class Constants {
         return amountInLiters * DENSITY_OF_MILK;
     }
 
+
+    public static double calculateMilkPrice(double literValue, Context context) {
+        preferencesManager = SharedPreferencesManager.getInstance(context);
+        float milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
+
+        double amountInLiters = milkBasePrice * literValue;
+        Log.e(TAG, "calculateMilkWeight: BP " + milkBasePrice + " <+++> " + amountInLiters);
+
+        return amountInLiters;
+    }
+
+
+
     public static double calculateMilkAmount(double cost, Context context) {
         preferencesManager = SharedPreferencesManager.getInstance(context);
 
@@ -1028,6 +1041,9 @@ public class Constants {
 
                 @Override
                 public void onError(Throwable e) {
+
+                    Log.e(TAG, "onError: " + e);
+
                     // Handle the error
                     if (pd != null && pd.isShowing()) {
                         pd.dismiss();

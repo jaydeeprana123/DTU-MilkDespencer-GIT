@@ -45,13 +45,13 @@
         style="@style/TextAppearance.AppCompat.Headline"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Total Amount = 0"
+        android:text="Today's Amount = 0"
         android:textStyle="bold"
-        android:textSize="@dimen/_16ssp"
         android:layout_marginLeft="@dimen/_12sdp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/btnBackToHome"
         android:layout_marginTop="@dimen/_4sdp"
+        android:visibility="gone"
         />
 
 
@@ -60,13 +60,13 @@
         style="@style/TextAppearance.AppCompat.Headline"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Total Volume = 0L"
+        android:text="Volume = 0L"
         android:textStyle="bold"
-        android:textSize="@dimen/_16ssp"
         android:layout_marginLeft="@dimen/_16sdp"
         app:layout_constraintStart_toEndOf="@id/tvTodayTotalAmount"
         app:layout_constraintTop_toBottomOf="@id/btnBackToHome"
         android:layout_marginTop="@dimen/_4sdp"
+        android:visibility="gone"
         />
 
 

@@ -3,6 +3,7 @@ package com.imdc.milkdespencer;
 
 import static com.imdc.milkdespencer.CashCollectorActivity.getInstance;
 import static com.imdc.milkdespencer.CashCollectorActivity.milkSetTemperature;
+
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
 
@@ -65,6 +66,8 @@ import java.text.SimpleDateFormat;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import device.itl.sspcoms.SSPSystem;
 
 public class PayWithQrActivity extends AppCompatActivity implements PaymentResultWithDataListener {
     static SharedPreferencesManager preferencesManager;
@@ -250,7 +253,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     String inputVal = numericValueFromString != null ? String.valueOf(numericValueFromString) : "0.0";
 
                     double ltrs = Double.parseDouble(inputVal);
-                    double amt = Constants.calculateMilkWeight(ltrs, PayWithQrActivity.this);
+                    double amt = Constants.calculateMilkPrice(ltrs, PayWithQrActivity.this);
+                    amt = Double.parseDouble(String.format("%.2f", amt));
 
                     try {
                         paymentObject.put("name", "Milk Vending Machine");
@@ -263,7 +267,18 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             public void onClick(DialogInterface dialog, int which) {
 //                                Toast.makeText(PayWithQrActivity.this, "YES ", Toast.LENGTH_SHORT).show();
                                 dialog.dismiss();
-                                executeGenerateQRCodeTask(paymentObject, customerId);
+
+                                ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+
+                                /// Here it will check that door is open or close
+                                // If door is close then allow to start milking
+                                if(!responseTempStatus.getConnectivity()){
+                                    executeGenerateQRCodeTask(paymentObject, customerId);
+                                }else{
+                                    // If door is open then close the cash machine and send to the home page
+                                    goToHomeScreen();
+                                }
+
                             }
                         }, new DialogInterface.OnClickListener() {
                             @Override
@@ -279,18 +294,43 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 }
                 if (gv_CurrencyLiters.getAdapter() instanceof SpnCurrencyAdapter) {
                     double cost = Double.parseDouble(gv_CurrencyLiters.getAdapter().getItem(position).toString().replace("₹", ""));
+                    cost = Float.parseFloat(String.format("%.2f", cost));
+
                     //   Toast.makeText(PayWithQrActivity.this, "COST " + cost, Toast.LENGTH_SHORT).show();
                     double weight = Constants.calculateMilkAmount(cost, PayWithQrActivity.this);
                     String weightStr = weight > 0 && weight < 1 ? weight + " (Ml)." : weight + "(Ltr).";
+                    float milkSellingPrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
+                    float volumeToDisplay = Float.parseFloat(String.valueOf((cost / milkSellingPrice)));
+                    volumeToDisplay = Float.parseFloat(String.format("%.2f", volumeToDisplay));
+
+
                     try {
                         paymentObject.put("name", "Milk Vending Machine");
                         paymentObject.put("description", "Payment For Milk");
                         paymentObject.put("currency", "INR");
                         paymentObject.put("amount", cost * 100); // Amount in paise (e.g., 10000 paise = INR 100)
 //                        paymentObject.put("amount", 100); // Amount in paise (e.g., 10000 paise = INR 100)
-                        Constants.showAcceptDialog(PayWithQrActivity.this, "Please Confirm", "You need to pay the ₹" + cost + " for " + weightStr, (dialog, which) -> {
+                        float finalVolumeToDisplay = volumeToDisplay;
+                        Constants.showAcceptDialog(PayWithQrActivity.this, "Please Confirm", "You need to pay the ₹" + cost + " for " + volumeToDisplay, (dialog, which) -> {
                             dialog.dismiss();
-                            executeGenerateQRCodeTask(paymentObject, customerId);
+
+                            /// Check that volume amount is more than 5 lites
+                            if(finalVolumeToDisplay > 5){
+                                showAlertExceedLimit();
+                            }else{
+                                ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+
+                                /// Here it will check that door is open or close
+                                // If door is close then allow to start milking
+                                if(!responseTempStatus.getConnectivity()){
+                                    executeGenerateQRCodeTask(paymentObject, customerId);
+                                }else{
+                                    // If door is open then close the cash machine and send to the home page
+                                    goToHomeScreen();
+                                }
+                            }
+
+
                         }, (dialog, which) -> dialog.dismiss());
 
                     } catch (Exception e) {
@@ -318,7 +358,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 if (selectedId == 0) {
 
                     double ltrs = Double.parseDouble(inputVal);
-                    double amt = Constants.calculateMilkWeight(ltrs, PayWithQrActivity.this);
+                    double amt = Constants.calculateMilkPrice(ltrs, PayWithQrActivity.this);
                     weightInLiter = String.valueOf(ltrs);
                     try {
                         paymentObject.put("name", "Milk Vending Machine");
@@ -506,6 +546,12 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     private void generateQRCode(JSONObject paymentObject, String customerId) {
         try {
             RazorpayClient razorpay = new RazorpayClient(preferencesManager.get(Constants.RazorPayKey, "rzp_live_oTrQqk0HauuUWZ").toString(), preferencesManager.get(Constants.RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F").toString());
+
+          //  RazorpayClient razorpay = new RazorpayClient("rzp_live_oTrQqk0HauuUWZ", "7lBcCfNsgl7wKtshFz7QCm8F");
+
+
+            Log.e("api key", preferencesManager.get(Constants.RazorPayKey, "rzp_live_oTrQqk0HauuUWZ").toString());
+            Log.e("secret key", preferencesManager.get(Constants.RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F").toString());
 
             JSONObject qrRequest = createQrRequest(paymentObject, customerId);
             Log.e("TAG", "QR Request: " + new Gson().toJson(qrRequest));
@@ -722,6 +768,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
             float milkDensity = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
             float weight = (float) ((amt / milkSellingPrice) * milkDensity);
+           float milkSetTemperature = Float.parseFloat(preferencesManager.get(Constants.TemperatureSet, "0.0").toString());
 
             double currentSavedTemp = responseTempStatus.getTemperature() / 10.0;
             float currentTemperature = (float) (currentSavedTemp + offSet);
@@ -730,6 +777,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             sendToDevice.setWeight(weight);
             sendToDevice.setStatus(true);
             sendToDevice.setCurtemperature(currentTemperature);
+
+            Log.e("milkSetTemperature sendForMilkVending", String.valueOf(milkSetTemperature));
+
             sendToDevice.setSettemperature(milkSetTemperature);
 
             Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
@@ -1089,4 +1139,30 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
         super.onDestroy();
     }
+
+
+    /// If volume amount is more than 5 liters.
+    // It will show error tha vending volume can not be more than 5 liters
+    private void showAlertExceedLimit() {
+        // Create AlertDialog.Builder instance
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Exceed Limit");
+        builder.setMessage("Vending volume can not be more than 5 liters.");
+
+        // Positive button
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+                goToHomeScreen();
+            }
+        });
+
+        // Show the dialog
+        AlertDialog dialog = builder.create();
+        dialog.setCancelable(false);
+        dialog.show();
+    }
+
+
 }

@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer.common;
 
+import static com.imdc.milkdespencer.CashCollectorActivity.getInstance;
 import static com.imdc.milkdespencer.common.Constants.PREF_PERMISSION_GRANTED;
 import static com.imdc.milkdespencer.common.Constants.cipDialog;
 
@@ -96,6 +97,9 @@ public class UsbSerialCommunication {
     }
 
     public void connect() {
+
+        Log.e("connect ", "method");
+
         if (usbManager == null) {
             Log.e(TAG, "UsbManager is null. Make sure USB is supported on this device.");
             return;
@@ -112,22 +116,44 @@ public class UsbSerialCommunication {
 //            String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, null));
 //            Toast.makeText(context, "TEMPERATURE STATUS " + preferencesManager.hasValue(Constants.ResponseTempStatus), Toast.LENGTH_SHORT).show();
 
-            /*SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
+
+            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(getInstance());
             if (preferencesManager.hasValue(Constants.ResponseTempStatus)) {
-                String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, null));
-                Log.e(TAG, "connect: " + temperatureResponse);
-                if (!temperatureResponse.isEmpty()) {
-                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
-                    ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
+                ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+
+
+                if(responseTempStatus != null){
                     double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
                     float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
                     fireOnStart(currentTemperature);
-                } else {
+                }else {
                     fireOnStart(0);
                 }
-            } else {
-            }*/
-            fireOnStart(0);
+
+            }else {
+                fireOnStart(0);
+            }
+
+
+
+//            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
+//            if (preferencesManager.hasValue(Constants.ResponseTempStatus)) {
+//                String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, null));
+//                Log.e(TAG, "connect: " + temperatureResponse);
+//                if (!temperatureResponse.isEmpty()) {
+//                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+//                    ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
+//                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+//                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+//                    fireOnStart(currentTemperature);
+//                } else {
+//                    fireOnStart(0);
+//                }
+//            } else {
+//            }
+
+//            fireOnStart(0);
 
         }
 
@@ -162,15 +188,22 @@ public class UsbSerialCommunication {
         SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
         boolean isPermissionGranted = (boolean) preferencesManager.get(PREF_PERMISSION_GRANTED, false);
 
-        if(!isPermissionGranted){
-            PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), 0);
+//        if(!isPermissionGranted){
+//            PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), 0);
+//
+//            IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+//            context.registerReceiver(usbPermissionReceiver, filter);
+//
+//            usbManager.requestPermission(device, permissionIntent);
+//        }
 
-            IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
-            context.registerReceiver(usbPermissionReceiver, filter);
 
-            usbManager.requestPermission(device, permissionIntent);
-        }
+        PendingIntent permissionIntent = PendingIntent.getBroadcast(context, 0, new Intent(ACTION_USB_PERMISSION), 0);
 
+        IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
+        context.registerReceiver(usbPermissionReceiver, filter);
+
+        usbManager.requestPermission(device, permissionIntent);
 
     }
 
@@ -181,29 +214,46 @@ public class UsbSerialCommunication {
         outEndpoint = usbInterface.getEndpoint(1);
 
         usbConnection = usbManager.openDevice(device);
+
+        Log.e("openConnection", "method");
+
         if (usbConnection != null) {
+
+            Log.e("usbConnection", "not null");
+
             if (usbConnection.claimInterface(usbInterface, true)) {
+                Log.e("usbConnection", " claimInterface");
                 setBaudRateInternal();
                 connected = true;
                 checkAndStartReadingData();
                 SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
                 String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, ""));
                 if (!temperatureResponse.isEmpty()) {
+
+
+                    Log.e("temperatureResponse ", "not empty");
+
                     float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
                     ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
                     double currentSavedTemp = responseTempStatus.getTemperature() / 10;
                     float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
                     fireOnStart(currentTemperature);
                 } else {
+
+                    Log.e("temperatureResponse ", "empty");
                     fireOnStart(0);
 
                 }
 //                fireOnStart(0);
             } else {
+                Log.e("usbConnection", "Failed claimInterface");
+
                 Log.e(TAG, "Failed to claim interface.");
                 disconnect();
             }
         } else {
+
+            Log.e("Failed to open", " USB connection.");
             Log.e(TAG, "Failed to open USB connection.");
             requestPermission(device);
         }

@@ -29,8 +29,8 @@ public class PaymentStatusService extends Service {
     static SharedPreferencesManager preferencesManager;
 
     private static final String TAG = "PaymentStatusService";
-//    private static final String RAZORPAY_KEY_ID = "rzp_live_oTrQqk0HauuUWZ"; //"rzp_test_bfiWftOYB0MCR7";
-//    private static final String RAZORPAY_KEY_SECRET = "7lBcCfNsgl7wKtshFz7QCm8F"; //"VuX6RLVKtB6MBILQKRzcMeZy";
+   private static final String RAZORPAY_KEY_ID = "rzp_live_oTrQqk0HauuUWZ"; //"rzp_test_bfiWftOYB0MCR7";
+    private static final String RAZORPAY_KEY_SECRET = "7lBcCfNsgl7wKtshFz7QCm8F"; //"VuX6RLVKtB6MBILQKRzcMeZy";
     private String qrCodeId; // Provide your QR code ID here
     private Timer timer;
     private Handler handler;

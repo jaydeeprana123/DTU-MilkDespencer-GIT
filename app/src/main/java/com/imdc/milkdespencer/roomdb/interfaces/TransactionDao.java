@@ -16,7 +16,7 @@ public interface TransactionDao {
     @Insert
     long insert(TransactionEntity transaction);
 
-    @Query("SELECT * FROM transactions")
+    @Query("SELECT * FROM transactions ORDER BY id DESC")
     List<TransactionEntity> getAllTransactions();
 
     @Query("SELECT * FROM transactions WHERE uniqueTransactionId = :uniqueTransactionId")
@@ -39,13 +39,13 @@ public interface TransactionDao {
 
 
     // Get the sum of the 'volume' column for today's data
-    @Query("SELECT SUM(volume) FROM transactions WHERE transactionDate = :todayDate")
-    int getTodayVolumeSum(String todayDate);
+    @Query("SELECT SUM(volume) FROM transactions WHERE transactionDate = :todayDate AND transactionStatus = :transactionStatus")
+    float getTodayVolumeSum(String todayDate, String transactionStatus);
 
 
     // Get the sum of the 'volume' column for today's data
-    @Query("SELECT SUM(amount) FROM transactions WHERE transactionDate = :todayDate")
-    int getTodayAmountSum(String todayDate);
+    @Query("SELECT SUM(amount) FROM transactions WHERE transactionDate = :todayDate AND transactionStatus = :transactionStatus")
+    float getTodayAmountSum(String todayDate, String transactionStatus);
 
 
 }
