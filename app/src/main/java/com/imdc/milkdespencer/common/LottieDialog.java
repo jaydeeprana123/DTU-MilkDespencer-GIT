@@ -36,7 +36,6 @@ public class LottieDialog extends Dialog {
         animationView.setAnimation(R.raw.milk_loading);
         animationView.setProgress(0);
         tvPercentage.setText("Filling In Process");
-        tvPercentage.setText("Filling In Process");
         animationView.playAnimation();
     }
 
