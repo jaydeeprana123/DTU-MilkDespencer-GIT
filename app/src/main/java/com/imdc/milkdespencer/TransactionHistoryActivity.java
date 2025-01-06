@@ -22,13 +22,19 @@ import com.imdc.milkdespencer.roomdb.entities.LogEntity;
 import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.entities.User;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class TransactionHistoryActivity extends AppCompatActivity {
 
-
     RecyclerView rvTransactions;
     TextView tvTitle;
+
+    TextView tvTodayTotalAmount, tvTodayTotalVolume;
+
+
     MaterialButton btnBackToHome;
     User user;
     private TransactionAdapter transactionAdapter;
@@ -48,6 +54,8 @@ public class TransactionHistoryActivity extends AppCompatActivity {
         rvTransactions = findViewById(R.id.rvTransactions);
         tvTitle = findViewById(R.id.tvTitle);
         btnBackToHome = findViewById(R.id.btnBackToHome);
+        tvTodayTotalAmount= findViewById(R.id.tvTodayTotalAmount);
+        tvTodayTotalVolume= findViewById(R.id.tvTodayTotalVolume);
         rvTransactions.setLayoutManager(new LinearLayoutManager(this));
 
         btnBackToHome.setOnClickListener(view -> finish());
@@ -62,6 +70,13 @@ public class TransactionHistoryActivity extends AppCompatActivity {
                 updateUI("Logs", appDatabase.logDao().getAllLogs(), true);
             } else {
                 updateUI("Transaction History", appDatabase.transactionDao().getAllTransactions(), false);
+
+
+                /// Get Today date
+                String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+                tvTodayTotalAmount.setText(appDatabase.transactionDao().getTodayAmountSum(todayDate));
+                tvTodayTotalVolume.setText(appDatabase.transactionDao().getTodayVolumeSum(todayDate));
+
             }
         }).start();
     }

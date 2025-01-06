@@ -50,7 +50,7 @@ import com.imdc.milkdespencer.roomdb.entities.User;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener {
+public class MainActivityBackup extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener {
 
 
     private boolean isUsbPermissionGranted = false; // Flag for USB permission
@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private boolean getUsbShowState = false;// Flag for state is in usb check state
 
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
-    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final String TAG = MainActivityBackup.class.getSimpleName();
     private static final int DELAY_TIME_MILLIS = 16000; // 16 seconds
     static SharedPreferencesManager preferencesManager;
     private final Handler handler = new Handler();
@@ -221,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
 
             if (deviceList.isEmpty()) {
-                Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivityBackup.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
@@ -321,14 +321,14 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             // Request USB permission only if it's not granted
             PendingIntent permissionIntent = PendingIntent.getBroadcast(
-                    MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
+                    MainActivityBackup.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
             );
             usbManager.requestPermission(device, permissionIntent);
         }
 
         private void requestPermission(UsbManager usbManager, UsbDevice device) {
             PendingIntent permissionIntent = PendingIntent.getBroadcast(
-                    MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
+                    MainActivityBackup.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
             );
             usbManager.requestPermission(device, permissionIntent);
         }
@@ -644,7 +644,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             });
             // Handle edit action
-            Constants.showLoginDialog(MainActivity.this, appDatabase);
+            Constants.showLoginDialog(MainActivityBackup.this, appDatabase);
 
             return true;
         }

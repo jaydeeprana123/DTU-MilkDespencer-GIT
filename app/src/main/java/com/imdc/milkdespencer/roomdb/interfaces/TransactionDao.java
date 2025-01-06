@@ -33,4 +33,19 @@ public interface TransactionDao {
         @SuppressLint("DefaultLocale") String uniqueTransactionId = "TXN" + String.format("%05d", lastTransactionId + 1);
         return uniqueTransactionId;
     }
+
+    @Query("SELECT * FROM transactions WHERE transactionDate = :todayDate")
+    List<TransactionEntity> getTodayData(String todayDate);
+
+
+    // Get the sum of the 'volume' column for today's data
+    @Query("SELECT SUM(volume) FROM transactions WHERE transactionDate = :todayDate")
+    int getTodayVolumeSum(String todayDate);
+
+
+    // Get the sum of the 'volume' column for today's data
+    @Query("SELECT SUM(amount) FROM transactions WHERE transactionDate = :todayDate")
+    int getTodayAmountSum(String todayDate);
+
+
 }

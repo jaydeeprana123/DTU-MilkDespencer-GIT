@@ -67,6 +67,7 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -165,7 +166,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                         paymentObject = new JSONObject(paymentJson);
                         if (paymentObject.has("amount")) {
                             // Safely parse the amount as a float
-                            float amount = (float) paymentObject.optDouble("amount", 0.0);
+                            double amount = paymentObject.optDouble("amount", 0.0);
 
                             Log.e("Amount","is availableeee");
                             showFailedProcessDoneDialog(amount);
@@ -549,7 +550,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
                     String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
                     TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
-                    Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", String.valueOf(volumeOfMilk), "");
+                    Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, (amt), "FAILED", "", volumeOfMilk, "");
 
                     Log.e("Time is out", "After 15 minutes");
 
@@ -642,7 +643,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     }
 
-    private void showFailedProcessDoneDialog(float amt) {
+    private void showFailedProcessDoneDialog(double amt) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -664,9 +665,11 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                 String time = timeFormatter.format(System.currentTimeMillis());
                                 // Print the combined date and time
 
+                                Log.e("date", date);
+
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "0", "");
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, amt, "FAILED", "", 0, "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -704,7 +707,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                                 assert date != null;
-                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(amt), "FAILED", "", "0", "");
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time,amt, "FAILED", "", 0, "");
                                 Log.e(TAG, "onCreate: " + transactionId);
                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -1458,11 +1461,12 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     assert date != null;
 
                     /// Here I convert volume of milk into string and set 3 digits after dot(.)
-                    String strMilkOfVolume = String.format("%.3f", volumeOfMilk);
+                    float truncatedValueOfMilkVolume = (float) ((int) (volumeOfMilk * 1000)) / 1000f;
+
                     /// Here I convert temperature of milk into string and set 3 digits after dot(.)
                     String strMilkTemperature = String.format("%.3f", milkTemperature);
 
-                    long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, String.valueOf(currency), "SUCCESS", "", strMilkOfVolume, strMilkTemperature);
+                    long transactionId = Constants.insertTransaction(CashCollectorActivity.this, transactionDao, "CASH", "", date, time, currency, "SUCCESS", "", truncatedValueOfMilkVolume, strMilkTemperature);
                     Log.e(TAG, "onCreate: " + transactionId);
                     Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 

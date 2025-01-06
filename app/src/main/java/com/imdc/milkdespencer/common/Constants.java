@@ -961,7 +961,7 @@ public class Constants {
         return String.valueOf(timestamp) + randomNumber;
     }
 
-    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, String amount, String transactionStatus, String upiId, String volume, String milkTemperature) {
+    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, double amount, String transactionStatus, String upiId, float volume, String milkTemperature) {
         SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(activity);
 
         TransactionEntity transaction = new TransactionEntity();

@@ -15,9 +15,9 @@ public class TransactionEntity {
     private String bankTransactionNo;
     private String transactionDate;
     private String transactionTime;
-    private String amount;
+    private double amount;
 
-    private String volume;
+    private float volume;
 
     private String milkPrice;
 
@@ -86,19 +86,19 @@ public class TransactionEntity {
     }
 
 
-    public void setAmount(String amount) {
+    public void setAmount(double amount) {
         this.amount = amount;
     }
 
-    public String getAmount() {
+    public double getAmount() {
         return amount;
     }
 
-    public String getVolume() {
+    public float getVolume() {
         return volume;
     }
 
-    public void setVolume(String volume) {
+    public void setVolume(float volume) {
         this.volume = volume;
     }
 
