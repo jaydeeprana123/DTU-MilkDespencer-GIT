@@ -147,6 +147,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         android:padding="@dimen/_10sdp"
+        android:textSize="@dimen/_16ssp"
         android:text="@string/start"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -158,7 +159,7 @@
         android:id="@+id/cvPayWithCash"
         style="@style/Widget.MaterialComponents.CardView"
         android:layout_width="@dimen/_120sdp"
-        android:layout_height="@dimen/_80sdp"
+        android:layout_height="@dimen/_110sdp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/ivLogo">
@@ -168,14 +169,14 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:weightSum="1.5">
+            android:weightSum="3">
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="@dimen/_80sdp"
                 android:layout_gravity="center"
+                android:layout_weight="2"
                 android:layout_margin="@dimen/_2sdp"
-                android:layout_weight="1.5"
                 android:src="@drawable/pay_with_cash" />
 
             <Button
@@ -183,7 +184,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
-                android:text="@string/pay_with_cash"
+                android:text="@string/cash_text"
+                android:layout_weight="1"
+                android:textSize="@dimen/_14ssp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/ivLogo" />
@@ -194,7 +197,7 @@
             android:id="@+id/cvPayWithQR"
         style="@style/Widget.MaterialComponents.CardView"
         android:layout_width="@dimen/_120sdp"
-        android:layout_height="@dimen/_80sdp"
+        android:layout_height="@dimen/_110sdp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/ivLogo">
@@ -204,15 +207,15 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:weightSum="1.5">
+            android:weightSum="3">
 
             <androidx.appcompat.widget.AppCompatImageView
                 android:layout_width="match_parent"
-                android:layout_height="0dp"
+                android:layout_height="@dimen/_80sdp"
                 android:layout_gravity="center"
                 android:layout_margin="@dimen/_2sdp"
-                android:layout_weight="1.5"
                 android:padding="@dimen/_2sdp"
+                android:layout_weight="2"
                 android:src="@drawable/pay_with_qr" />
 
 
@@ -221,7 +224,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
-                android:text="@string/pay_using_upi_qr"
+                android:text="@string/upi_text"
+                android:layout_weight="1"
+                android:textSize="@dimen/_14ssp"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toBottomOf="@+id/ivLogo" />
@@ -266,6 +271,7 @@
                 android:layout_marginVertical="@dimen/_20sdp"
                 android:gravity="center"
                 android:text="Temperature "
+                android:textSize="@dimen/_16ssp"
                 android:textAlignment="inherit"
                 android:textColor="@color/seed" />
 
@@ -276,6 +282,7 @@
                 android:layout_gravity="center"
                 android:gravity="center"
                 android:text="Connect"
+                android:textSize="@dimen/_16ssp"
                 android:visibility="gone"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"

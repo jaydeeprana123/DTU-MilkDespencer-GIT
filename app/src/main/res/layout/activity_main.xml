@@ -57,7 +57,7 @@
         android:text="@string/backToHome"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginTop="@dimen/_40sdp"
-        android:textSize="@dimen/_10ssp"
+        android:textSize="@dimen/_14ssp"
         android:drawableLeft="@drawable/ic_home_white"
         android:drawableTint="@color/white"
         app:layout_constraintEnd_toEndOf="parent"

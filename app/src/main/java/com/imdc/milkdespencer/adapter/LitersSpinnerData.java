@@ -5,6 +5,7 @@ public class LitersSpinnerData {
             // Add more currency values here
     };
 
-    public static String[] volumeValues = {"0.1 (Ltr)", "0.2 (Ltr)", "0.25 (Ltr)", "0.5 (Ltr)", "1.0 (Ltr)", "1.5 (Ltr)", "2.0 (Ltr)", "2.5 (Ltr)", "5.0 (Ltr)"};
+   // public static String[] volumeValues = {"100 ml", "200 ml", "250 ml", "500 ml", "1.0 Ltr", "1.5 Ltr", "2.0 Ltr", "2.5 Ltr", "5.0 Ltr"};
+    public static String[] volumeValues = {"0.1 Ltr", "0.2 Ltr", "0.25 Ltr", "0.5 Ltr", "1.0 Ltr", "1.5 Ltr", "2.0 Ltr", "2.5 Ltr", "5.0 Ltr"};
 
 }

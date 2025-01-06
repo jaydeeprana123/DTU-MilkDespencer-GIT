@@ -43,12 +43,28 @@
         android:gravity="center"
         android:text="0 (%)"
         android:textColor="@color/md_theme_light_onPrimaryContainer"
-        android:textSize="@dimen/_12ssp"
+        android:textSize="@dimen/_14ssp"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.appcompat.widget.AppCompatTextView
+        android:id="@+id/tvKeepTheDoorClose"
+        style="@style/TextAppearance.AppCompat.Body1"
+        android:layout_width="@dimen/_200sdp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Keep the door closed."
+        android:textColor="@color/red"
+        android:textSize="@dimen/_13ssp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvProgressDialog" />
+
 
 
     <androidx.appcompat.widget.AppCompatTextView
@@ -59,7 +75,7 @@
         android:gravity="center"
         android:text="@string/process_completed"
         android:textColor="@color/md_theme_dark_success"
-        android:textSize="@dimen/_10ssp"
+        android:textSize="@dimen/_13ssp"
         android:textStyle="bold"
         android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@id/doneButton"
@@ -75,7 +91,7 @@
         android:text="@string/you_can_open_door"
         android:layout_marginTop="@dimen/_4sdp"
         android:textColor="@color/md_theme_dark_success"
-        android:textSize="@dimen/_8ssp"
+        android:textSize="@dimen/_11ssp"
         android:textStyle="bold"
         android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@id/doneButton"

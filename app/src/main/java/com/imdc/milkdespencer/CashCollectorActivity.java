@@ -62,6 +62,7 @@ import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -583,6 +584,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 LottieAnimationView lottieAnimationView = view.findViewById(R.id.lottieAnimationView);
                 LottieAnimationView lottieAnimationViewDone = view.findViewById(R.id.lottieAnimationViewDone);
                 TextView tvProgressDialog = view.findViewById(R.id.tvProgressDialog);
+
                 MaterialButton btnDone = view.findViewById(R.id.doneButton);
                 TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
                 TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
@@ -592,6 +594,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 tvProcessDoneText.setVisibility(View.VISIBLE);
                 tvOpenTheDoor.setVisibility(View.VISIBLE);
                 tvProgressDialog.setVisibility(View.GONE);
+
                 lottieAnimationViewDone.setAnimation(R.raw.process_done);
                 lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
                 lottieAnimationViewDone.playAnimation();
@@ -807,9 +810,12 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                 ivCurrency.setImageResource(R.drawable.pay_with_cash);
                         }
 
-                        msg = eventValues[1] + " is detected you will get " + volumeToDisplay + " liters of Milk.\n Please ensure the door is closed starting the dispensation!! Press Start to Confirm!!!";
+                      //  msg = eventValues[1] + " is detected you will get " + volumeToDisplay + " liters of Milk.\n Please ensure the door is closed starting the dispensation!! Press Start to Confirm!!!";
+
+                        msg = "Ensure the door is closed.";
+
                         tvMessage.setText(msg);
-                        tvCurrencyAmt.setText(eventValues[1]);
+                        tvCurrencyAmt.setText(eventValues[1] + " (" + volumeToDisplay + "Ltr)");
                     }
 
                 }

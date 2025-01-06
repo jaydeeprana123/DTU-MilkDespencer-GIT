@@ -40,7 +40,10 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
     public void onBindViewHolder(@NonNull TransactionViewHolder holder, int position) {
         TransactionEntity transaction = transactions.get(position);
         // Bind transaction data to the view holder
-        holder.tvTransactionAmount.setText("₹ " + transaction.getAmount());
+
+        double transactionTruncet = Double.parseDouble(String.format("%.2f", transaction.getAmount()));
+
+        holder.tvTransactionAmount.setText("₹ " + transactionTruncet);
         holder.tvVolume.setText(transaction.getVolume() + "L");
         holder.tvTransactionId.setText(transaction.getUniqueTransactionId());
         holder.tvTransactionType.setText(transaction.getTransactionType());

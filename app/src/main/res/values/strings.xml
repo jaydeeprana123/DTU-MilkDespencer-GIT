@@ -29,6 +29,8 @@
     <string name="title_activity_settings">Settings</string>
     <string name="waiting_for_connection">Waiting for connection…</string>
     <string name="pay_with_cash">Pay With Cash</string>
+    <string name="cash_text">Cash</string>
+    <string name="upi_text">UPI</string>
     <string name="btnSetConfiguration">Set Configuration</string>
     <string name="btnAddUser">Register User</string>
     <string name="btnRegisterCustomerAdmin">Register Customer Admin</string>

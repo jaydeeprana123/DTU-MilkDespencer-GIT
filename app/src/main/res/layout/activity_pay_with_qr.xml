@@ -186,7 +186,7 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textSize="@dimen/_10ssp"
+            android:textSize="@dimen/_14ssp"
             android:gravity="center"
             android:paddingHorizontal="@dimen/_20sdp"
             android:text="@string/backToHome"

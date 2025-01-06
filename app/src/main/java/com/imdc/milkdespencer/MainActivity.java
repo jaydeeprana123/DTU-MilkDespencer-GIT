@@ -563,6 +563,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     @Override
     protected void onStart() {
         super.onStart();
+
+        hideSystemUI();
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         registerReceiver(usbPermissionReceiver, filter);
 //        registerReceiver(usbPermissionReceiver, filter);

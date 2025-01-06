@@ -22,6 +22,7 @@ import android.widget.Toast;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
+import com.imdc.milkdespencer.CashCollectorActivity;
 import com.imdc.milkdespencer.models.ResponseMilkDispense;
 import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDevice;
@@ -374,6 +375,8 @@ public class UsbSerialCommunication {
                                     /// If status is true cip should be false and dialog will be close
                                     if (milkDispense.getStatus() && isCipOn) {
                                         Log.e("Status is truueeeee", milkDispense.getStatus().toString());
+
+                                        Constants.saveLogs(context, "CIP Done");
 
                                         isCipOn = false;
                                         if(cipDialog != null && cipDialog.isShowing()){

@@ -14,7 +14,7 @@ public interface LogDao {
     @Insert
     void insert(LogEntity logEntity);
 
-    @Query("SELECT * FROM logs")
+    @Query("SELECT * FROM logs ORDER BY id DESC")
     List<LogEntity> getAllLogs();
 
     @Query("DELETE FROM logs")

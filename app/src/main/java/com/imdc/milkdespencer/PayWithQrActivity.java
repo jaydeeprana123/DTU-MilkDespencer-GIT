@@ -39,6 +39,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imdc.milkdespencer.Workers.PaymentStatusService;
+import com.imdc.milkdespencer.adapter.LitersSpinnerData;
 import com.imdc.milkdespencer.adapter.SpnCurrencyAdapter;
 import com.imdc.milkdespencer.adapter.SpnLitersAdapter;
 import com.imdc.milkdespencer.common.Constants;
@@ -250,6 +251,12 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 if (gv_CurrencyLiters.getAdapter() instanceof SpnLitersAdapter) {
                     Log.e(TAG, "onItemSelected: " + gv_CurrencyLiters.getAdapter().getItem(position));
                     Double numericValueFromString = extractNumericValueFromString(gv_CurrencyLiters.getAdapter().getItem(position).toString());
+
+                   // Double numericValueFromString = extractNumericValueFromString(LitersSpinnerData.volumeValuesInLtr[0].toString());
+
+                    Log.e("numericValueFromString", numericValueFromString.toString());
+
+
                     String inputVal = numericValueFromString != null ? String.valueOf(numericValueFromString) : "0.0";
 
                     double ltrs = Double.parseDouble(inputVal);
@@ -311,7 +318,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                         paymentObject.put("amount", cost * 100); // Amount in paise (e.g., 10000 paise = INR 100)
 //                        paymentObject.put("amount", 100); // Amount in paise (e.g., 10000 paise = INR 100)
                         float finalVolumeToDisplay = volumeToDisplay;
-                        Constants.showAcceptDialog(PayWithQrActivity.this, "Please Confirm", "You need to pay the ₹" + cost + " for " + volumeToDisplay, (dialog, which) -> {
+                        Constants.showAcceptDialog(PayWithQrActivity.this, "Please Confirm", "You need to pay the ₹" + cost + " for " + volumeToDisplay  + "Ltr", (dialog, which) -> {
                             dialog.dismiss();
 
                             /// Check that volume amount is more than 5 lites

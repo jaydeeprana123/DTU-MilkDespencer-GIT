@@ -14,6 +14,7 @@ import com.imdc.milkdespencer.R;
 
 public class LottieDialog extends Dialog {
     TextView tvPercentage;
+    TextView tvKeepTheDoorClose;
     LottieAnimationView animationView;
 
     public LottieDialog(@NonNull Context context) {
@@ -26,12 +27,15 @@ public class LottieDialog extends Dialog {
         setContentView(R.layout.dialog_lottie);
 
         animationView = findViewById(R.id.lottieAnimationView);
+        tvKeepTheDoorClose= findViewById(R.id.tvKeepTheDoorClose);
 
 
         tvPercentage = findViewById(R.id.tvProgressDialog);
         tvPercentage.setVisibility(View.VISIBLE);
+        tvKeepTheDoorClose.setVisibility(View.VISIBLE);
         animationView.setAnimation(R.raw.milk_loading);
         animationView.setProgress(0);
+        tvPercentage.setText("Filling In Process");
         tvPercentage.setText("Filling In Process");
         animationView.playAnimation();
     }

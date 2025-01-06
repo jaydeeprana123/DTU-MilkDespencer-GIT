@@ -47,6 +47,7 @@
                 android:layout_gravity="bottom"
                 android:layout_weight=".9"
                 android:gravity="center"
+                android:textSize="@dimen/_12ssp"
                 android:text="@string/cash"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
