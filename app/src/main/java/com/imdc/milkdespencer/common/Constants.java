@@ -1,10 +1,14 @@
 package com.imdc.milkdespencer.common;
 
+import static androidx.core.content.ContextCompat.getSystemService;
+
 import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.InputFilter;
@@ -1001,7 +1005,13 @@ public class Constants {
         /// Insert into Sqlite database
         long transactionId = transactionDao.insert(transaction);
 
-        doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, activity);
+        if(isNetworkAvailable(activity)){
+            doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, activity);
+        }else {
+         //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+        }
+
+
 
         return transactionId;
     }
@@ -1025,14 +1035,14 @@ public class Constants {
         Log.e(TAG, "doPostTransaction: " + new Gson().toJson(requestBody));
         Handler handler = new Handler(Looper.getMainLooper());
         handler.post(() -> {
-            ProgressDialog pd = new ProgressDialog(activity);
-            pd.setTitle("Please Wait...");
-            pd.setCancelable(false);
-            pd.show();
+//            ProgressDialog pd = new ProgressDialog(activity);
+//            pd.setTitle("Please Wait...");
+//            pd.setCancelable(false);
+//            pd.show();
             DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
                 @Override
                 public void onNext(ResponseBody response) {
-                    pd.dismiss();
+//                    pd.dismiss();
                     if (!response.toString().isEmpty()) {
                         String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
                         Log.e(TAG, "onNext: " + json);
@@ -1045,16 +1055,18 @@ public class Constants {
                     Log.e(TAG, "onError: " + e);
 
                     // Handle the error
-                    if (pd != null && pd.isShowing()) {
-                        pd.dismiss();
-                    }
+//                    if (pd != null && pd.isShowing()) {
+//                        pd.dismiss();
+//                    }
                     e.printStackTrace();
-                    activity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Utils.handleApiError(activity, e, apiManager);
-                        }
-                    });
+
+                    /// Here I comment because when internet is not available then it will be crash because of this
+//                    activity.runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            Utils.handleApiError(activity, e, apiManager);
+//                        }
+//                    });
                 }
 
                 @Override
@@ -1136,6 +1148,15 @@ public class Constants {
         });
 
 
+    }
+
+
+    /*Check that internet connection is available or not*/
+    private static boolean isNetworkAvailable(Activity context) {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager != null ? connectivityManager.getActiveNetworkInfo() : null;
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
 

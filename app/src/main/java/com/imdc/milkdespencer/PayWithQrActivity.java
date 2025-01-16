@@ -242,6 +242,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
                 String customerId = preferencesManager.get(Constants.RazorPayCustomerID, "").toString();
+                String machineId = preferencesManager.get(Constants.MachineId, "").toString();
+
                 if (customerId.isEmpty()) {
                     Constants.showAlertDialog(PayWithQrActivity.this, "Error", "Customer Id cannot be empty");
                     return;
@@ -280,7 +282,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 /// Here it will check that door is open or close
                                 // If door is close then allow to start milking
                                 if(!responseTempStatus.getConnectivity()){
-                                    executeGenerateQRCodeTask(paymentObject, customerId);
+                                    executeGenerateQRCodeTask(paymentObject, customerId, machineId);
                                 }else{
                                     // If door is open then close the cash machine and send to the home page
                                     goToHomeScreen();
@@ -330,7 +332,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 /// Here it will check that door is open or close
                                 // If door is close then allow to start milking
                                 if(!responseTempStatus.getConnectivity()){
-                                    executeGenerateQRCodeTask(paymentObject, customerId);
+                                    executeGenerateQRCodeTask(paymentObject, customerId, machineId);
                                 }else{
                                     // If door is open then close the cash machine and send to the home page
                                     goToHomeScreen();
@@ -391,6 +393,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 }
                 String customerId = preferencesManager.get(Constants.RazorPayCustomerID, "").toString();
+                String machineId = preferencesManager.get(Constants.MachineId, "").toString();
                 if (customerId.isEmpty()) {
                     Constants.showAlertDialog(PayWithQrActivity.this, "Error", "Customer Id cannot be empty");
                     return;
@@ -411,7 +414,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             qrRequest.put("usage", "single_use");
                             qrRequest.put("fixed_amount", true);
                             qrRequest.put("payment_amount", paymentObject.get("amount"));
-                            qrRequest.put("description", "For Store 1");
+                            qrRequest.put("description", machineId);
 //                            qrRequest.put("customer_id", "cust_NQXXhGiitVX9xe"); //Test
 //                            qrRequest.put("customer_id", "cust_NWIoi0QrjXC2ez");//LIVE
                             qrRequest.put("customer_id", customerId);//LIVE
@@ -537,11 +540,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     @SuppressLint("StaticFieldLeak")
-    public void executeGenerateQRCodeTask(JSONObject paymentObject, String customerId) {
+    public void executeGenerateQRCodeTask(JSONObject paymentObject, String customerId, String machineId) {
         new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... voids) {
-                generateQRCode(paymentObject, customerId);
+                generateQRCode(paymentObject, customerId,machineId);
                 return null;
             }
         }.execute();
@@ -550,7 +553,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     /*
      * Generate QR Code*/
-    private void generateQRCode(JSONObject paymentObject, String customerId) {
+    private void generateQRCode(JSONObject paymentObject, String customerId, String machineId) {
         try {
             RazorpayClient razorpay = new RazorpayClient(preferencesManager.get(Constants.RazorPayKey, "rzp_live_oTrQqk0HauuUWZ").toString(), preferencesManager.get(Constants.RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F").toString());
 
@@ -560,7 +563,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             Log.e("api key", preferencesManager.get(Constants.RazorPayKey, "rzp_live_oTrQqk0HauuUWZ").toString());
             Log.e("secret key", preferencesManager.get(Constants.RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F").toString());
 
-            JSONObject qrRequest = createQrRequest(paymentObject, customerId);
+            JSONObject qrRequest = createQrRequest(paymentObject, customerId, machineId);
             Log.e("TAG", "QR Request: " + new Gson().toJson(qrRequest));
 
             /// Generated QR Code
@@ -578,14 +581,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     /*Create Json Object for request*/
-    private JSONObject createQrRequest(JSONObject paymentObject, String customerId) throws JSONException {
+    private JSONObject createQrRequest(JSONObject paymentObject, String customerId, String machineId) throws JSONException {
         JSONObject qrRequest = new JSONObject();
         qrRequest.put("type", "upi_qr");
         qrRequest.put("name", "Milk Vending booth");
         qrRequest.put("usage", "single_use");
         qrRequest.put("fixed_amount", true);
         qrRequest.put("payment_amount", paymentObject.get("amount"));
-        qrRequest.put("description", "For Store 1");
+        qrRequest.put("description", machineId);
         qrRequest.put("customer_id", customerId);
 
         long closeByTime = System.currentTimeMillis() + (5 * 60 * 1000);
@@ -979,6 +982,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 TextView tvProgressDialog = view.findViewById(R.id.tvProgressDialog);
                 MaterialButton btnDone = view.findViewById(R.id.doneButton);
                 TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
+                TextView tvDispenseVolume = view.findViewById(R.id.tvDispenseVolume);
                 TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
                 btnDone.setVisibility(View.VISIBLE);
                 lottieAnimationView.setVisibility(View.GONE);
@@ -986,6 +990,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 tvProcessDoneText.setVisibility(View.VISIBLE);
                 tvOpenTheDoor.setVisibility(View.VISIBLE);
                 tvProgressDialog.setVisibility(View.GONE);
+
+                /// Added on 16-1
+                tvDispenseVolume.setVisibility(View.VISIBLE);
+
+                float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
+
+                tvDispenseVolume.setText(getString(R.string.dispense_volume) + " " + truncatedValueOfMilkVolume + " L");
+
                 lottieAnimationViewDone.setAnimation(R.raw.process_done);
                 lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
                 lottieAnimationViewDone.playAnimation();
@@ -1103,7 +1115,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     assert date != null;
 
                     /// Here I convert volume of milk into string and set 3 digits after dot(.)
-                    float truncatedValueOfMilkVolume = (float) ((int) (volumeOfMilk * 1000)) / 1000f;
+                    float truncatedValueOfMilkVolume =  Float.parseFloat(String.format("%.2f", volumeOfMilk));
 
                     /// Here I convert temperature of milk into string and set 3 digits after dot(.)
                     String strMilkTemperature = String.format("%.3f", milkTemperature);
