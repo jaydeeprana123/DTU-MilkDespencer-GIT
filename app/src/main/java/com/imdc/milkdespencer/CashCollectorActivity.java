@@ -587,13 +587,22 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                 MaterialButton btnDone = view.findViewById(R.id.doneButton);
                 TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
+                TextView tvDispenseVolume = view.findViewById(R.id.tvDispenseVolume);
                 TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
                 btnDone.setVisibility(View.VISIBLE);
                 lottieAnimationView.setVisibility(View.GONE);
                 lottieAnimationViewDone.setVisibility(View.VISIBLE);
                 tvProcessDoneText.setVisibility(View.VISIBLE);
+
                 tvOpenTheDoor.setVisibility(View.VISIBLE);
                 tvProgressDialog.setVisibility(View.GONE);
+
+                /// Added on 16-1
+                tvDispenseVolume.setVisibility(View.VISIBLE);
+                /// Here I convert volume of milk into string and set 3 digits after dot(.)
+                float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
+
+                tvDispenseVolume.setText(getString(R.string.dispense_volume) + " " + truncatedValueOfMilkVolume + " L");
 
                 lottieAnimationViewDone.setAnimation(R.raw.process_done);
                 lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
@@ -1505,7 +1514,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     assert date != null;
 
                     /// Here I convert volume of milk into string and set 3 digits after dot(.)
-                    float truncatedValueOfMilkVolume = (float) ((int) (volumeOfMilk * 1000)) / 1000f;
+                    float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
 
                     /// Here I convert temperature of milk into string and set 3 digits after dot(.)
                     String strMilkTemperature = String.format("%.3f", milkTemperature);
