@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private boolean getChargingState = false;
     private boolean getUsbShowState = false;
 
+    private boolean isLowLevel = false;
 
 
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
@@ -131,9 +132,18 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             if (isCharging) {
                 getChargingState = true;
 
-                checkAndRequestUsbPermission();
+                if(!isLowLevel && !getUsbShowState){
+                    checkAndRequestUsbPermission();
+                }else if(getUsbShowState){
+                    // Here if charging is available and error screen is visible then, It will be closed
+                    if(cv_error.getVisibility() == View.VISIBLE){
+                        cv_error.setVisibility(View.GONE);
+                        updateUIForChargingState();
+                    }
+                }
 
             } else {
+                Constants.saveLogs(MainActivity.this, "Lost Electricity");
                 getChargingState = false;
                 getUsbShowState = false;
                 isUsbPermissionGranted = false;
@@ -188,6 +198,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
         private void checkAndRequestUsbPermission() {
+
+            Log.e("checkAndRequestUsbPermission", "method call");
             UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
             if (usbManager == null) {
@@ -199,11 +211,15 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
 
             if (deviceList.isEmpty()) {
+
+                noUsbDeviceFound();
                 Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
                 return;
             }
 
             boolean allPermissionsGranted = true;
+
+            Log.e("allPermissionsGranted", "true");
 
             for (UsbDevice device : deviceList.values()) {
                 if (!usbManager.hasPermission(device)) {
@@ -237,6 +253,21 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             );
             usbManager.requestPermission(device, permissionIntent);
         }
+
+        private void noUsbDeviceFound() {
+            getUsbShowState = false;
+
+            cv_error.setVisibility(View.VISIBLE);
+            btnStart.setVisibility(View.GONE);
+            btnDone.setVisibility(View.VISIBLE);
+            btnDone.setText("CONNECT");
+            tv_Message.setText("No USB Device Found!");
+            lvAnimation.setAnimation(R.raw.no_usb);
+
+            btnDone.setOnClickListener(v -> checkAndRequestUsbPermission());
+
+        }
+
 
         private void handlePermissionGranted() {
             tv_Message.setText("Please wait...");
@@ -564,6 +595,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     protected void onStart() {
         super.onStart();
 
+        Log.e("onstart", "yes");
+
         hideSystemUI();
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         registerReceiver(usbPermissionReceiver, filter);
@@ -657,6 +690,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 tv_Message.setText("USB permission is not granted");
                 lvAnimation.setAnimation(R.raw.no_usb);
                 btnStart.setVisibility(View.GONE);
+
             }else if(!getUsbShowState && isUsbPermissionGranted){
 
                 cv_error.setVisibility(View.VISIBLE);
@@ -692,6 +726,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     /*If Level is low then
     * Low Milk level Screen Will be Visible */
     private void handleLowLevel() {
+
+        isLowLevel = true;
+
         Log.e("low level", "True");
         cv_error.setVisibility(View.VISIBLE);
         btnDone.setVisibility(View.GONE);
@@ -705,6 +742,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     /*If Level is Normal then
      * Low Milk level Screen Will be Hide And Buttons Will be Visible */
     private void handleNormalLevel() {
+
+        isLowLevel = false;
         Log.e("Normal level", "true");
         cv_error.setVisibility(View.GONE);
         btnPayWithCash.setVisibility(View.VISIBLE);
