@@ -63,7 +63,7 @@ public class TransactionHistoryActivity1 extends AppCompatActivity {
             public void run() {
                 AppDatabase appDatabase = AppDatabase.getInstance(TransactionHistoryActivity1.this);
                 Log.e("TAG", "run: " + new Gson().toJson(user));
-                if (user.getUserType() == UserTypeEnum.ADMIN.value() || user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
+                if (user.userType == UserTypeEnum.ADMIN.value() || user.userType == UserTypeEnum.CUSTOMER_ADMIN.value()) {
                     if (getActionBar() != null) {
                         getActionBar().setTitle("Logs");
                     }

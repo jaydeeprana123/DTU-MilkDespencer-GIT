@@ -283,8 +283,8 @@ public class MainActivity1 extends AppCompatActivity implements UsbSerialCommuni
 
                     if (preferencesManager.hasValue(Constants.ResponseTempStatus)) {
                         ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
-                        if (responseTempStatus.getConnectivity() != null) {
-                            if (!responseTempStatus.getConnectivity()) {
+                        if (responseTempStatus.connectivity != null) {
+                            if (!responseTempStatus.connectivity) {
                                 submitBtn.setText(getResources().getString(R.string.start));
                                 dialog.dismiss();
                                 usbSerialCommunication.connect();
@@ -450,16 +450,16 @@ public class MainActivity1 extends AppCompatActivity implements UsbSerialCommuni
 
                             String milkBasePrice = "₹ " + preferencesManager.get(MilkBasePrice, "0.0").toString() + "/Ltr";
                             String offsetTemp = preferencesManager.get(TemperatureOffSet, "0.0").toString();
-                            double cTemp = Double.parseDouble(responseTempStatus.getTemperature().toString()) / 10 + Double.parseDouble(offsetTemp);
+                            double cTemp = Double.parseDouble(responseTempStatus.temperature.toString()) / 10 + Double.parseDouble(offsetTemp);
                             String currentTemp = Constants.df.format(cTemp) + " °C";
 
                             tvTemperature.setText(currentTemp);
                             tvMilkBasePrice.setText(milkBasePrice);
-                            if (responseTempStatus.getAgitator() != null) {
-                                ivAgitator.setBackground(responseTempStatus.getAgitator() ? getDrawable(R.drawable.red_circle) : getDrawable(R.drawable.green_circle));
+                            if (responseTempStatus.agitator != null) {
+                                ivAgitator.setBackground(responseTempStatus.agitator ? getDrawable(R.drawable.red_circle) : getDrawable(R.drawable.green_circle));
                             }
-                            if (responseTempStatus.getCompressor() != null) {
-                                ivCompressor.setBackground(responseTempStatus.getCompressor() ? getDrawable(R.drawable.red_circle) : getDrawable(R.drawable.green_circle));
+                            if (responseTempStatus.compressor != null) {
+                                ivCompressor.setBackground(responseTempStatus.compressor ? getDrawable(R.drawable.red_circle) : getDrawable(R.drawable.green_circle));
                             }
 /*
                             if (responseTempStatus.getConnectivity() != null) {
@@ -478,10 +478,10 @@ public class MainActivity1 extends AppCompatActivity implements UsbSerialCommuni
                                 }
                             }
 */
-                            if (responseTempStatus.getLowlevel() != null) {
-                                if (responseTempStatus.getLowlevel()) {
+                            if (responseTempStatus.lowlevel != null) {
+                                if (responseTempStatus.lowlevel) {
 
-                                    Log.e("low level", responseTempStatus.getLowlevel().toString());
+                                    Log.e("low level", responseTempStatus.lowlevel.toString());
 
                                     cv_error.setVisibility(View.VISIBLE);
                                     btnDone.setVisibility(View.GONE);
@@ -525,7 +525,7 @@ public class MainActivity1 extends AppCompatActivity implements UsbSerialCommuni
                                     btnPayWithQr.setVisibility(View.VISIBLE);
                                     btnDone.setVisibility(View.GONE);
 
-                                    Log.e("low level is", responseTempStatus.getLowlevel().toString());
+                                    Log.e("low level is", responseTempStatus.lowlevel.toString());
                                 }
                             }
                         }
