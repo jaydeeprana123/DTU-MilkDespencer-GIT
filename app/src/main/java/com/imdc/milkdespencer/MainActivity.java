@@ -134,6 +134,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 checkAndRequestUsbPermission();
 
             } else {
+                Constants.saveLogs(MainActivity.this, "Lost Electricity");
+
                 getChargingState = false;
                 getUsbShowState = false;
                 isUsbPermissionGranted = false;
