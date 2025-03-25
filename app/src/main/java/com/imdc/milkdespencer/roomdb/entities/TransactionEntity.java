@@ -19,6 +19,10 @@ public class TransactionEntity {
 
     private float volume;
 
+    private float remainingVolume;
+
+    private float addedVolume;
+
     private String milkPrice;
 
     private String milkTemperature;
@@ -28,6 +32,22 @@ public class TransactionEntity {
     private String upiId;
     private String uniqueTransactionId;
     private String createdBy;
+
+    public float getRemainingVolume() {
+        return remainingVolume;
+    }
+
+    public void setRemainingVolume(float remainingVolume) {
+        this.remainingVolume = remainingVolume;
+    }
+
+    public float getAddedVolume() {
+        return addedVolume;
+    }
+
+    public void setAddedVolume(float addedVolume) {
+        this.addedVolume = addedVolume;
+    }
 
     public long getId() {
         return id;

@@ -42,6 +42,7 @@
     <string name="cancel">Cancel</string>
     <string name="process_completed">Process Completed</string>
     <string name="dispense_volume">Dispense Volume</string>
+    <string name="volume">Volume (Ltrs)</string>
     <string name="you_can_open_door">You can now open the door.</string>
     <string name="set_configurations">Set Configurations</string>
     <string name="api_configurations">API Configurations</string>
@@ -116,6 +117,8 @@
     <string name="select_option">Select Option</string>
     <string name="configuration">Configuration</string>
     <string name="api_configuration">API Configuration</string>
+    <string name="added_volume">Added Volume</string>
+    <string name="remaining_volume">Remaining Volume : </string>
     <string-array name="milk_options">
         <item>@string/select_option</item>
         <item>@string/milk_in_liters</item>

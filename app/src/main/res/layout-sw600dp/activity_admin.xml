@@ -95,7 +95,20 @@
         android:layout_marginHorizontal="@dimen/_10sdp"
         android:text="@string/btnLogs"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnAddedVolume" />
+
+
+
+    <Button
+        android:id="@+id/btnAddedVolume"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginRight="@dimen/_10sdp"
+        android:text="@string/added_volume"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
+
 
     <Button
         android:id="@+id/btnCalibration"

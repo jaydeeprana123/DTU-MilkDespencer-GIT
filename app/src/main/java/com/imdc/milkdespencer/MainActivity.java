@@ -2,7 +2,9 @@ package com.imdc.milkdespencer;
 
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
+import static com.imdc.milkdespencer.common.Constants.RemainingVolumePref;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
+import static com.imdc.milkdespencer.common.Constants.remainingVolume;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
@@ -134,7 +136,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
                 if(!isLowLevel && !getUsbShowState){
                     checkAndRequestUsbPermission();
-                }else if(getUsbShowState){
+                }else if(getUsbShowState && !isLowLevel){
                     // Here if charging is available and error screen is visible then, It will be closed
                     if(cv_error.getVisibility() == View.VISIBLE){
                         cv_error.setVisibility(View.GONE);
@@ -426,6 +428,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         preferencesManager = SharedPreferencesManager.getInstance(this);
         usbSerialCommunication = new UsbSerialCommunication(this);
 
+        remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
         appDatabase = AppDatabase.getInstance(this);
         alertDialog = new AlertDialog.Builder(this)
                 .setTitle("No Electricity Connections")
@@ -670,11 +673,20 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             /// Here check level is normal or not when electricity is available
             if(getUsbShowState && getChargingState){
-                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
+
+                /// Here if remaining volume is 6 or less than six. Then it will be show as a low level
+               if (remainingVolume <= 6) {
+                   Log.e("low level", String.valueOf(remainingVolume));
                     handleLowLevel();
                 } else {
                     handleNormalLevel();
                 }
+
+//                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
+//                    handleLowLevel();
+//                } else {
+//                    handleNormalLevel();
+//                }
             }else if(!getChargingState){
 
                 Log.e("is not ", "charge");

@@ -19,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.AppCompatTextView;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.google.android.material.button.MaterialButton;
@@ -26,6 +27,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.imdc.milkdespencer.CashCollectorActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adminUi.AdminActivity;
@@ -43,6 +45,7 @@ import com.imdc.milkdespencer.roomdb.interfaces.LogDao;
 import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -63,6 +66,7 @@ public class Constants {
 
     public static AlertDialog cipDialog;
 
+    public static float remainingVolume = 0;
 
     private static final String PREFS_NAME = "usb_permission_prefs";
     public static final String PREF_PERMISSION_GRANTED = "permission_granted";
@@ -95,6 +99,8 @@ public class Constants {
     public static final String PaymentReceived = "PaymentReceived";
     public static final String PaymentCashReceived = "PaymentCashReceived";
     public static final String PaidAmt = "PaidAmt";
+
+    public static final String RemainingVolumePref = "RemainingVolume";
 
     public static final String BASE_URL = "https://portal.idmc.coop:5151/api/";
 
@@ -400,7 +406,7 @@ public class Constants {
     /*
     * if CIP is true = > Show this dialog
     * */
-    public static void showCIPRunningDialog(Context context) {
+    public static void showCIPRunningDialog(Activity context) {
         // Create a layout inflater to inflate the custom dialog layout
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.dialog_cip_running, null);
@@ -409,13 +415,125 @@ public class Constants {
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setView(view);
 
+
+
+
         // Create the AlertDialog
         cipDialog = builder.create();
         cipDialog.setCancelable(false);
 
         // Show the dialog
         cipDialog.show();
+
+
+        /// When CIP Start remaining volume will be 0.
+        TransactionDao transactionDao = AppDatabase.getInstance(context).transactionDao();
+        TransactionEntity transaction = new TransactionEntity();
+        transaction.setRemainingVolume(0);
+        transaction.setTransactionStatus("CIP");
+        /// Added on 1-1 2025
+        transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+
+        /// Insert into Sqlite database
+        long transactionId = transactionDao.insert(transaction);
+
+        if(isNetworkAvailable(context)){
+            doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, context);
+        }else {
+            //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+        }
     }
+
+
+    /*
+     * Show Dialog for added volume
+     * */
+    public static void showAddedVolumeDialog(Activity context) {
+        // Create a layout inflater to inflate the custom dialog layout
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.added_volume_configuration_dialog, null);
+
+        preferencesManager = SharedPreferencesManager.getInstance(context);
+        // Create the AlertDialog builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setView(view);
+
+        // Create the AlertDialog
+        AlertDialog dialog = builder.create();
+
+        // Find views in the custom layout
+        MaterialButton okButton = view.findViewById(R.id.okButton);
+        MaterialButton cancelButton = view.findViewById(R.id.cancelButton);
+
+        TextInputEditText tieVolume = view.findViewById(R.id.tieVolume);
+        AppCompatTextView tvRemainingVolume = view.findViewById(R.id.tv_remaining_volume);
+
+         remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
+        tvRemainingVolume.setText("Remaining Volume : " + String.valueOf(remainingVolume));
+
+        // Set click listener for OK button
+        okButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Handle OK button click
+
+                if(tieVolume.getText().toString().isEmpty()){
+                    Toast.makeText(context, "Please enter volume", Toast.LENGTH_SHORT).show();
+                }else {
+                    remainingVolume += Float.parseFloat(tieVolume.getText().toString());
+
+                    preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
+
+
+                    new Thread(() -> {
+                        try {
+                            String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
+                            String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
+                            TransactionDao transactionDao = AppDatabase.getInstance(context).transactionDao();
+                            TransactionEntity transaction = new TransactionEntity();
+                            transaction.setRemainingVolume(remainingVolume);
+                            transaction.setTransactionDate(date);
+                            transaction.setTransactionTime(time);
+                            transaction.setAddedVolume(Float.parseFloat(tieVolume.getText().toString()));
+                            transaction.setTransactionStatus("REFILLED");
+
+                            /// Added on 1-1 2025
+                            transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+
+                            /// Insert into Sqlite database
+                            long transactionId = transactionDao.insert(transaction);
+
+                            if(isNetworkAvailable(context)){
+                                doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, context);
+                            }else {
+                                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }).start();
+
+                    dialog.dismiss();
+                }
+
+
+            }
+        });
+
+        // Set click listener for Cancel button
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Handle Cancel button click
+                // Dismiss the dialog
+                dialog.dismiss();
+            }
+        });
+
+        // Show the dialog
+        dialog.show();
+    }
+
 
 
     public static void showLoginDialog(Context context, AppDatabase appDatabase) {
@@ -981,6 +1099,9 @@ public class Constants {
     public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, double amount, String transactionStatus, String upiId, float volume, String milkTemperature) {
         SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(activity);
 
+        remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
+        remainingVolume = remainingVolume - volume;
+        preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
         TransactionEntity transaction = new TransactionEntity();
         transaction.setUserName("Admin");
         transaction.setPassword("QWRtaW4=");
@@ -990,6 +1111,7 @@ public class Constants {
         transaction.setTransactionTime(transactionTime);
         transaction.setAmount(amount);
         transaction.setVolume(volume);
+        transaction.setRemainingVolume(remainingVolume);
 
         /// Added new on 4-1-2025
         transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());

@@ -43,12 +43,22 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
 
         double transactionTruncet = Double.parseDouble(String.format("%.2f", transaction.getAmount()));
 
-        holder.tvTransactionAmount.setText("₹ " + transactionTruncet);
-        holder.tvVolume.setText(transaction.getVolume() + "L");
+
+        if (transaction.getTransactionStatus().equalsIgnoreCase("REFILLED")){
+            holder.tvTransactionAmount.setVisibility(View.GONE);
+            holder.tvVolume.setText(transaction.getAddedVolume() + "L");
+        }else {
+            holder.tvTransactionAmount.setVisibility(View.VISIBLE);
+            holder.tvVolume.setText(transaction.getVolume() + "L");
+            holder.tvTransactionAmount.setText("₹ " + transactionTruncet);
+        }
+
+
+
         holder.tvTransactionId.setText(transaction.getUniqueTransactionId());
         holder.tvTransactionType.setText(transaction.getTransactionType());
         holder.tvTransactionDateTime.setText(transaction.getTransactionDate() + " at " + transaction.getTransactionTime());
-
+        holder.tvRemainingVolume.setText("Remaining : " + transaction.getRemainingVolume() + "L");
 
         /// Add volume on 31-12-2024
 //        holder.tvVolume.setText("(" + transaction.get);
@@ -68,7 +78,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
 
     public class TransactionViewHolder extends RecyclerView.ViewHolder {
 
-        TextView tvTransactionAmount, tvTransactionDateTime, tvTransactionType, tvTransactionId, tvTransactionDateStatus,tvVolume;
+        TextView tvTransactionAmount, tvTransactionDateTime, tvTransactionType, tvTransactionId, tvTransactionDateStatus,tvVolume,tvRemainingVolume;
 
         public TransactionViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -78,6 +88,8 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             tvTransactionId = itemView.findViewById(R.id.tvTransactionId);
             tvTransactionDateStatus = itemView.findViewById(R.id.tvTransactionDateStatus);
             tvVolume= itemView.findViewById(R.id.tvVolume);
+            tvRemainingVolume =itemView.findViewById(R.id.tvRemainingVolume);
+
         }
     }
 }

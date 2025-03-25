@@ -1,6 +1,9 @@
 package com.imdc.milkdespencer.adminUi;
 
+import static com.imdc.milkdespencer.common.Constants.RemainingVolumePref;
 import static com.imdc.milkdespencer.common.Constants.doGetConfigurationData;
+import static com.imdc.milkdespencer.common.Constants.remainingVolume;
+import static com.imdc.milkdespencer.common.Constants.showAddedVolumeDialog;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
 
@@ -33,7 +36,7 @@ import com.imdc.milkdespencer.roomdb.entities.User;
 public class AdminActivity extends AppCompatActivity {
 
 
-    Button btnSetConfigurations,btnApiConfiguration,btnCIP, btnCustomerAdmin, btnLogs, btnCalibration, btnAddEndUser;
+    Button btnSetConfigurations,btnApiConfiguration,btnCIP,btnAddedVolume, btnCustomerAdmin, btnLogs, btnCalibration, btnAddEndUser;
     AppDatabase appDatabase;
     User user;
     private RecyclerView recyclerView;
@@ -74,6 +77,7 @@ public class AdminActivity extends AppCompatActivity {
         btnSetConfigurations = findViewById(R.id.btnSetConfiguration);
         btnApiConfiguration = findViewById(R.id.btnApiConfiguration);
         btnCIP = findViewById(R.id.btnCIP);
+        btnAddedVolume = findViewById(R.id.btnAddedVolume);
         btnCustomerAdmin = findViewById(R.id.btnAddUser);
         btnAddEndUser = findViewById(R.id.btnAddEndUser);
         btnLogs = findViewById(R.id.btnLogs);
@@ -86,6 +90,7 @@ public class AdminActivity extends AppCompatActivity {
             btnAddEndUser.setVisibility(View.VISIBLE);
             btnApiConfiguration.setVisibility(View.VISIBLE);
             btnCIP.setVisibility(View.GONE);
+            btnAddedVolume.setVisibility(View.GONE);
         }else if(user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()){
 
             btnLogs.setText("Show Logs");
@@ -94,10 +99,19 @@ public class AdminActivity extends AppCompatActivity {
             btnAddEndUser.setVisibility(View.VISIBLE);
             btnApiConfiguration.setVisibility(View.GONE);
             btnCIP.setVisibility(View.GONE);
+            btnAddedVolume.setVisibility(View.GONE);
         }
 
         else if(user.getUserType() == UserTypeEnum.END_USER.value()){
-            btnCIP.setVisibility(View.VISIBLE);
+
+            /// If remaining level is 6 or less than six, CIP button will be visible
+            if(remainingVolume <= 6){
+                btnCIP.setVisibility(View.VISIBLE);
+            }else{
+                btnCIP.setVisibility(View.GONE);
+            }
+
+            btnAddedVolume.setVisibility(View.VISIBLE);
             btnSetConfigurations.setText("View Configurations");
             btnLogs.setText("Show Transactions");
             btnCalibration.setVisibility(View.GONE);
@@ -117,6 +131,14 @@ public class AdminActivity extends AppCompatActivity {
             }
         });
 
+        btnAddedVolume.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                showAddedVolumeDialog(AdminActivity.this);
+
+            }
+        });
 
         btnCalibration.setOnClickListener(new View.OnClickListener() {
             @Override
