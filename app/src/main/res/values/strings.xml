@@ -37,6 +37,8 @@
     <string name="btnAddEndUser">Register End User</string>
     <string name="btnLogs">Show Transactions</string>
     <string name="btnCalibration">Calibration</string>
+    <string name="btnCashOff">Cash Off</string>
+    <string name="btnCashOnO">Cash On</string>
     <string name="cash">₹. xx</string>
     <string name="pay_using_upi_qr">Pay Using UPI</string>
     <string name="cancel">Cancel</string>

@@ -7,14 +7,19 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.InputFilter;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -146,19 +151,130 @@ public class Constants {
 
 
     public static void showAlertDialog(Context context, String title, String message) {
+
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(title).setMessage(message).setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        AlertDialog dialog = builder.create();
+
+// Set custom title
+        TextView titleView = new TextView(context);
+        titleView.setText(title);
+        titleView.setTextSize(36); // Increase title font size
+        titleView.setTypeface(null, Typeface.BOLD);
+        titleView.setPadding(40, 30, 40, 30);
+        titleView.setGravity(Gravity.CENTER);
+        dialog.setCustomTitle(titleView);
+
+// Set custom message
+        TextView messageView = new TextView(context);
+        messageView.setText(message);
+        messageView.setTextSize(30); // Increase message font size
+        messageView.setPadding(50, 30, 50, 30);
+        messageView.setGravity(Gravity.CENTER);
+
+        ScrollView scrollView = new ScrollView(context); // To handle long messages
+        scrollView.addView(messageView);
+
+        dialog.setView(scrollView); // Set the custom message view
+
+// Add a custom positive button
+        dialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                // Handle positive button click if needed
                 dialog.dismiss();
             }
-        }).show();
+        });
+
+        dialog.show();
+
+// Set custom width for the dialog
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+        layoutParams.copyFrom(dialog.getWindow().getAttributes());
+        layoutParams.width = (int) (context.getResources().getDisplayMetrics().widthPixels * 0.9); // 90% of screen width
+        dialog.getWindow().setAttributes(layoutParams);
+
+// Customize buttons after showing the dialog
+        Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+
+        if (positiveButton != null) {
+            positiveButton.setTextSize(26); // Increase button text size
+            positiveButton.setPadding(30, 20, 30, 20);
+        }
+
+
+
+
+
+//        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+//        builder.setTitle(title).setMessage(message).setPositiveButton("OK", new DialogInterface.OnClickListener() {
+//            @Override
+//            public void onClick(DialogInterface dialog, int which) {
+//                // Handle positive button click if needed
+//                dialog.dismiss();
+//            }
+//        }).show();
     }
 
     public static void showAcceptDialog(Context context, String title, String message, DialogInterface.OnClickListener yesClickListener, DialogInterface.OnClickListener noClickListener) {
+
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setTitle(title).setMessage(message).setPositiveButton("Yes", yesClickListener).setNegativeButton("No", noClickListener).show();
+        AlertDialog dialog = builder.create();
+
+// Set custom title
+        TextView titleView = new TextView(context);
+        titleView.setText(title);
+        titleView.setTextSize(36); // Increase title font size
+        titleView.setPadding(20, 20, 20, 20);
+        titleView.setGravity(Gravity.CENTER);
+        dialog.setCustomTitle(titleView);
+
+// Set custom message
+        TextView messageView = new TextView(context);
+        messageView.setText(message);
+        messageView.setTextSize(32); // Increase message font size
+        messageView.setPadding(30, 20, 30, 20);
+        messageView.setGravity(Gravity.CENTER);
+
+        ScrollView scrollView = new ScrollView(context); // Optional for long messages
+        scrollView.addView(messageView);
+
+        dialog.setView(scrollView); // Set the custom view with increased text size
+
+// Add buttons
+        dialog.setButton(AlertDialog.BUTTON_POSITIVE, "Yes", yesClickListener);
+        dialog.setButton(AlertDialog.BUTTON_NEGATIVE, "No", noClickListener);
+
+        dialog.show();
+
+
+        // Set custom dialog width
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+        layoutParams.copyFrom(dialog.getWindow().getAttributes());
+        layoutParams.width = (int) (context.getResources().getDisplayMetrics().widthPixels * 0.9); // 90% of screen width
+        dialog.getWindow().setAttributes(layoutParams);
+
+
+// Customize buttons
+        Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+
+        if (positiveButton != null) {
+            positiveButton.setTextSize(26); // Increase button text size
+            positiveButton.setPadding(20, 20, 20, 20);
+        }
+
+        if (negativeButton != null) {
+            negativeButton.setTextSize(26); // Increase button text size
+            negativeButton.setPadding(20, 20, 20, 20);
+        }
+
+
+
+
+
+
+
+//        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+//        builder.setTitle(title).setMessage(message).setPositiveButton("Yes", yesClickListener).setNegativeButton("No", noClickListener).show();
     }
 
     public static void showConfigDialog(Context context) {

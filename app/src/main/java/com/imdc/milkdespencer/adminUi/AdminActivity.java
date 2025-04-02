@@ -33,7 +33,7 @@ import com.imdc.milkdespencer.roomdb.entities.User;
 public class AdminActivity extends AppCompatActivity {
 
 
-    Button btnSetConfigurations,btnApiConfiguration,btnCIP, btnCustomerAdmin, btnLogs, btnCalibration, btnAddEndUser;
+    Button btnSetConfigurations,btnApiConfiguration,btnCIP, btnCustomerAdmin, btnLogs, btnCalibration,btnCashButtonOnOff, btnAddEndUser;
     AppDatabase appDatabase;
     User user;
     private RecyclerView recyclerView;
@@ -78,10 +78,12 @@ public class AdminActivity extends AppCompatActivity {
         btnAddEndUser = findViewById(R.id.btnAddEndUser);
         btnLogs = findViewById(R.id.btnLogs);
         btnCalibration = findViewById(R.id.btnCalibration);
+        btnCashButtonOnOff= findViewById(R.id.btnCashButtonOnOff);
 
         if (user.getUserType() == UserTypeEnum.ADMIN.value()) {
             btnLogs.setText("Show Logs");
             btnCalibration.setVisibility(View.VISIBLE);
+            btnCashButtonOnOff.setVisibility(View.VISIBLE);
             btnCustomerAdmin.setVisibility(View.VISIBLE);
             btnAddEndUser.setVisibility(View.VISIBLE);
             btnApiConfiguration.setVisibility(View.VISIBLE);
@@ -90,6 +92,7 @@ public class AdminActivity extends AppCompatActivity {
 
             btnLogs.setText("Show Logs");
             btnCalibration.setVisibility(View.VISIBLE);
+            btnCashButtonOnOff.setVisibility(View.VISIBLE);
             btnCustomerAdmin.setVisibility(View.GONE);
             btnAddEndUser.setVisibility(View.VISIBLE);
             btnApiConfiguration.setVisibility(View.GONE);
@@ -101,6 +104,7 @@ public class AdminActivity extends AppCompatActivity {
             btnSetConfigurations.setText("View Configurations");
             btnLogs.setText("Show Transactions");
             btnCalibration.setVisibility(View.GONE);
+            btnCashButtonOnOff.setVisibility(View.GONE);
             btnCustomerAdmin.setVisibility(View.GONE);
             btnAddEndUser.setVisibility(View.GONE);
             btnApiConfiguration.setVisibility(View.GONE);

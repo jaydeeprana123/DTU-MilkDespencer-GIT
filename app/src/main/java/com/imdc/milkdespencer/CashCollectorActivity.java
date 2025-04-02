@@ -1479,6 +1479,19 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
      * It will redirect to the home screen
      * */
     void goToHomeScreen() {
+
+        /// Here if handler and runnable remove
+        if (handler != null && runnable != null) {
+            handler.removeCallbacks(runnable);
+        }
+
+
+        // Remove the Runnable from the Handler to avoid memory leaks
+        if (timeoutHandler != null && timeoutRunnable != null) {
+            timeoutHandler.removeCallbacks(timeoutRunnable);
+        }
+
+
         closeDevice();
         // Simulate finishing and sending data
         Intent resultIntent = new Intent();

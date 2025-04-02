@@ -11,6 +11,7 @@ public class User {
     @ColumnInfo(name = "user_id")
     private int userId;
 
+
     @ColumnInfo(name = "username")
     private String username;
 

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "580091470454",
+    "project_id": "milkdispense",
+    "storage_bucket": "milkdispense.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:580091470454:android:ec43e4aa8e92ad7d37b557",
+        "android_client_info": {
+          "package_name": "com.imdc.milkdespencer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCW6P7C-y0c5gBl5kmXrl6Im9VEAW7LRIc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
