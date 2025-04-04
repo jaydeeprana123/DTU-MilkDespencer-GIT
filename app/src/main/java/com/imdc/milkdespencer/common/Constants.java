@@ -68,6 +68,8 @@ public class Constants {
 
     public static AlertDialog cipDialog;
 
+    public static final String CashTransactionMode = "CashTransactionMode";
+
 
     private static final String PREFS_NAME = "usb_permission_prefs";
     public static final String PREF_PERMISSION_GRANTED = "permission_granted";

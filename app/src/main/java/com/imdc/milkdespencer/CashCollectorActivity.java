@@ -1215,8 +1215,27 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     @Override
     protected void onDestroy() {
-        unregisterReceiver(mUsbReceiver);
-        unregisterReceiver(batteryReceiver);
+
+        try {
+            if (mUsbReceiver != null) {
+                unregisterReceiver(mUsbReceiver);
+            }
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
+        }
+
+        try {
+            if (batteryReceiver != null) {
+                Log.e("unregisterReceiver", "batteryReceiver");
+                unregisterReceiver(batteryReceiver);
+            }
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
+        }
+
+
+//        unregisterReceiver(mUsbReceiver);
+//        unregisterReceiver(batteryReceiver);
 //        usbSerialCommunication.disconnect();
 
         /// Here if handler and runnable remove

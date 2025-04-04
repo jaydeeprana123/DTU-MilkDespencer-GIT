@@ -1,5 +1,7 @@
 package com.imdc.milkdespencer;
 
+import static com.imdc.milkdespencer.DatabaseExporter.copyDatabase;
+import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
@@ -39,6 +41,8 @@ import androidx.cardview.widget.CardView;
 import com.airbnb.lottie.LottieAnimationView;
 import com.airbnb.lottie.LottieDrawable;
 import com.google.android.material.button.MaterialButton;
+import com.google.firebase.analytics.FirebaseAnalytics;
+import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imdc.milkdespencer.common.Constants;
@@ -54,7 +58,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener {
 
-
+    private FirebaseAnalytics mFirebaseAnalytics;
     private boolean inMilkDispenseProcessLevel = false;
 
     private boolean isUsbPermissionGranted = false; // Flag for USB permission
@@ -76,6 +80,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     IntentFilter filter = new IntentFilter(ACTION_USB_PERMISSION);
     LinearLayout llCash, llQr, lvStatus, llAlert;
     ImageView ivAgitator, ivCompressor;
+
+    Button btnCrash;
+
     AlertDialog alertDialog;
     boolean isShowError = false;
 
@@ -404,19 +411,10 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        Button crashButton = new Button(this);
-        crashButton.setText("Test Crash");
-        crashButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View view) {
-                throw new RuntimeException("Test Crash"); // Force a crash
-            }
-        });
-
-        addContentView(crashButton, new ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT));
-
+        copyDatabase(this);
+        FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true);
+// Initialize Firebase Analytics
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
         keepScreenOn();
         hideSystemUI();
         setContentView(R.layout.activity_main2);
@@ -465,6 +463,17 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         btnStart = findViewById(R.id.btnStart);
         btnDone = findViewById(R.id.btnDone);
         ivAgitator = findViewById(R.id.ivAgitator);
+
+        btnCrash =  findViewById(R.id.btnCrash);
+        btnCrash.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View view) {
+                throw new RuntimeException("Hello Crash"); // Force a crash
+
+            }
+        });
+
+
+
         ivCompressor = findViewById(R.id.ivCompressor);
         tvMilkBasePrice = findViewById(R.id.tvMilkBasePrice);
         tvTemperature = findViewById(R.id.tvTemperature);
@@ -574,9 +583,14 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             llCash.setVisibility(View.VISIBLE);
             llQr.setVisibility(View.VISIBLE);
             cvPayWithQr.setVisibility(View.VISIBLE);
-            cvPayWithCash.setVisibility(View.VISIBLE);
-            btnStart.setVisibility(View.GONE);
 
+            if(preferencesManager.get(CashTransactionMode, "0").equals("0")){
+                cvPayWithCash.setVisibility(View.VISIBLE);
+            }else {
+                cvPayWithCash.setVisibility(View.GONE);
+            }
+
+            btnStart.setVisibility(View.GONE);
 
             /// After 15 second Cash and UPI screen will be gone
             handlerProcessScreen = new Handler(Looper.getMainLooper());
@@ -650,6 +664,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 }
 
             });
+
+            Bundle bundle = new Bundle();
+            bundle.putString("login_dialog", "open");
+            mFirebaseAnalytics.logEvent("login_event", bundle);
+
             // Handle edit action
             Constants.showLoginDialog(MainActivity.this, appDatabase);
 
@@ -710,10 +729,28 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             handlerProcessScreen.removeCallbacks(runnableProcessScreen);
         }
 
-        unregisterReceiver(usbPermissionReceiver);
-        unregisterReceiver(batteryReceiver);
+
+        try {
+            if (usbPermissionReceiver != null) {
+                unregisterReceiver(usbPermissionReceiver);
+            }
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
+        }
+
+        try {
+            if (batteryReceiver != null) {
+                Log.e("unregisterReceiver", "batteryReceiver");
+                unregisterReceiver(batteryReceiver);
+            }
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
+        }
+
+
+//        unregisterReceiver(usbPermissionReceiver);
+//        unregisterReceiver(batteryReceiver);
         usbSerialCommunication.disconnect();
-        unregisterReceiver(usbPermissionReceiver);
         super.onDestroy();
     }
 

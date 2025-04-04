@@ -1,5 +1,7 @@
 package com.imdc.milkdespencer.adminUi;
 
+import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
+import static com.imdc.milkdespencer.common.Constants.RazorPayCustomerID;
 import static com.imdc.milkdespencer.common.Constants.doGetConfigurationData;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
@@ -20,10 +22,12 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.gson.Gson;
 import com.imdc.milkdespencer.MainActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.TransactionHistoryActivity;
+import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adapter.UserAdapter;
 import com.imdc.milkdespencer.common.Constants;
@@ -31,8 +35,8 @@ import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.User;
 
 public class AdminActivity extends AppCompatActivity {
-
-
+    private FirebaseAnalytics mFirebaseAnalytics;
+     SharedPreferencesManager preferencesManager;
     Button btnSetConfigurations,btnApiConfiguration,btnCIP, btnCustomerAdmin, btnLogs, btnCalibration,btnCashButtonOnOff, btnAddEndUser;
     AppDatabase appDatabase;
     User user;
@@ -43,9 +47,15 @@ public class AdminActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin);
+        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+        // Log screen view event
+        Bundle bundle = new Bundle();
+        bundle.putString(FirebaseAnalytics.Param.SCREEN_NAME, "Admin_Screen");
+        bundle.putString(FirebaseAnalytics.Param.SCREEN_CLASS, "AdminActivity");
+        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle);
 
         doGetConfigurationData(AdminActivity.this);
-
+        preferencesManager = SharedPreferencesManager.getInstance(this);
         // When user comes first time isCip should be false
         isCipOn = false;
 
@@ -79,6 +89,13 @@ public class AdminActivity extends AppCompatActivity {
         btnLogs = findViewById(R.id.btnLogs);
         btnCalibration = findViewById(R.id.btnCalibration);
         btnCashButtonOnOff= findViewById(R.id.btnCashButtonOnOff);
+
+        if(preferencesManager.get(CashTransactionMode, "0").equals("0")){
+            btnCashButtonOnOff.setText(getResources().getString(R.string.btnCashOff));
+        }else{
+            btnCashButtonOnOff.setText(getResources().getString(R.string.btnCashOnO));
+        }
+
 
         if (user.getUserType() == UserTypeEnum.ADMIN.value()) {
             btnLogs.setText("Show Logs");
@@ -117,6 +134,23 @@ public class AdminActivity extends AppCompatActivity {
                 Log.e("btn CIP"," is pressed");
                 isCipOn = true;
                 showCIPRunningDialog(AdminActivity.this);
+
+            }
+        });
+
+
+        btnCashButtonOnOff.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                if(preferencesManager.get(CashTransactionMode, "0").equals("0")){
+
+                    preferencesManager.save(CashTransactionMode, "1");
+                    btnCashButtonOnOff.setText(getResources().getString(R.string.btnCashOnO));
+                }else{
+                    preferencesManager.save(CashTransactionMode, "0");
+                    btnCashButtonOnOff.setText(getResources().getString(R.string.btnCashOff));
+                }
 
             }
         });
