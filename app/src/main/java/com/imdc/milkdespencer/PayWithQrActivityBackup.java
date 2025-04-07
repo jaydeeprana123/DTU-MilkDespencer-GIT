@@ -2,12 +2,8 @@ package com.imdc.milkdespencer;
 
 
 import static com.imdc.milkdespencer.CashCollectorActivity.getInstance;
-
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
-import static com.imdc.milkdespencer.common.Constants.MachineId;
-import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
-import static com.imdc.milkdespencer.common.Constants.generateSafeUniqueTransactionId;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
@@ -53,7 +49,6 @@ import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDevice;
 import com.imdc.milkdespencer.network.RetrofitClient;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
-import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 import com.razorpay.Payment;
 import com.razorpay.PaymentData;
@@ -71,14 +66,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class PayWithQrActivity extends AppCompatActivity implements PaymentResultWithDataListener {
+public class PayWithQrActivityBackup extends AppCompatActivity implements PaymentResultWithDataListener {
 
     private boolean isMilkVendingStarted = false;
     private String qrCodeId = "";
 
     static SharedPreferencesManager preferencesManager;
     private static UsbSerialCommunication usbSerialCommunication;
-    private final String TAG = PayWithQrActivity.class.getSimpleName();
+    private final String TAG = PayWithQrActivityBackup.class.getSimpleName();
     private final int previousSelectionAMT = 0;
     private final int previousSelectionLites = 0;
     boolean isCharging;
@@ -107,26 +102,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             if (isCharging) {
 
             } else {
-                Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity");
+                Constants.saveLogs(PayWithQrActivityBackup.this, "Lost Electricity");
 
-                String transactionJson = preferencesManager.get(Constants.SavedTransaction, "").toString();
+                Payment payment = new Gson().fromJson(preferencesManager.get(Constants.PaymentReceived, "").toString(), Payment.class);
+                if (payment != null && payment.get("amount") != null) {
+                    float amount = Float.parseFloat(payment.get("amount").toString());
+                    float amt = amount / 100;
 
-                if (!transactionJson.isEmpty()) {
-                    TransactionEntity transactionEntity = new Gson().fromJson(preferencesManager.get(Constants.SavedTransaction, "").toString(), TransactionEntity.class);
-                    updateTransactionIfElectricityLost(transactionEntity, 0);
-
-                } else {
-                    Payment payment = new Gson().fromJson(preferencesManager.get(Constants.PaymentReceived, "").toString(), Payment.class);
-                    if (payment != null && payment.get("amount") != null) {
-                        float amount = Float.parseFloat(payment.get("amount").toString());
-                        float amt = amount / 100;
-
-                        /// Here payment is done. And Suddenly electricity lost
-                        insertTransactionIfElectricityLost(amt, payment, 0);
-                    }
+                    /// Here payment is done. And Suddenly electricity lost
+                    showElectricityLostAndFailedProcessDialog(amt, payment, 0);
                 }
-
-
             }
         }
     };
@@ -136,9 +121,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     private final BroadcastReceiver paymentStatusReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if ("payment_status_action".equals(intent.getAction())) {
 
-                // Cancel QR code timeout
+            if (intent.getAction().equals("payment_status_action")) {
+
+                // Remove the Runnable from the Handler to avoid memory leaks
                 if (qrCodeTimeoutHandler != null && qrCodeTimeoutRunnable != null) {
                     qrCodeTimeoutHandler.removeCallbacks(qrCodeTimeoutRunnable);
                 }
@@ -149,78 +135,39 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 if (paymentStatusJson != null && !paymentStatusJson.isEmpty()) {
                     Payment payment = new Gson().fromJson(paymentStatusJson, Payment.class);
                     Log.e("TAG", "onReceive:payment " + paymentStatusJson);
-
-                    if (payment != null && payment.has("amount")) {
-
-                        if (dialog.get() != null && dialog.get().isShowing()) {
+                    if (payment != null) {
+                        if (dialog.get() != null) {
+                            Log.e("TAG", "onReceive:DIa " + dialog.get().isShowing());
                             dialog.get().dismiss();
                         }
 
-                        String payCodeId = payment.get("id").toString();
-                        float amount = Float.parseFloat(payment.get("amount").toString());
-                        double amt = amount / 100;
+                        if (payment.has("amount")) {
+                            String payCodeId = payment.get("id").toString();
+                            float amount = Float.parseFloat(payment.get("amount").toString());
+                            double amt = amount / 100;
+                            preferencesManager.save(Constants.PaymentReceived, new Gson().toJson(payment));
+                            preferencesManager.save(Constants.PaidAmt, amt);
 
-                        preferencesManager.save(Constants.PaymentReceived, new Gson().toJson(payment));
-                        preferencesManager.save(Constants.PaidAmt, amt);
 
-                        new Thread(() -> {
-                            try {
-                                SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                                SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+                            if(!isMilkVendingStarted){
 
-                                String date = dateFormatter.format(System.currentTimeMillis());
-                                String time = timeFormatter.format(System.currentTimeMillis());
+                                isMilkVendingStarted = true;
 
-                                TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
-                                SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(PayWithQrActivity.this);
-
-                                TransactionEntity transaction = new TransactionEntity();
-                                transaction.setUserName("Admin");
-                                transaction.setPassword("QWRtaW4="); // base64 for 'Admin'
-                                transaction.setTransactionType("ONLINE");
-                                transaction.setBankTransactionNo(payCodeId);
-                                transaction.setTransactionDate(date);
-                                transaction.setTransactionTime(time);
-                                transaction.setAmount(amount);
-                                transaction.setVolume(0);
-
-                                // Set extra fields
-                                transaction.setMilkPrice((preferencesManager.get(MilkBasePrice, "")).toString());
-                                transaction.setMilkTemperature("");
-                                transaction.setTransactionStatus("PAYMENT DONE");
-                                transaction.setUpiId(qrCodeId);
-                                transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
-
-                                String uniqueId = generateSafeUniqueTransactionId(transactionDao);
-                                transaction.setUniqueTransactionId(uniqueId);
-
-                                // Insert into database
-                                long transactionId = transactionDao.insert(transaction);
-                                transaction.setId(transactionId);
-
-                                preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
-
-                                runOnUiThread(() -> {
-                                    if (!isMilkVendingStarted) {
-                                        isMilkVendingStarted = true;
-                                        sendForMilkVending(amt, payment, payCodeId, transaction);
-                                    }
-                                });
-
-                            } catch (Exception e) {
-                                e.printStackTrace();
+                                /// Once payment is done
+                                sendForMilkVending(amt, payment, payCodeId);
                             }
-                        }).start();
 
-                        // Stop service after handling payment
-                        Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
+
+                        }
+                        Intent serviceIntent = new Intent(PayWithQrActivityBackup.this, PaymentStatusService.class);
                         stopService(serviceIntent);
                     }
+
                 }
+                // Process the payment status JSON received from the service
             }
         }
     };
-
     RetrofitClient retrofitClient;
     RazorpayClient razorpay;
     LottieDialog lottieDialog;
@@ -252,6 +199,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         /// Just test
 
 
+
+
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
 
         IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
@@ -273,7 +222,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         /// When user comes first delete the previously saved payment data in shared preference
         preferencesManager.delete(Constants.PaymentReceived);
         preferencesManager.delete(Constants.PaidAmt);
-        preferencesManager.delete(Constants.SavedTransaction);
+
 
         gv_CurrencyLiters = findViewById(R.id.gridViewCurrencyLiters);
         tvProcessing = findViewById(R.id.tvProcessing);
@@ -341,7 +290,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     gv_CurrencyLiters.setVisibility(View.VISIBLE);
                     btnBackToHome.setVisibility(View.VISIBLE);
 
-                    Constants.showAlertDialog(PayWithQrActivity.this, "Error", "Customer Id cannot be empty");
+                    Constants.showAlertDialog(PayWithQrActivityBackup.this, "Error", "Customer Id cannot be empty");
                     return;
                 }
 
@@ -358,7 +307,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     String inputVal = numericValueFromString != null ? String.valueOf(numericValueFromString) : "0.0";
 
                     double ltrs = Double.parseDouble(inputVal);
-                    double amt = Constants.calculateMilkPrice(ltrs, PayWithQrActivity.this);
+                    double amt = Constants.calculateMilkPrice(ltrs, PayWithQrActivityBackup.this);
                     amt = Double.parseDouble(String.format("%.2f", amt));
 
                     try {
@@ -367,7 +316,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                         paymentObject.put("currency", "INR");
                         paymentObject.put("amount", amt * 100); // Amount in paise (e.g., 10000 paise = INR 100)
 //                        paymentObject.put("amount", 100); // Amount in paise (e.g., 10000 paise = INR 100)
-                        Constants.showAcceptDialog(PayWithQrActivity.this, "Please Confirm", "You need to pay the ₹" + amt + " for " + gv_CurrencyLiters.getAdapter().getItem(position).toString(), new DialogInterface.OnClickListener() {
+                        Constants.showAcceptDialog(PayWithQrActivityBackup.this, "Please Confirm", "You need to pay the ₹" + amt + " for " + gv_CurrencyLiters.getAdapter().getItem(position).toString(), new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
 //                                Toast.makeText(PayWithQrActivity.this, "YES ", Toast.LENGTH_SHORT).show();
@@ -410,7 +359,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     cost = Float.parseFloat(String.format("%.2f", cost));
 
                     //   Toast.makeText(PayWithQrActivity.this, "COST " + cost, Toast.LENGTH_SHORT).show();
-                    double weight = Constants.calculateMilkAmount(cost, PayWithQrActivity.this);
+                    double weight = Constants.calculateMilkAmount(cost, PayWithQrActivityBackup.this);
                     String weightStr = weight > 0 && weight < 1 ? weight + " (Ml)." : weight + "(Ltr).";
                     float milkSellingPrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
                     float volumeToDisplay = Float.parseFloat(String.valueOf((cost / milkSellingPrice)));
@@ -424,7 +373,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                         paymentObject.put("amount", cost * 100); // Amount in paise (e.g., 10000 paise = INR 100)
 //                        paymentObject.put("amount", 100); // Amount in paise (e.g., 10000 paise = INR 100)
                         float finalVolumeToDisplay = volumeToDisplay;
-                        Constants.showAcceptDialog(PayWithQrActivity.this, "Please Confirm", "You need to pay the ₹" + cost + " for " + volumeToDisplay + "Ltr", (dialog, which) -> {
+                        Constants.showAcceptDialog(PayWithQrActivityBackup.this, "Please Confirm", "You need to pay the ₹" + cost + " for " + volumeToDisplay + "Ltr", (dialog, which) -> {
                             dialog.dismiss();
 
                             /// Check that volume amount is more than 5 lites
@@ -449,8 +398,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             }
 
 
-                        }, (dialog, which) -> {
-                            dialog.dismiss();
+                        }, (dialog, which) -> {dialog.dismiss();
 
                             gv_CurrencyLiters.setVisibility(View.VISIBLE);
                             btnBackToHome.setVisibility(View.VISIBLE);
@@ -482,7 +430,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 if (selectedId == 0) {
 
                     double ltrs = Double.parseDouble(inputVal);
-                    double amt = Constants.calculateMilkPrice(ltrs, PayWithQrActivity.this);
+                    double amt = Constants.calculateMilkPrice(ltrs, PayWithQrActivityBackup.this);
                     weightInLiter = String.valueOf(ltrs);
                     try {
                         paymentObject.put("name", "Milk Vending Machine");
@@ -495,7 +443,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 } else if (selectedId == 1) {
                     double cost = Double.parseDouble(gv_CurrencyLiters.getSelectedItem().toString().replace("₹", ""));
                     //   Toast.makeText(PayWithQrActivity.this, "COST " + cost, Toast.LENGTH_SHORT).show();
-                    double weight = Constants.calculateMilkAmount(cost, PayWithQrActivity.this);
+                    double weight = Constants.calculateMilkAmount(cost, PayWithQrActivityBackup.this);
                     weightInLiter = String.valueOf(weight);
                     try {
                         paymentObject.put("name", "Milk Vending Machine");
@@ -510,7 +458,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 String customerId = preferencesManager.get(Constants.RazorPayCustomerID, "").toString();
                 String machineId = preferencesManager.get(Constants.MachineId, "").toString();
                 if (customerId.isEmpty()) {
-                    Constants.showAlertDialog(PayWithQrActivity.this, "Error", "Customer Id cannot be empty");
+                    Constants.showAlertDialog(PayWithQrActivityBackup.this, "Error", "Customer Id cannot be empty");
                     return;
                 }
 
@@ -559,7 +507,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 runOnUiThread(() -> {
                                     dialog.set(showQRCodeDialog(imageUrl));
                                     dialog.get().show();
-                                    Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
+                                    Intent serviceIntent = new Intent(PayWithQrActivityBackup.this, PaymentStatusService.class);
                                     serviceIntent.putExtra("qr_code_id", qrCodeId);
                                     startService(serviceIntent);
 
@@ -594,9 +542,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                                                                 Log.e("amountttt in string", String.valueOf(amt));
 
-                                                                TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
+                                                                TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivityBackup.this).transactionDao();
                                                                 assert date != null;
-                                                                long transactionId = Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, amt, "TIME OUT", "", Float.parseFloat(finalWeightInLiter), "");
+                                                                long transactionId = Constants.insertTransaction(PayWithQrActivityBackup.this, transactionDao, "ONLINE", "", date, time, amt, "TIME OUT", "", Float.parseFloat(finalWeightInLiter), "");
                                                                 Log.e(TAG, "onCreate: " + transactionId);
                                                                 Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
@@ -621,7 +569,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             runOnUiThread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    Constants.showAlertDialog(PayWithQrActivity.this, "Error", e.getMessage());
+                                    Constants.showAlertDialog(PayWithQrActivityBackup.this, "Error", e.getMessage());
                                 }
                             });
                         }
@@ -696,7 +644,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 handleQrCodeResponse(qrcode, paymentObject);
             }
         } catch (RazorpayException | JSONException e) {
-            runOnUiThread(() -> Constants.showAlertDialog(PayWithQrActivity.this, "Error", e.getMessage()));
+            runOnUiThread(() -> Constants.showAlertDialog(PayWithQrActivityBackup.this, "Error", e.getMessage()));
         }
     }
 
@@ -738,18 +686,19 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         Log.e("TAG", "handleQrCodeResponse : handleQrCodeResponse ");
         /// Image of QR code
         String imageUrl = qrcode.get("image_url").toString();
-        qrCodeId = qrcode.get("id").toString();
+         qrCodeId = qrcode.get("id").toString();
 
-        Log.e("qrCode generate response", qrcode.toJson().toString());
+         Log.e("qrCode generate response", qrcode.toJson().toString());
         Log.e("qrCode generate response", qrcode.toString());
         Log.e("qrCodeId", qrCodeId);
+
 
 
         runOnUiThread(() -> {
             dialog.set(showQRCodeDialog(imageUrl));
             dialog.get().show();
 
-            Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
+            Intent serviceIntent = new Intent(PayWithQrActivityBackup.this, PaymentStatusService.class);
             serviceIntent.putExtra("qr_code_id", qrCodeId);
             startService(serviceIntent);
 
@@ -783,6 +732,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 //        };
 
 
+
         qrCodeTimeoutRunnable = () -> {
             Dialog currentDialog = dialog.get();
             if (currentDialog != null && currentDialog.isShowing()) {
@@ -796,6 +746,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
         // Start the timeout task
         qrCodeTimeoutHandler.postDelayed(qrCodeTimeoutRunnable, 6 * 60 * 1000);
+
 
 
 //        new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -820,10 +771,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 if (paymentObject.has("amount")) {
                     double amount = Double.parseDouble(paymentObject.get("amount").toString()) / 100;
-                    TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
+                    TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivityBackup.this).transactionDao();
 
                     long transactionId = Constants.insertTransaction(
-                            PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time,
+                            PayWithQrActivityBackup.this, transactionDao, "ONLINE", "", date, time,
                             amount, "TIME OUT", qrCodeId, 0, ""
                     );
 
@@ -847,7 +798,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             return numericValue;
         } else {
 
-            Constants.showAlertDialog(PayWithQrActivity.this, "Error", "No Valid Selection : " + input);
+            Constants.showAlertDialog(PayWithQrActivityBackup.this, "Error", "No Valid Selection : " + input);
 /*                new IllegalArgumentException("No numeric value found in volume string: " + input);
              new IllegalArgumentException("No numeric value found in volume string: " + input);*/
 
@@ -951,8 +902,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     /*
      * When payment is done. Send for Vending the milk*/
-    public void sendForMilkVending(double amt, Payment payment, String payCodeId, TransactionEntity transaction) {
-        LottieDialog lottieDialog = new LottieDialog(PayWithQrActivity.this);
+    public void sendForMilkVending(double amt, Payment payment, String payCodeId) {
+        LottieDialog lottieDialog = new LottieDialog(PayWithQrActivityBackup.this);
         try {
             ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
             float milkSellingPrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
@@ -982,7 +933,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             /// Here after 5 minute if status is not getting as a true.
             // Dialog will be close and transaction will be add in the database as a TIME OUT
             timeoutHandler = new Handler(Looper.getMainLooper());
-            timeoutRunnable = () -> handleMilkSendingTimeout(lottieDialog, amt, 0, transaction);
+            timeoutRunnable = () -> handleMilkSendingTimeout(lottieDialog, amt, 0);
 
             // Post the Runnable with a delay
             timeoutHandler.postDelayed(timeoutRunnable, 5 * 60 * 1000); // 15 minutes
@@ -993,7 +944,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             isCommandSent = true;
 
             /// Read Data of the usb Serial Communication
-            usbSerialCommunication.setReadDataListener(data -> handleSerialReadingResponse(data, lottieDialog, amt, payCodeId, payment, timeoutHandler, timeoutRunnable, milkDensity, currentTemperature, transaction));
+            usbSerialCommunication.setReadDataListener(data -> handleSerialReadingResponse(data, lottieDialog, amt,payCodeId, payment, timeoutHandler, timeoutRunnable, milkDensity, currentTemperature));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -1003,14 +954,17 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     /*If 5 minutes done and status is not getting as a true.
     Transaction will be added as a FAILED*/
-    private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volume, TransactionEntity transaction) {
+    private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volume) {
         if (!isFinishing() && !isDestroyed() && lottieDialog != null && lottieDialog.isShowing()) {
             lottieDialog.dismiss();
 
             new Thread(() -> {
                 try {
-                    TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
-                    Constants.updateTransactionAfterVolumeDispense(PayWithQrActivity.this, transactionDao, transaction.getId(), "TIME OUT DISPENSE", 0, "", transaction);
+                    String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(System.currentTimeMillis());
+                    String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(System.currentTimeMillis());
+                    TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivityBackup.this).transactionDao();
+
+                    Constants.insertTransaction(PayWithQrActivityBackup.this, transactionDao, "ONLINE", "", date, time, amt, "FAILED", qrCodeId, volume, "");
 
                     Log.e("Time is out", "After 5 minutes");
 
@@ -1024,7 +978,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     /*Read Listener Response*/
-    private void handleSerialReadingResponse(String data, LottieDialog lottieDialog, double amt, String payCodeId, Payment payment, Handler timeoutHandler, Runnable timeoutRunnable, double milkDensity, float milkTemperature, TransactionEntity transaction) {
+    private void handleSerialReadingResponse(String data, LottieDialog lottieDialog, double amt,String payCodeId, Payment payment, Handler timeoutHandler, Runnable timeoutRunnable, double milkDensity, float milkTemperature) {
         Log.d("TAG", "onReadData: " + data);
 
         /// If it contains status key
@@ -1055,7 +1009,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 isCommandSent = false;
                 preferencesManager.save(Constants.CurrentTemperature, milkDispense.getCurrentWeight());
 
-                insertDataOnProcessDone(amt, payCodeId, payment, volumeOfMilk, milkTemperature, transaction);
+                insertDataOnProcessDone(amt,payCodeId, payment, volumeOfMilk, milkTemperature);
+
+
 
 
             }
@@ -1063,104 +1019,89 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
+    /*
+     * If payment is done and electricity is lost. Then Show Fail Dialog*/
+    private void showElectricityLostAndFailedProcessDialog(float amt, Payment payment, float volumeOfMilk) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                Constants.showAcceptDialog(PayWithQrActivityBackup.this, "Error", "Lost Electricity Connection!! Please Try after sometime.", (dialog1, which) -> {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            try {
+                                String dateFormat = "yyyy-MM-dd";
+                                String timeFormat = "HH:mm:ss";
+                                SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
+                                SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
+
+                                String date = dateFormatter.format(System.currentTimeMillis());
+                                String time = timeFormatter.format(System.currentTimeMillis());
+                                // Print the combined date and time
+
+                                TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivityBackup.this).transactionDao();
+                                assert date != null;
+                                long transactionId = Constants.insertTransaction(PayWithQrActivityBackup.this, transactionDao, "ONLINE", "", date, time, amt, "FAILED", qrCodeId, volumeOfMilk, "");
+                                Log.e(TAG, "onCreate: " + transactionId);
+                                Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
+
+                                /// Close current dialog
+                                dialog1.dismiss();
+                                /// Go to Home screen
+                                goToHomeScreen();
 
 
-    /**
-     * If payment is done and electricity is lost, show a failure dialog.
-     */
-    private void insertTransactionIfElectricityLost(float amt, Payment payment, float volumeOfMilk) {
-        runOnUiThread(() -> Constants.showAcceptDialog(
-                PayWithQrActivity.this,
-                "Error",
-                "Lost Electricity Connection!! Please try after some time.",
-                (dialog, which) -> handleTransactionInsert(dialog, amt, volumeOfMilk),
-                (dialog, which) -> handleTransactionInsert(dialog, amt, volumeOfMilk)
-        ));
-    }
+//                                Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                                finish();
 
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
+                }, (dialog1, which) -> {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
 
-    private void handleTransactionInsert(DialogInterface dialog, float amt, float volumeOfMilk) {
-        new Thread(() -> {
-            try {
-                String dateFormat = "yyyy-MM-dd";
-                String timeFormat = "HH:mm:ss";
-                SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat, Locale.getDefault());
-                SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat, Locale.getDefault());
+                            try {
+                                String dateFormat = "yyyy-MM-dd";
+                                String timeFormat = "HH:mm:ss";
+                                SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
+                                SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
 
-                String date = dateFormatter.format(System.currentTimeMillis());
-                String time = timeFormatter.format(System.currentTimeMillis());
+                                String date = dateFormatter.format(System.currentTimeMillis());
+                                String time = timeFormatter.format(System.currentTimeMillis());
+                                // Print the combined date and time
 
-                TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
-                long transactionId = Constants.insertTransaction(
-                        PayWithQrActivity.this,
-                        transactionDao,
-                        "ONLINE",
-                        "",
-                        date,
-                        time,
-                        amt,
-                        "ELECTRICITY LOST",
-                        qrCodeId,
-                        volumeOfMilk,
-                        ""
-                );
+                                TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivityBackup.this).transactionDao();
+                                assert date != null;
+                                long transactionId = Constants.insertTransaction(PayWithQrActivityBackup.this, transactionDao, "ONLINE", "", date, time, amt, "FAILED", qrCodeId, volumeOfMilk, "");
+                                Log.e(TAG, "onCreate: " + transactionId);
+                                Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
-                runOnUiThread(() -> {
-                    Log.e(TAG, "Transaction ID: " + transactionId);
-                    Log.e(TAG, "All Transactions: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                    dialog.dismiss();
-                    goToHomeScreen();
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
+                                /// Close current dialog
+                                dialog1.dismiss();
+                                /// Go to Home screen
+                                goToHomeScreen();
 
+//                                Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                                finish();
 
-
-    /**
-     * If payment is done and electricity is lost after inserting the transaction,
-     * show a failure dialog and update the transaction accordingly.
-     */
-    private void updateTransactionIfElectricityLost(TransactionEntity transactionEntity, float volumeOfMilk) {
-        runOnUiThread(() -> Constants.showAcceptDialog(
-                PayWithQrActivity.this,
-                "Error",
-                "Lost Electricity Connection!! Please try after some time.",
-                (dialog, which) -> handleElectricityLostUpdate(dialog, transactionEntity),
-                (dialog, which) -> handleElectricityLostUpdate(dialog, transactionEntity)
-        ));
-    }
-
-
-    private void handleElectricityLostUpdate(DialogInterface dialog, TransactionEntity transactionEntity) {
-        new Thread(() -> {
-            try {
-                TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
-
-                Constants.updateTransactionAfterVolumeDispense(
-                        PayWithQrActivity.this,
-                        transactionDao,
-                        transactionEntity.getId(),
-                        "ELECTRICITY LOST",
-                        0,
-                        "",
-                        transactionEntity
-                );
-
-                runOnUiThread(() -> {
-                    Log.e(TAG, "Updated Transaction: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                    dialog.dismiss();
-                    goToHomeScreen();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
                 });
 
-            } catch (Exception e) {
-                e.printStackTrace();
             }
-        }).start();
+        });
     }
-
 
 
     /// If milk is send to the customer. Show process done dialog
@@ -1168,7 +1109,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
         if (isFinishing() || isDestroyed()) return; // Prevent dialog if activity is finishing
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(PayWithQrActivity.this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(PayWithQrActivityBackup.this);
         LayoutInflater inflater = getLayoutInflater();
         View view = inflater.inflate(R.layout.dialog_lottie, null);
 
@@ -1224,6 +1165,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
                 runOnUiThread(() -> goToHomeScreen());
+
 
 
             }
@@ -1288,15 +1230,23 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
     /// When process is completed. Data will be insert into database
-    void insertDataOnProcessDone(double amt, String payCodeId, Payment payment, float volumeOfMilk, float milkTemperature, TransactionEntity transaction) {
+    void insertDataOnProcessDone(double amt,String payCodeId, Payment payment, float volumeOfMilk, float milkTemperature) {
         new Thread(new Runnable() {
             @Override
             public void run() {
 
                 try {
+                    String dateFormat = "yyyy-MM-dd";
+                    String timeFormat = "HH:mm:ss";
+                    SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
+                    SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
 
-                    TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
+                    String date = dateFormatter.format(System.currentTimeMillis());
+                    String time = timeFormatter.format(System.currentTimeMillis());
+                    // Print the combined date and time
 
+                    TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivityBackup.this).transactionDao();
+                    assert date != null;
 
                     /// Here I convert volume of milk into string and set 3 digits after dot(.)
                     float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
@@ -1304,14 +1254,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     /// Here I convert temperature of milk into string and set 3 digits after dot(.)
                     String strMilkTemperature = String.format("%.3f", milkTemperature);
 
-                    Constants.updateTransactionAfterVolumeDispense(PayWithQrActivity.this, transactionDao, transaction.getId(), "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
+                    long transactionId = Constants.insertTransaction(PayWithQrActivityBackup.this, transactionDao, "ONLINE", payCodeId, date, time, amt, "SUCCESS", qrCodeId, truncatedValueOfMilkVolume, strMilkTemperature);
 
                     // Now show dialog on UI thread
-                    runOnUiThread(() -> {
+                    runOnUiThread(() ->{
+
+                        Log.e(TAG, "onCreate: " + transactionId);
                         Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
                         showAndProcessDoneDialog(amt, payment, volumeOfMilk, milkTemperature, payCodeId);
-                    });
+                            });
 
 
 //                    Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);

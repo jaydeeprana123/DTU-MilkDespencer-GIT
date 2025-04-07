@@ -102,6 +102,9 @@ public class Constants {
     public static final String ResponseMilkDispense = "ResponseMilkDispense";
 
     public static final String PaymentReceived = "PaymentReceived";
+
+    public static final String SavedTransaction = "SavedTransaction";
+
     public static final String PaymentCashReceived = "PaymentCashReceived";
     public static final String PaidAmt = "PaidAmt";
 
@@ -1105,7 +1108,6 @@ public class Constants {
         transaction.setTransactionStatus(transactionStatus);
         transaction.setUpiId(upiId);
 
-
         try {
             String uniqueId = generateSafeUniqueTransactionId(transactionDao);
 
@@ -1116,7 +1118,7 @@ public class Constants {
             /// Added on 1-1 2025
             transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
 
-            /// Insert into Sqlite database
+            // Insert into Sqlite database
             long transactionId = transactionDao.insert(transaction);
 
 
@@ -1128,15 +1130,15 @@ public class Constants {
             });
 
 
-            if (transactionId > 0 && isNetworkAvailable(activity)) {
-
-                Executors.newSingleThreadExecutor().execute(() -> {
-                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
-                });
-               // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
-            } else {
-                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
-            }
+//            if (transactionId > 0 && isNetworkAvailable(activity)) {
+//
+//                Executors.newSingleThreadExecutor().execute(() -> {
+//                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
+//                });
+//               // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
+//            } else {
+//                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+//            }
 
             return transactionId;
         } catch (Exception e) {
@@ -1148,7 +1150,71 @@ public class Constants {
     }
 
 
-    public static void updateTransactionAfterVolumeDispense(Activity activity, TransactionDao transactionDao,long transactionId, String transactionStatus, float volume, String milkTemperature) {
+    public static long insertTransactionAfterPaymentDone(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, double amount, String transactionStatus, String upiId, float volume, String milkTemperature, TransactionEntity transaction) {
+        //    SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(activity);
+
+//        TransactionEntity transaction = new TransactionEntity();
+//        transaction.setUserName("Admin");
+//        transaction.setPassword("QWRtaW4=");
+//        transaction.setTransactionType(transactionType);
+//        transaction.setBankTransactionNo(bankTransactionNo);
+//        transaction.setTransactionDate(transactionDate);
+//        transaction.setTransactionTime(transactionTime);
+//        transaction.setAmount(amount);
+//        transaction.setVolume(volume);
+//
+//        /// Added new on 4-1-2025
+//        transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
+//        transaction.setMilkTemperature(milkTemperature);
+//
+//        transaction.setTransactionStatus(transactionStatus);
+//        transaction.setUpiId(upiId);
+
+        try {
+//            String uniqueId = generateSafeUniqueTransactionId(transactionDao);
+//
+//            transaction.setUniqueTransactionId(uniqueId);
+//
+////        transaction.setUniqueTransactionId(transactionDao.generateUniqueTransactionId());
+//
+//            /// Added on 1-1 2025
+//            transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+
+            /// Insert into Sqlite database
+            long transactionId = transactionDao.insert(transaction);
+
+
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(activity, String.valueOf(transactionId), Toast.LENGTH_SHORT).show();
+                }
+            });
+
+
+//            if (transactionId > 0 && isNetworkAvailable(activity)) {
+//
+//                Executors.newSingleThreadExecutor().execute(() -> {
+//                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
+//                });
+//               // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
+//            } else {
+//                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+//            }
+
+            return transactionId;
+        } catch (Exception e) {
+            Log.e("InsertTransaction", "Failed to insert transaction: " + e.getMessage(), e);
+            return -1;
+        }
+
+
+    }
+
+
+
+
+    public static void updateTransactionAfterVolumeDispense(Activity activity, TransactionDao transactionDao,long transactionId, String transactionStatus, float volume, String milkTemperature, TransactionEntity transaction) {
         transactionDao.updateTransactionDetails(
                 String.valueOf(transactionId),           // Unique Transaction ID
                 volume,                 // volume
@@ -1157,6 +1223,17 @@ public class Constants {
                 transactionStatus// milk temperature
 
         );
+
+
+        if (transactionId > 0 && isNetworkAvailable(activity)) {
+
+            Executors.newSingleThreadExecutor().execute(() -> {
+                doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
+            });
+            // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
+        } else {
+            //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+        }
 
     }
 
