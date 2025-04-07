@@ -6,6 +6,7 @@ import static com.imdc.milkdespencer.CashCollectorActivity.milkSetTemperature;
 
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
+import static com.imdc.milkdespencer.common.Constants.generateSafeUniqueTransactionId;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
@@ -27,6 +28,7 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -64,6 +66,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -72,6 +75,7 @@ import device.itl.sspcoms.SSPSystem;
 
 public class PayWithQrActivity extends AppCompatActivity implements PaymentResultWithDataListener {
 
+    private boolean isMilkVendingStarted = false;
     private String qrCodeId = "";
 
     static SharedPreferencesManager preferencesManager;
@@ -150,7 +154,17 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             double amt = amount / 100;
                             preferencesManager.save(Constants.PaymentReceived, new Gson().toJson(payment));
                             preferencesManager.save(Constants.PaidAmt, amt);
-                            sendForMilkVending(amt, payment, payCodeId);
+
+
+                            if(!isMilkVendingStarted){
+
+                                isMilkVendingStarted = true;
+
+                                /// Once payment is done
+                                sendForMilkVending(amt, payment, payCodeId);
+                            }
+
+
                         }
                         Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
                         stopService(serviceIntent);
@@ -165,6 +179,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     RazorpayClient razorpay;
     LottieDialog lottieDialog;
     GridView gv_CurrencyLiters;
+
+    private TextView tvProcessing;
+
     TabLayout tabLayout;
 
     private MaterialButton btnGenerateQr;
@@ -176,6 +193,19 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         super.onCreate(savedInstanceState);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         setContentView(R.layout.activity_pay_with_qr);
+//        new Thread(() -> {
+//            TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
+//            String lastId = generateSafeUniqueTransactionId(transactionDao);
+//
+//            // Move UI-related code to the main thread
+//            runOnUiThread(() -> {
+//                Toast.makeText(PayWithQrActivity.this, "generateSafeUniqueTransactionId: " + lastId, Toast.LENGTH_SHORT).show();
+//                Log.e("PayWithQrActivity", "generateSafeUniqueTransactionId: " + lastId);
+//            });
+//        }).start();
+        /// Just test
+
+
 
 
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
@@ -202,7 +232,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
         gv_CurrencyLiters = findViewById(R.id.gridViewCurrencyLiters);
-
+        tvProcessing = findViewById(R.id.tvProcessing);
         SpnCurrencyAdapter currencyAdapter = new SpnCurrencyAdapter(this);
         SpnLitersAdapter litersAdapter = new SpnLitersAdapter(this);
 
@@ -249,6 +279,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
+                gv_CurrencyLiters.setVisibility(View.GONE);
+                btnBackToHome.setVisibility(View.GONE);
+
                 //   If User clicks on the grid item. Runnable should be close
                 // Cancel the delayed task
                 if (handler != null && runnable != null) {
@@ -260,6 +293,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 String machineId = preferencesManager.get(Constants.MachineId, "").toString();
 
                 if (customerId.isEmpty()) {
+
+                    gv_CurrencyLiters.setVisibility(View.VISIBLE);
+                    btnBackToHome.setVisibility(View.VISIBLE);
+
                     Constants.showAlertDialog(PayWithQrActivity.this, "Error", "Customer Id cannot be empty");
                     return;
                 }
@@ -292,6 +329,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 //                                Toast.makeText(PayWithQrActivity.this, "YES ", Toast.LENGTH_SHORT).show();
                                 dialog.dismiss();
 
+                                gv_CurrencyLiters.setVisibility(View.GONE);
+                                btnBackToHome.setVisibility(View.GONE);
+                                tvProcessing.setVisibility(View.VISIBLE);
+
                                 ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
 
                                 /// Here it will check that door is open or close
@@ -309,6 +350,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             public void onClick(DialogInterface dialog, int which) {
 //                                Toast.makeText(PayWithQrActivity.this, "NO ", Toast.LENGTH_SHORT).show();
                                 dialog.dismiss();
+
+                                gv_CurrencyLiters.setVisibility(View.VISIBLE);
+                                btnBackToHome.setVisibility(View.VISIBLE);
+
                             }
                         });
 
@@ -342,6 +387,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             if (finalVolumeToDisplay > 5) {
                                 showAlertExceedLimit();
                             } else {
+
+                                gv_CurrencyLiters.setVisibility(View.GONE);
+                                btnBackToHome.setVisibility(View.GONE);
+                                tvProcessing.setVisibility(View.VISIBLE);
+
                                 ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
 
                                 /// Here it will check that door is open or close
@@ -355,7 +405,12 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             }
 
 
-                        }, (dialog, which) -> dialog.dismiss());
+                        }, (dialog, which) -> {dialog.dismiss();
+
+                            gv_CurrencyLiters.setVisibility(View.VISIBLE);
+                            btnBackToHome.setVisibility(View.VISIBLE);
+
+                        });
 
                     } catch (Exception e) {
                         e.printStackTrace();
@@ -904,21 +959,23 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
-    /*If 15 minutes done and status is not getting as a true.
+    /*If 5 minutes done and status is not getting as a true.
     Transaction will be added as a FAILED*/
     private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volume) {
-        if (lottieDialog != null && lottieDialog.isShowing()) {
+        if (!isFinishing() && !isDestroyed() && lottieDialog != null && lottieDialog.isShowing()) {
             lottieDialog.dismiss();
+
             new Thread(() -> {
                 try {
-                    String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
-                    String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
+                    String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(System.currentTimeMillis());
+                    String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(System.currentTimeMillis());
                     TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
+
                     Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time, amt, "FAILED", qrCodeId, volume, "");
 
-                    Log.e("Time is out", "After 15 minutes");
+                    Log.e("Time is out", "After 5 minutes");
 
-                    goToHomeScreen();
+                    runOnUiThread(this::goToHomeScreen);
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -960,8 +1017,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 preferencesManager.save(Constants.CurrentTemperature, milkDispense.getCurrentWeight());
 
 
-                /// Show process done dialog
-                showAndProcessDoneDialog(amt, payment, volumeOfMilk, milkTemperature, payCodeId);
+                insertDataOnProcessDone(amt,payCodeId, payment, volumeOfMilk, milkTemperature);
+
+
+
+
             }
         }
     }
@@ -1055,98 +1115,69 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     /// If milk is send to the customer. Show process done dialog
     public void showAndProcessDoneDialog(double amt, Payment payment, float volumeOfMilk, float milkTemperature, String payCodeId) {
 
-        runOnUiThread(new Runnable() {
+        if (isFinishing() || isDestroyed()) return; // Prevent dialog if activity is finishing
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(PayWithQrActivity.this);
+        LayoutInflater inflater = getLayoutInflater();
+        View view = inflater.inflate(R.layout.dialog_lottie, null);
+
+        LottieAnimationView lottieAnimationView = view.findViewById(R.id.lottieAnimationView);
+        LottieAnimationView lottieAnimationViewDone = view.findViewById(R.id.lottieAnimationViewDone);
+        TextView tvProgressDialog = view.findViewById(R.id.tvProgressDialog);
+        MaterialButton btnDone = view.findViewById(R.id.doneButton);
+        TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
+        TextView tvDispenseVolume = view.findViewById(R.id.tvDispenseVolume);
+        TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
+
+        btnDone.setVisibility(View.VISIBLE);
+        lottieAnimationView.setVisibility(View.GONE);
+        lottieAnimationViewDone.setVisibility(View.VISIBLE);
+        tvProcessDoneText.setVisibility(View.VISIBLE);
+        tvOpenTheDoor.setVisibility(View.VISIBLE);
+        tvProgressDialog.setVisibility(View.GONE);
+        tvDispenseVolume.setVisibility(View.VISIBLE);
+
+        float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
+        tvDispenseVolume.setText(getString(R.string.dispense_volume) + " " + truncatedValueOfMilkVolume + " L");
+
+        lottieAnimationViewDone.setAnimation(R.raw.process_done);
+        lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
+        lottieAnimationViewDone.playAnimation();
+
+        builder.setView(view);
+        builder.setCancelable(false);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        handler = new Handler();
+        Long screenTimeOut = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0.0").toString());
+
+        runnable = () -> {
+            dialog.dismiss();
+
+            runOnUiThread(() -> goToHomeScreen());
+        };
+
+        handler.postDelayed(runnable, screenTimeOut * 1000);
+
+        btnDone.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void run() {
+            public void onClick(View v) {
+                if (handler != null && runnable != null) {
+                    handler.removeCallbacks(runnable);
+                }
 
-                insertDataOnProcessDone(amt,payCodeId, payment, volumeOfMilk, milkTemperature);
-
-                AlertDialog.Builder builder = new AlertDialog.Builder(PayWithQrActivity.this);
-                LayoutInflater inflater = getLayoutInflater();
-                View view = inflater.inflate(R.layout.dialog_lottie, null);
-
-                LottieAnimationView lottieAnimationView = view.findViewById(R.id.lottieAnimationView);
-                LottieAnimationView lottieAnimationViewDone = view.findViewById(R.id.lottieAnimationViewDone);
-                TextView tvProgressDialog = view.findViewById(R.id.tvProgressDialog);
-                MaterialButton btnDone = view.findViewById(R.id.doneButton);
-                TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
-                TextView tvDispenseVolume = view.findViewById(R.id.tvDispenseVolume);
-                TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
-                btnDone.setVisibility(View.VISIBLE);
-                lottieAnimationView.setVisibility(View.GONE);
-                lottieAnimationViewDone.setVisibility(View.VISIBLE);
-                tvProcessDoneText.setVisibility(View.VISIBLE);
-                tvOpenTheDoor.setVisibility(View.VISIBLE);
-                tvProgressDialog.setVisibility(View.GONE);
-
-                /// Added on 16-1
-                tvDispenseVolume.setVisibility(View.VISIBLE);
-
-                float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
-
-                tvDispenseVolume.setText(getString(R.string.dispense_volume) + " " + truncatedValueOfMilkVolume + " L");
-
-                lottieAnimationViewDone.setAnimation(R.raw.process_done);
-                lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
-                lottieAnimationViewDone.playAnimation();
-
-                // Customize the LottieAnimationView and TextView here
-
-                builder.setView(view);
-                builder.setCancelable(false); // Set to true if you want the dialog to be cancellable
-
-                AlertDialog dialog = builder.create();
-                dialog.show();
+                dialog.dismiss();
+                Log.e(TAG, "onClick: Payment " + new Gson().toJson(payment));
 
 
-                /// Initialize the handler
-                handler = new Handler();
-                Long screenTimeOut = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0.0").toString());
-
-                // Define the Runnable task
-                runnable = () -> {
-                    // Task to execute after delay
-                    dialog.dismiss();
-//                        onDestroy();
-
-                    goToHomeScreen();
-
-                   // insertDataOnProcessDone(amt, payment, volumeOfMilk, milkTemperature);
-                };
-
-                // Post the Runnable with a 15-second delay
-                handler.postDelayed(runnable, screenTimeOut * 1000);
+                runOnUiThread(() -> goToHomeScreen());
 
 
-                btnDone.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
 
-                        //  If User clicks on the done button. Runnable should be close
-                        // Cancel the delayed task
-                        if (handler != null && runnable != null) {
-                            handler.removeCallbacks(runnable);
-                        }
-
-                        dialog.dismiss();
-//                        onDestroy();
-                        Log.e(TAG, "onClick:Payment " + new Gson().toJson(payment));
-
-                        goToHomeScreen();
-
-                    //    insertDataOnProcessDone(amt, payment, volumeOfMilk, milkTemperature);
-                        /*Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);
-                        startActivity(intent);
-                        finish();*/
-
-
-//                doPostTransaction(Constants.PostTransactionURL);
-                    }
-                });
             }
         });
-
-
     }
 
     /*
@@ -1232,10 +1263,15 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     String strMilkTemperature = String.format("%.3f", milkTemperature);
 
                     long transactionId = Constants.insertTransaction(PayWithQrActivity.this, transactionDao, "ONLINE", payCodeId, date, time, amt, "SUCCESS", qrCodeId, truncatedValueOfMilkVolume, strMilkTemperature);
-                    Log.e(TAG, "onCreate: " + transactionId);
-                    Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
+                    // Now show dialog on UI thread
+                    runOnUiThread(() ->{
 
+                        Log.e(TAG, "onCreate: " + transactionId);
+                        Log.e(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
+
+                        showAndProcessDoneDialog(amt, payment, volumeOfMilk, milkTemperature, payCodeId);
+                            });
 
 
 //                    Intent intent = new Intent(PayWithQrActivity.this, MainActivity.class);

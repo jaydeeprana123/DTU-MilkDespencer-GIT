@@ -28,6 +28,10 @@ public interface TransactionDao {
     @Query("SELECT MAX(id) FROM transactions")
     long getLastTransactionId();
 
+
+    @Query("UPDATE transactions SET volume = :volume, milkPrice = :milkPrice, milkTemperature = :milkTemperature, transactionStatus = :transactionStatus WHERE id = :id")
+    int updateTransactionDetails(String id, float volume, String milkPrice, String milkTemperature, String transactionStatus);
+
 //    default String generateUniqueTransactionId() {
 //        long lastTransactionId = getLastTransactionId();
 //        @SuppressLint("DefaultLocale") String uniqueTransactionId = "TXN" + String.format("%05d", lastTransactionId + 1);
@@ -35,22 +39,22 @@ public interface TransactionDao {
 //    }
 
 
-    default String generateUniqueTransactionId() {
-        long lastTransactionId = getLastTransactionId();
-        if (lastTransactionId == 0) {
-            lastTransactionId = 1; // Start from 1 if no transactions exist
-        } else {
-            lastTransactionId++; // Increment transaction ID
-        }
-
-        String uniqueTransactionId;
-        do {
-            uniqueTransactionId = "TXN" + String.format("%05d", lastTransactionId);
-            lastTransactionId++; // Increment if duplicate is found
-        } while (getTransactionByUniqueId(uniqueTransactionId) != null);
-
-        return uniqueTransactionId;
-    }
+//    default String generateUniqueTransactionId() {
+//        long lastTransactionId = getLastTransactionId();
+//        if (lastTransactionId == 0) {
+//            lastTransactionId = 1; // Start from 1 if no transactions exist
+//        } else {
+//            lastTransactionId++; // Increment transaction ID
+//        }
+//
+//        String uniqueTransactionId;
+//        do {
+//            uniqueTransactionId = "TXN" + String.format("%05d", lastTransactionId);
+//            lastTransactionId++; // Increment if duplicate is found
+//        } while (getTransactionByUniqueId(uniqueTransactionId) != null);
+//
+//        return uniqueTransactionId;
+//    }
 
 
 

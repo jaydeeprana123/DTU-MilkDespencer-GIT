@@ -19,6 +19,9 @@ public class LottieDialog extends Dialog {
 
     public LottieDialog(@NonNull Context context) {
         super(context);
+
+        setCancelable(false);
+        setCanceledOnTouchOutside(false);
     }
 
     @Override

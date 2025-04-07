@@ -31,6 +31,8 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import com.imdc.milkdespencer.PayWithQrActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adminUi.AdminActivity;
@@ -106,8 +108,6 @@ public class Constants {
     public static final String BASE_URL = "https://portal.idmc.coop:5151/api/";
 
 
-
-
     public static final String GetConfigurationUrl = "SMSConfiguration/GetSMSConfiguration";
 
     public static final String SMSApiUrl = "SMSApiUrl";
@@ -148,8 +148,6 @@ public class Constants {
     private void handlePermissionRevoked() {
         preferencesManager.save(PREF_PERMISSION_GRANTED, false);
     }
-
-
 
 
     public static void showAlertDialog(Context context, String title, String message) {
@@ -203,9 +201,6 @@ public class Constants {
         }
 
 
-
-
-
 //        AlertDialog.Builder builder = new AlertDialog.Builder(context);
 //        builder.setTitle(title).setMessage(message).setPositiveButton("OK", new DialogInterface.OnClickListener() {
 //            @Override
@@ -220,7 +215,8 @@ public class Constants {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         AlertDialog dialog = builder.create();
-
+// Prevent dismissing on outside touch
+        dialog.setCanceledOnTouchOutside(false);
 // Set custom title
         TextView titleView = new TextView(context);
         titleView.setText(title);
@@ -268,11 +264,6 @@ public class Constants {
             negativeButton.setTextSize(26); // Increase button text size
             negativeButton.setPadding(20, 20, 20, 20);
         }
-
-
-
-
-
 
 
 //        AlertDialog.Builder builder = new AlertDialog.Builder(context);
@@ -433,7 +424,7 @@ public class Constants {
             tilMachineId.setEnabled(true);
         } else if (userType == UserTypeEnum.CUSTOMER_ADMIN.value()) {
             tieMachineId.setEnabled(false);
-        }else if(userType == UserTypeEnum.END_USER.value()){
+        } else if (userType == UserTypeEnum.END_USER.value()) {
             tieMachineId.setEnabled(false);
             tilTemperatureOffset.setEnabled(false);
             tilTemperatureSet.setEnabled(false);
@@ -470,7 +461,7 @@ public class Constants {
 
 
                 /// If user type is not equal 1. The add into shared preference
-                if(userType != 1){
+                if (userType != 1) {
                     if (tieMachineId.getText().toString().length() != 15) {
                         Toast.makeText(context, context.getString(R.string.machineId_validation), Toast.LENGTH_SHORT).show();
                         return;
@@ -516,8 +507,8 @@ public class Constants {
     }
 
     /*
-    * if CIP is true = > Show this dialog
-    * */
+     * if CIP is true = > Show this dialog
+     * */
     public static void showCIPRunningDialog(Context context) {
         // Create a layout inflater to inflate the custom dialog layout
         LayoutInflater inflater = LayoutInflater.from(context);
@@ -585,7 +576,7 @@ public class Constants {
 
                         List<User> userLIst = appDatabase.userDao().getAllUsers();
                         Log.e("length of user", String.valueOf(userLIst.size()));
-                        for(int i=0;i<userLIst.size();i++){
+                        for (int i = 0; i < userLIst.size(); i++) {
                             Log.e("email", userLIst.get(i).getUsername());
                             Log.e("email", userLIst.get(i).getPassword());
                         }
@@ -634,7 +625,6 @@ public class Constants {
     public static void showForgotPasswordDialog(Context context, AppDatabase appDatabase) {
 
         preferencesManager = SharedPreferencesManager.getInstance(context);
-
 
 
         final boolean[] isOtpSend = {false};
@@ -732,7 +722,7 @@ public class Constants {
                                         fields.put("type", "OTP");
 
                                         /// Get from shared preference
-                                        fields.put("sender",preferencesManager.get(SMSSender, "IDMCCS").toString());
+                                        fields.put("sender", preferencesManager.get(SMSSender, "IDMCCS").toString());
 
 //                                        fields.put("sender", "IDMCCS");
                                         fields.put("body", otp);
@@ -788,9 +778,9 @@ public class Constants {
                                             }
                                         };
 
-                                    /// Get from shared preference
+                                        /// Get from shared preference
                                         apiManager.makeOTPRequestCall((preferencesManager.get(SMSSid, "https://api.kaleyra.io/v1/").toString())
-                                                +"/messages/", fields, headers, disposableObserver);
+                                                + "/messages/", fields, headers, disposableObserver);
 
 
                                         //  apiManager.makeOTPRequestCall("HXIN1764058706IN/messages/", fields, headers, disposableObserver);
@@ -1038,7 +1028,6 @@ public class Constants {
     }
 
 
-
     public static double calculateMilkAmount(double cost, Context context) {
         preferencesManager = SharedPreferencesManager.getInstance(context);
 
@@ -1115,88 +1104,201 @@ public class Constants {
 
         transaction.setTransactionStatus(transactionStatus);
         transaction.setUpiId(upiId);
-        transaction.setUniqueTransactionId(transactionDao.generateUniqueTransactionId());
 
-        /// Added on 1-1 2025
-        transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
 
-        /// Insert into Sqlite database
-        long transactionId = transactionDao.insert(transaction);
+        try {
+            String uniqueId = generateSafeUniqueTransactionId(transactionDao);
 
-        if(isNetworkAvailable(activity)){
-            doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, activity);
-        }else {
-         //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+            transaction.setUniqueTransactionId(uniqueId);
+
+//        transaction.setUniqueTransactionId(transactionDao.generateUniqueTransactionId());
+
+            /// Added on 1-1 2025
+            transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+
+            /// Insert into Sqlite database
+            long transactionId = transactionDao.insert(transaction);
+
+
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                   Toast.makeText(activity, String.valueOf(transactionId), Toast.LENGTH_SHORT).show();
+                }
+            });
+
+
+            if (transactionId > 0 && isNetworkAvailable(activity)) {
+
+                Executors.newSingleThreadExecutor().execute(() -> {
+                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
+                });
+               // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
+            } else {
+                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+            }
+
+            return transactionId;
+        } catch (Exception e) {
+            Log.e("InsertTransaction", "Failed to insert transaction: " + e.getMessage(), e);
+            return -1;
         }
 
 
-
-        return transactionId;
     }
 
-    public static void doPostTransaction(SharedPreferencesManager preferencesManager,String url, TransactionEntity transaction, Activity activity) {
 
-        Log.e("base Url ", preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString());
-        Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString()) // Replace with your base URL
-                .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
-                .addConverterFactory(GsonConverterFactory.create()).build();
+    public static void updateTransactionAfterVolumeDispense(Activity activity, TransactionDao transactionDao,long transactionId, String transactionStatus, float volume, String milkTemperature) {
+        transactionDao.updateTransactionDetails(
+                String.valueOf(transactionId),           // Unique Transaction ID
+                volume,                 // volume
+                preferencesManager.get(MilkBasePrice, "").toString(),              // milk price
+                milkTemperature ,
+                transactionStatus// milk temperature
+
+        );
+
+    }
+
+
+
+    public static String generateSafeUniqueTransactionId(TransactionDao transactionDao) {
+        long lastId = transactionDao.getLastTransactionId(); // Returns 0 if table is empty
+        long nextId = lastId + 1;
+
+        String uniqueId;
+        int retryCount = 0;
+
+        do {
+            uniqueId = "TXN" + String.format("%05d", nextId);
+            nextId++;
+            retryCount++;
+
+            // Fail-safe to avoid infinite loops
+            if (retryCount > 1000) {
+                throw new RuntimeException("Unable to generate unique transaction ID");
+            }
+
+        } while (transactionDao.getTransactionByUniqueId(uniqueId) != null);
+
+        return uniqueId;
+    }
+
+
+
+
+    public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction) {
+        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
+        Log.e("Base URL", baseUrl);
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .build();
 
         ApiService apiService = retrofit.create(ApiService.class);
-
         ApiManager apiManager = new ApiManager(apiService);
 
-        HashMap<String, String> header = new HashMap<>();
-        MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
         String request = new Gson().toJson(transaction);
-        RequestBody requestBody = RequestBody.create(mediaType, request);
+        Log.e(TAG, "doPostTransaction: " + request);
 
-        Log.e(TAG, "doPostTransaction: " + new Gson().toJson(requestBody));
-        Handler handler = new Handler(Looper.getMainLooper());
-        handler.post(() -> {
-//            ProgressDialog pd = new ProgressDialog(activity);
-//            pd.setTitle("Please Wait...");
-//            pd.setCancelable(false);
-//            pd.show();
-            DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
-                @Override
-                public void onNext(ResponseBody response) {
-//                    pd.dismiss();
-                    if (!response.toString().isEmpty()) {
-                        String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
-                        Log.e(TAG, "onNext: " + json);
-                    }
+        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
+
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+
+        DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
+            @Override
+            public void onNext(ResponseBody response) {
+                try {
+                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
+                    String json = new Gson().toJson(jsonElement);
+                    Log.e(TAG, "onNext: " + json);
+                } catch (Exception e) {
+                    Log.e(TAG, "Response parsing error", e);
                 }
+            }
 
-                @Override
-                public void onError(Throwable e) {
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "onError: ", e);
+                e.printStackTrace();
+            }
 
-                    Log.e(TAG, "onError: " + e);
+            @Override
+            public void onComplete() {
+                // Completion logic if needed
+            }
+        };
 
-                    // Handle the error
-//                    if (pd != null && pd.isShowing()) {
-//                        pd.dismiss();
-//                    }
-                    e.printStackTrace();
-
-                    /// Here I comment because when internet is not available then it will be crash because of this
-//                    activity.runOnUiThread(new Runnable() {
-//                        @Override
-//                        public void run() {
-//                            Utils.handleApiError(activity, e, apiManager);
-//                        }
-//                    });
-                }
-
-                @Override
-                public void onComplete() {
-                    // Handle completion if needed
-                }
-            };
-            apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
-        });
-
-
+        apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
     }
+
+
+//    public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction, Activity activity) {
+//
+//        Log.e("base Url ", preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString());
+//        Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString()) // Replace with your base URL
+//                .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
+//               // .addConverterFactory(GsonConverterFactory.create()).build();
+//
+//        ApiService apiService = retrofit.create(ApiService.class);
+//
+//        ApiManager apiManager = new ApiManager(apiService);
+//
+//        HashMap<String, String> header = new HashMap<>();
+//        MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
+//        String request = new Gson().toJson(transaction);
+//        RequestBody requestBody = RequestBody.create(mediaType, request);
+//
+//        Log.e(TAG, "doPostTransaction: " + new Gson().toJson(requestBody));
+//        Handler handler = new Handler(Looper.getMainLooper());
+//        handler.post(() -> {
+////            ProgressDialog pd = new ProgressDialog(activity);
+////            pd.setTitle("Please Wait...");
+////            pd.setCancelable(false);
+////            pd.show();
+//            DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
+//                @Override
+//                public void onNext(ResponseBody response) {
+////                    pd.dismiss();
+//                    if (!response.toString().isEmpty()) {
+//                        String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
+//                        Log.e(TAG, "onNext: " + json);
+//                    }
+//                }
+//
+//                @Override
+//                public void onError(Throwable e) {
+//
+//                    Log.e(TAG, "onError: " + e);
+//
+//                    // Handle the error
+////                    if (pd != null && pd.isShowing()) {
+////                        pd.dismiss();
+////                    }
+//                    e.printStackTrace();
+//
+//                    /// Here I comment because when internet is not available then it will be crash because of this
+////                    activity.runOnUiThread(new Runnable() {
+////                        @Override
+////                        public void run() {
+////                            Utils.handleApiError(activity, e, apiManager);
+////                        }
+////                    });
+//                }
+//
+//                @Override
+//                public void onComplete() {
+//                    // Handle completion if needed
+//                }
+//            };
+//            apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
+//        });
+//
+//
+//    }
 
 
     /*Here in this getting the configuration data (SMS, Razorpay). We have to save it into shared preference*/
