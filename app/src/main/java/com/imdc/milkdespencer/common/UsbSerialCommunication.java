@@ -109,7 +109,7 @@ public class UsbSerialCommunication {
         // Find the first available USB device
         UsbDevice device = findAnyUsbDevice();
         if (device == null) {
-            Toast.makeText(context, "No USB device found. Please connect the device", Toast.LENGTH_SHORT).show();
+          //  Toast.makeText(context, "No USB device found. Please connect the device", Toast.LENGTH_SHORT).show();
             Log.e(TAG, "No USB device found.");
             return;
         } else {

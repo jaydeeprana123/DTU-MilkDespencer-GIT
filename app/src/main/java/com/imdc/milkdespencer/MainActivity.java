@@ -171,9 +171,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
         private void checkAndRequestUsbPermission() {
+
+            Log.e("USB", "checkAndRequestUsbPermission");
             UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
             if (usbManager == null) {
+
                 Log.e("USB", "USB Manager is not available.");
                 return;
             }
@@ -181,9 +184,13 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
 
             if (deviceList.isEmpty()) {
-                Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
-                return;
+                Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_LONG).show();
+                Log.e("USB", "No USB devices connected..");
+                Log.e(TAG, "run:>> No USB devices connected..");
+                                return;
             }
+
+            Log.e("device list length", String.valueOf(deviceList.size()));
 
             for (UsbDevice device : deviceList.values()) {
                 if (!usbManager.hasPermission(device)) {
@@ -279,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        copyDatabase(this);
+       // copyDatabase(this);
         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true);
 // Initialize Firebase Analytics
         mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);

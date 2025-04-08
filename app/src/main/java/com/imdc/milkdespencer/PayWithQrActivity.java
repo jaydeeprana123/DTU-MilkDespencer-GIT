@@ -29,6 +29,7 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -201,6 +202,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
 
                                 runOnUiThread(() -> {
+
+                                    Toast.makeText(PayWithQrActivity.this,"Transaction id : " + (String.valueOf(transactionId)), Toast.LENGTH_SHORT).show();
+
                                     if (!isMilkVendingStarted) {
                                         isMilkVendingStarted = true;
                                         sendForMilkVending(amt, payment, payCodeId, transaction);
@@ -1055,7 +1059,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 isCommandSent = false;
                 preferencesManager.save(Constants.CurrentTemperature, milkDispense.getCurrentWeight());
 
-                insertDataOnProcessDone(amt, payCodeId, payment, volumeOfMilk, milkTemperature, transaction);
+                updateDataInDatabaseWhenProcessDone(amt, payCodeId, payment, volumeOfMilk, milkTemperature, transaction);
 
 
             }
@@ -1287,8 +1291,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     }
 
-    /// When process is completed. Data will be insert into database
-    void insertDataOnProcessDone(double amt, String payCodeId, Payment payment, float volumeOfMilk, float milkTemperature, TransactionEntity transaction) {
+    /// When process is completed. Data will be updated into database
+    void updateDataInDatabaseWhenProcessDone(double amt, String payCodeId, Payment payment, float volumeOfMilk, float milkTemperature, TransactionEntity transaction) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1296,8 +1300,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 try {
 
                     TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
-
-
                     /// Here I convert volume of milk into string and set 3 digits after dot(.)
                     float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
 
