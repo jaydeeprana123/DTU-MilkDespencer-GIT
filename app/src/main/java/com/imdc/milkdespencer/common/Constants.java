@@ -1123,7 +1123,7 @@ public class Constants {
             activity.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                   Toast.makeText(activity, String.valueOf(transactionId), Toast.LENGTH_SHORT).show();
+                 //  Toast.makeText(activity, String.valueOf(transactionId), Toast.LENGTH_SHORT).show();
                 }
             });
 
