@@ -207,20 +207,27 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             }
 
-            // All permissions granted
-            if (getChargingState && !isUsbPermissionGranted) {
-                isUsbPermissionGranted = true;
-                handlePermissionGranted();
+
+
+            if (allPermissionsGranted) {
+                // All permissions granted
+                if (getChargingState && !isUsbPermissionGranted) {
+                    isUsbPermissionGranted = true;
+                    handlePermissionGranted();
+                }
+
+                // Register the receiver once all permissions are granted
+                registerReceiver(usbPermissionReceiver, filter);
             }
 
-            // Register the receiver once all permissions are granted
-            registerReceiver(usbPermissionReceiver, filter);
+
         }
 
 
         private void showPermissionRequestUI(UsbManager usbManager, UsbDevice device) {
             getUsbShowState = false;
 
+            cv_error.setVisibility(View.VISIBLE);
             updateUIForUsbPermission(
                     "USB permission is not granted",
                     R.raw.no_usb,
@@ -251,7 +258,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         // ✅ Helper to update UI for USB permission states
         private void updateUIForUsbPermission(String message, int animationRes, String btnText, View.OnClickListener clickListener) {
-            cv_error.setVisibility(View.VISIBLE);
+           // cv_error.setVisibility(View.VISIBLE);
             tv_Message.setText(message);
             lvAnimation.setAnimation(animationRes);
             btnStart.setVisibility(View.GONE);
