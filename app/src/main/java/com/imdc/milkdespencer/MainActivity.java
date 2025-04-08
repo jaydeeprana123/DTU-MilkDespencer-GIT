@@ -192,11 +192,19 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             Log.e("device list length", String.valueOf(deviceList.size()));
 
+            boolean allPermissionsGranted = true;
+
             for (UsbDevice device : deviceList.values()) {
-                if (!usbManager.hasPermission(device)) {
-                    showPermissionRequestUI(usbManager, device);
-                    return; // Exit early if permission not granted
+
+                if (device.getVendorId() == 4292 && device.getProductId() == 60000) {
+                    if (!usbManager.hasPermission(device)) {
+                        allPermissionsGranted = false;
+                        showPermissionRequestUI(usbManager, device);
+                        return; // Exit early if permission not granted
+                    }
                 }
+
+
             }
 
             // All permissions granted
