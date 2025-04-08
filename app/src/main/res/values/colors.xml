@@ -68,4 +68,25 @@
     <color name="red">#ff4444</color>
 
 
+    <color name="light_color_0">#FFFDE7</color> <!-- Light Yellow -->
+    <color name="light_color_1">#E1F5FE</color> <!-- Light Blue -->
+    <color name="light_color_2">#F1F8E9</color> <!-- Light Green -->
+    <color name="light_color_3">#FFF3E0</color> <!-- Light Orange -->
+    <color name="light_color_4">#FCE4EC</color> <!-- Light Pink -->
+    <color name="light_color_5">#EDE7F6</color> <!-- Light Purple -->
+    <color name="light_color_6">#E0F2F1</color> <!-- Light Teal -->
+    <color name="light_color_7">#F9FBE7</color> <!-- Light Lime -->
+    <color name="light_color_8">#ECEFF1</color> <!-- Light Gray -->
+
+
+    <color name="bright_0">#FFFDE7</color>  <!-- light yellow -->
+    <color name="bright_1">#E3F2FD</color>  <!-- light blue -->
+    <color name="bright_2">#E8F5E9</color>  <!-- light green -->
+    <color name="bright_3">#FFF3E0</color>  <!-- light orange -->
+    <color name="bright_4">#FCE4EC</color>  <!-- light pink -->
+    <color name="bright_5">#EDE7F6</color>  <!-- light purple -->
+    <color name="bright_6">#E0F2F1</color>  <!-- light teal -->
+    <color name="bright_7">#F9FBE7</color>  <!-- light lime -->
+    <color name="bright_8">#ECEFF1</color>  <!-- light gray -->
+
 </resources>

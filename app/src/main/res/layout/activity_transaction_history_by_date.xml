@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".TransactionHistoryActivity">
+
+    <TextView
+        android:id="@+id/tvTitle"
+        style="@style/TextAppearance.AppCompat.Headline"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/logs_title"
+        android:textStyle="bold"
+        android:layout_marginLeft="@dimen/_12sdp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginTop="@dimen/_4sdp"
+        />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnBackToHome"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/_8ssp"
+        android:gravity="center"
+        android:layout_marginTop="@dimen/_4sdp"
+        android:paddingHorizontal="@dimen/_20sdp"
+        android:text="@string/backToHome"
+        android:drawableLeft="@drawable/ic_home_white"
+        android:textAlignment="center"
+        android:layout_marginRight="@dimen/_12sdp"
+        android:textColor="@color/md_theme_light_onPrimary"
+        app:backgroundTint="@color/md_theme_light_primary"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+         />
+
+
+
+    <TextView
+        android:id="@+id/tvTodayTotalAmount"
+        style="@style/TextAppearance.AppCompat.Headline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Today's Amount = 0"
+        android:textStyle="bold"
+        android:layout_marginLeft="@dimen/_12sdp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnBackToHome"
+        android:layout_marginTop="@dimen/_4sdp"
+        android:visibility="gone"
+        />
+
+
+    <TextView
+        android:id="@+id/tvTodayTotalVolume"
+        style="@style/TextAppearance.AppCompat.Headline"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Volume = 0L"
+        android:textStyle="bold"
+        android:layout_marginLeft="@dimen/_16sdp"
+        app:layout_constraintStart_toEndOf="@id/tvTodayTotalAmount"
+        app:layout_constraintTop_toBottomOf="@id/btnBackToHome"
+        android:layout_marginTop="@dimen/_4sdp"
+        android:visibility="gone"
+        />
+
+
+
+    <LinearLayout
+        android:id="@+id/llDateSelection"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvTodayTotalVolume">
+
+        <!-- From Date -->
+        <EditText
+            android:id="@+id/fromDateEditText"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="From Date"
+            android:focusable="false"
+            android:inputType="none"
+            android:padding="12dp"
+            />
+
+        <!-- To Date -->
+        <EditText
+            android:id="@+id/toDateEditText"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:hint="To Date"
+            android:focusable="false"
+            android:inputType="none"
+            android:padding="12dp"
+            android:layout_marginLeft="12dp"
+            />
+
+        <!-- Submit Button -->
+        <Button
+            android:id="@+id/submitButton"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="Submit"
+            android:layout_marginLeft="16dp"/>
+    </LinearLayout>
+
+
+    <TextView
+        android:id="@+id/tvNoDataAvailable"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:padding="@dimen/_10sdp"
+        android:textSize="@dimen/_16ssp"
+        android:text="@string/no_transaction_available"
+        android:textColor="@color/cardview_dark_background"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:visibility="gone"/>
+
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvTransactions"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:padding="@dimen/_8sdp"
+        android:layout_marginTop="@dimen/_8sdp"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/llDateSelection" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

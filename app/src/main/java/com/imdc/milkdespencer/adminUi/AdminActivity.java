@@ -22,11 +22,11 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.gson.Gson;
 import com.imdc.milkdespencer.MainActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.TransactionHistoryActivity;
+import com.imdc.milkdespencer.TransactionHistoryByDateActivity;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adapter.UserAdapter;
@@ -35,9 +35,9 @@ import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.User;
 
 public class AdminActivity extends AppCompatActivity {
-    private FirebaseAnalytics mFirebaseAnalytics;
+//    private FirebaseAnalytics mFirebaseAnalytics;
      SharedPreferencesManager preferencesManager;
-    Button btnSetConfigurations,btnApiConfiguration,btnCIP, btnCustomerAdmin, btnLogs, btnCalibration,btnCashButtonOnOff, btnAddEndUser;
+    Button btnSetConfigurations,btnApiConfiguration,btnCIP, btnCustomerAdmin, btnLogs, btnCalibration,btnCashButtonOnOff, btnAddEndUser,btnHistoryByDate;
     AppDatabase appDatabase;
     User user;
     private RecyclerView recyclerView;
@@ -47,12 +47,12 @@ public class AdminActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin);
-        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
-        // Log screen view event
-        Bundle bundle = new Bundle();
-        bundle.putString(FirebaseAnalytics.Param.SCREEN_NAME, "Admin_Screen");
-        bundle.putString(FirebaseAnalytics.Param.SCREEN_CLASS, "AdminActivity");
-        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle);
+//        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+//        // Log screen view event
+//        Bundle bundle = new Bundle();
+//        bundle.putString(FirebaseAnalytics.Param.SCREEN_NAME, "Admin_Screen");
+//        bundle.putString(FirebaseAnalytics.Param.SCREEN_CLASS, "AdminActivity");
+//        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle);
 
         doGetConfigurationData(AdminActivity.this);
         preferencesManager = SharedPreferencesManager.getInstance(this);
@@ -87,8 +87,10 @@ public class AdminActivity extends AppCompatActivity {
         btnCustomerAdmin = findViewById(R.id.btnAddUser);
         btnAddEndUser = findViewById(R.id.btnAddEndUser);
         btnLogs = findViewById(R.id.btnLogs);
+        btnHistoryByDate= findViewById(R.id.btnHistoryByDate);
         btnCalibration = findViewById(R.id.btnCalibration);
         btnCashButtonOnOff= findViewById(R.id.btnCashButtonOnOff);
+
 
         if(preferencesManager.get(CashTransactionMode, "0").equals("0")){
             btnCashButtonOnOff.setText(getResources().getString(R.string.btnCashOff));
@@ -105,6 +107,7 @@ public class AdminActivity extends AppCompatActivity {
             btnAddEndUser.setVisibility(View.VISIBLE);
             btnApiConfiguration.setVisibility(View.VISIBLE);
             btnCIP.setVisibility(View.GONE);
+            btnHistoryByDate.setVisibility(View.GONE);
         }else if(user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()){
 
             btnLogs.setText("Show Logs");
@@ -114,12 +117,14 @@ public class AdminActivity extends AppCompatActivity {
             btnAddEndUser.setVisibility(View.VISIBLE);
             btnApiConfiguration.setVisibility(View.GONE);
             btnCIP.setVisibility(View.GONE);
+            btnHistoryByDate.setVisibility(View.GONE);
         }
 
         else if(user.getUserType() == UserTypeEnum.END_USER.value()){
             btnCIP.setVisibility(View.VISIBLE);
             btnSetConfigurations.setText("View Configurations");
             btnLogs.setText("Show Transactions");
+            btnHistoryByDate.setVisibility(View.VISIBLE);
             btnCalibration.setVisibility(View.GONE);
             btnCashButtonOnOff.setVisibility(View.GONE);
             btnCustomerAdmin.setVisibility(View.GONE);
@@ -172,6 +177,17 @@ public class AdminActivity extends AppCompatActivity {
                 Intent intent = new Intent(AdminActivity.this, TransactionHistoryActivity.class);
                 intent.putExtra(Constants.LoginUser, new Gson().toJson(user));
                 startActivity(intent);
+            }
+        });
+
+        btnHistoryByDate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                Intent intent = new Intent(AdminActivity.this, TransactionHistoryByDateActivity.class);
+                intent.putExtra(Constants.LoginUser, new Gson().toJson(user));
+                startActivity(intent);
+
             }
         });
 

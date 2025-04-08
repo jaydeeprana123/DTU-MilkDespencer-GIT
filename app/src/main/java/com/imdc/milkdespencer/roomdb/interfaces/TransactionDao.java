@@ -32,6 +32,9 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET volume = :volume, milkPrice = :milkPrice, milkTemperature = :milkTemperature, transactionStatus = :transactionStatus WHERE id = :id")
     int updateTransactionDetails(String id, float volume, String milkPrice, String milkTemperature, String transactionStatus);
 
+    @Query("SELECT * FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate ORDER BY transactionDate ASC")
+    List<TransactionEntity> getTransactionsBetweenDates(String startDate, String endDate);
+
 //    default String generateUniqueTransactionId() {
 //        long lastTransactionId = getLastTransactionId();
 //        @SuppressLint("DefaultLocale") String uniqueTransactionId = "TXN" + String.format("%05d", lastTransactionId + 1);

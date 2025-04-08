@@ -163,6 +163,7 @@
         android:padding="@dimen/_10sdp"
         android:textSize="@dimen/_16ssp"
         android:text="@string/processing"
+        android:textColor="@color/cardview_dark_background"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"

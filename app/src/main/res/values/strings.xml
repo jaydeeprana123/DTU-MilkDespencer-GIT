@@ -34,6 +34,7 @@
     <string name="btnSetConfiguration">Set Configuration</string>
     <string name="btnAddUser">Register User</string>
     <string name="btnRegisterCustomerAdmin">Register Customer Admin</string>
+    <string name="btnHistoryByDate">Transaction History</string>
     <string name="btnAddEndUser">Register End User</string>
     <string name="btnLogs">Show Transactions</string>
     <string name="btnCalibration">Calibration</string>
@@ -106,6 +107,7 @@
     <string name="next">NEXT</string>
     <string name="start">START</string>
     <string name="processing">PROCESSING...</string>
+    <string name="no_transaction_available">No Transaction Available On These Days</string>
     <string name="send_otp">Send OTP</string>
     <string name="enter_otp">Enter OTP</string>
     <string name="new_password">New Password</string>

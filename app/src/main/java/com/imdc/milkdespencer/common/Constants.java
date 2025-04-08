@@ -1225,6 +1225,11 @@ public class Constants {
         );
 
 
+        transaction.setVolume(volume);
+        transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
+        transaction.setMilkTemperature(milkTemperature);
+        transaction.setTransactionStatus(transactionStatus);
+
         if (transactionId > 0 && isNetworkAvailable(activity)) {
 
             Executors.newSingleThreadExecutor().execute(() -> {
@@ -1449,7 +1454,7 @@ public class Constants {
 
 
     /*Check that internet connection is available or not*/
-    private static boolean isNetworkAvailable(Activity context) {
+    public static boolean isNetworkAvailable(Activity context) {
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager != null ? connectivityManager.getActiveNetworkInfo() : null;

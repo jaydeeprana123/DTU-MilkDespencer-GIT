@@ -8,6 +8,7 @@ import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
 import static com.imdc.milkdespencer.common.Constants.generateSafeUniqueTransactionId;
+import static com.imdc.milkdespencer.common.Constants.isNetworkAvailable;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
@@ -182,13 +183,13 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 transaction.setBankTransactionNo(payCodeId);
                                 transaction.setTransactionDate(date);
                                 transaction.setTransactionTime(time);
-                                transaction.setAmount(amount);
+                                transaction.setAmount(amt);
                                 transaction.setVolume(0);
 
                                 // Set extra fields
                                 transaction.setMilkPrice((preferencesManager.get(MilkBasePrice, "")).toString());
                                 transaction.setMilkTemperature("");
-                                transaction.setTransactionStatus("PAYMENT DONE");
+                                transaction.setTransactionStatus("FAILED");
                                 transaction.setUpiId(qrCodeId);
                                 transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
 
@@ -203,7 +204,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                                 runOnUiThread(() -> {
 
-                                    Toast.makeText(PayWithQrActivity.this,"Transaction id : " + (String.valueOf(transactionId)), Toast.LENGTH_SHORT).show();
+                                    Toast.makeText(PayWithQrActivity.this, "Transaction id : " + (String.valueOf(transactionId)), Toast.LENGTH_SHORT).show();
 
                                     if (!isMilkVendingStarted) {
                                         isMilkVendingStarted = true;
@@ -227,7 +228,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     RetrofitClient retrofitClient;
     RazorpayClient razorpay;
-    LottieDialog lottieDialog;
     GridView gv_CurrencyLiters;
 
     private TextView tvProcessing;
@@ -386,7 +386,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 /// Here it will check that door is open or close
                                 // If door is close then allow to start milking
                                 if (!responseTempStatus.getConnectivity()) {
-                                    executeGenerateQRCodeTask(paymentObject, customerId, machineId);
+
+                                    if (isNetworkAvailable(PayWithQrActivity.this)) {
+                                        executeGenerateQRCodeTask(paymentObject, customerId, machineId);
+                                    } else {
+                                        tvProcessing.setText("Sorry. Internet is not available!");
+                                        btnBackToHome.setVisibility(View.VISIBLE);
+                                      //  Toast.makeText(PayWithQrActivity.this, "Sorry Network is not available", Toast.LENGTH_SHORT).show();
+                                    }
+
+
                                 } else {
                                     // If door is open then close the cash machine and send to the home page
                                     goToHomeScreen();
@@ -445,7 +454,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 /// Here it will check that door is open or close
                                 // If door is close then allow to start milking
                                 if (!responseTempStatus.getConnectivity()) {
-                                    executeGenerateQRCodeTask(paymentObject, customerId, machineId);
+
+
+                                    if (isNetworkAvailable(PayWithQrActivity.this)) {
+                                        executeGenerateQRCodeTask(paymentObject, customerId, machineId);
+                                    } else {
+
+                                        tvProcessing.setText("Sorry. Internet is not available!");
+                                        btnBackToHome.setVisibility(View.VISIBLE);
+                                     //   Toast.makeText(PayWithQrActivity.this, "Sorry Network is not available", Toast.LENGTH_SHORT).show();
+                                    }
                                 } else {
                                     // If door is open then close the cash machine and send to the home page
                                     goToHomeScreen();
@@ -1011,6 +1029,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         if (!isFinishing() && !isDestroyed() && lottieDialog != null && lottieDialog.isShowing()) {
             lottieDialog.dismiss();
 
+
+            tvProcessing.setText("Time Out..");
+
             new Thread(() -> {
                 try {
                     TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
@@ -1018,7 +1039,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                     Log.e("Time is out", "After 5 minutes");
 
-                    runOnUiThread(this::goToHomeScreen);
+                    // Go back to home on UI thread if still alive
+                    if (!isFinishing() && !isDestroyed()) {
+                        runOnUiThread(this::goToHomeScreen);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -1059,14 +1083,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 isCommandSent = false;
                 preferencesManager.save(Constants.CurrentTemperature, milkDispense.getCurrentWeight());
 
+                tvProcessing.setText("Thank You..");
+
                 updateDataInDatabaseWhenProcessDone(amt, payCodeId, payment, volumeOfMilk, milkTemperature, transaction);
 
 
             }
         }
     }
-
-
 
 
     /**
@@ -1122,7 +1146,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
-
     /**
      * If payment is done and electricity is lost after inserting the transaction,
      * show a failure dialog and update the transaction accordingly.
@@ -1164,7 +1187,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             }
         }).start();
     }
-
 
 
     /// If milk is send to the customer. Show process done dialog
