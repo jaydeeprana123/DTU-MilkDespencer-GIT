@@ -466,7 +466,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     Alert Dialog of Electricity*/
     private void initializeDependencies() {
         preferencesManager = SharedPreferencesManager.getInstance(this);
-        usbSerialCommunication = new UsbSerialCommunication(this);
+        usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
 
         appDatabase = AppDatabase.getInstance(this);
         alertDialog = new AlertDialog.Builder(this)
@@ -486,6 +486,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         ivAgitator = findViewById(R.id.ivAgitator);
 
         btnCrash =  findViewById(R.id.btnCrash);
+
         btnCrash.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
                 throw new RuntimeException("Hello Crash"); // Force a crash

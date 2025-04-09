@@ -142,7 +142,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     /**********   USB functions   ******************************************/
 
 //    private static UsbSerialManager usbSerialManager;
-    private static UsbSerialCommunication usbSerialCommunication;
+    private UsbSerialCommunication usbSerialCommunication;
 
 
     private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {

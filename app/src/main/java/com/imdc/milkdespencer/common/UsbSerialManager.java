@@ -7,6 +7,8 @@ public class UsbSerialManager {
     private static UsbSerialManager instance;
     private final UsbSerialCommunication usbSerialCommunication;
 
+
+
     private UsbSerialManager(Context context) {
         usbSerialCommunication = new UsbSerialCommunication(context);
     }
