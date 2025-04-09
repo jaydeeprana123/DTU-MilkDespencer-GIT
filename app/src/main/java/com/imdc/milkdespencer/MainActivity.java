@@ -54,12 +54,13 @@ import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.User;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener {
 
-//    private FirebaseAnalytics mFirebaseAnalytics;
+    //    private FirebaseAnalytics mFirebaseAnalytics;
     private boolean inMilkDispenseProcessLevel = false;
 
     private boolean isUsbPermissionGranted = false; // Flag for USB permission
@@ -112,20 +113,21 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             if (permissionGranted) {
                 if (usbDevice != null) {
-                  // Set flag to true
+                    // Set flag to true
                     usbSerialCommunication.openConnection(usbDevice);
                 } else {
-                    Log.e(TAG, "USB device is null.");
+                    logError(TAG, "USB device is null.");
                 }
             } else {
-                Log.e(TAG, "USB permission denied.");
+                logError(TAG, "USB permission denied.");
             }
 
             if (context != null) {
                 try {
                     context.unregisterReceiver(this);
                 } catch (IllegalArgumentException e) {
-                    Log.e(TAG, "Receiver already unregistered: " + e.getMessage());
+                    logError(TAG, "Receiver already unregistered: " + e.getMessage());
+
                 }
             }
         }
@@ -142,7 +144,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     /*
-    * Battery Charging Broad Cast Receiver*/
+     * Battery Charging Broad Cast Receiver*/
     private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -150,25 +152,23 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
             boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
-            Log.e("Battery Status", "Charging: " + isCharging);
-
+            logError(TAG, "Battery Status " +" Charging: " + isCharging);
             if (isCharging) {
 
-                if(!getChargingState){
+                if (!getChargingState) {
                     getChargingState = true;
 
                 }
                 checkAndRequestUsbPermission();
-                if(isDischargeState){
+                if (isDischargeState) {
                     isDischargeState = false;
                 }
-
 
 
             } else {
 
                 /// Here only once save log as a lost electricity
-                if (!isDischargeState){
+                if (!isDischargeState) {
                     isDischargeState = true;
                     Constants.saveLogs(MainActivity.this, "Lost Electricity");
                 }
@@ -183,61 +183,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         }
 
 
-        /*
-        * If Battery is in Charging Or Fully Charged State*/
-//        private void handleChargingState() {
-//            Log.e("Battery Status", "Device is charging.");
-//
-//            handler.postDelayed(() -> {
-//
-//                /// If Usb Serial Communication is connected
-//                if (usbSerialCommunication.connected) {
-//                    /// Charging is not available screen will be hide
-//                    getUsbShowState = true;
-//                    if(!isLowMilkLevel && getChargingState){
-//                        cv_error.setVisibility(View.GONE);
-//                        btnStart.setVisibility(View.VISIBLE);
-//                    }
-//
-//
-//                    /// Here if usb serial connected,
-//                    // then PAY WITH CASH = Enable && PAY WITH UPI = Enable
-//                    btnPayWithCash.setEnabled(true);
-//                    btnPayWithQr.setEnabled(true);
-//
-//                    Log.e("USB Communication", "Connected while charging.");
-//
-//                    /// If Pay With Cash and Pay With QR Button is Not Visible
-//                    if (cvPayWithQr.getVisibility() == View.GONE) {
-//                        updateUIForChargingState();
-//                    }else if(llCash.getVisibility() == View.VISIBLE && llQr.getVisibility() == View.VISIBLE){
-//
-//                        Log.e("btnStart", "Gone");
-//                        /// If Pay With Cash and Pay With QR Button is Visible, Start Button should be gone
-//                        btnStart.setVisibility(View.GONE);
-//                    }
-//                } else {
-//                    tv_Message.setText("No USB connection. please try after some time.");
-//                    btnDone.setText("Connect");
-//                    btnDone.setVisibility(View.VISIBLE);
-//                    btnDone.setOnClickListener(v -> {
-//                        usbSerialCommunication.connect();
-//                        usbSerialCommunication.setBaudRate(115200);
-//                    });
-//
-//
-//
-//                    Log.e("USB Communication", "Disconnected while charging.");
-//                }
-//            }, DELAY_TIME_MILLIS);
-//        }
-
 
         private void checkAndRequestUsbPermission() {
             UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
 
             if (usbManager == null) {
-                Log.e("USB", "USB Manager is not available.");
+                logError(TAG, "USB Manager is not available.");
                 return;
             }
 
@@ -249,35 +200,35 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 return;
             }
 
-            boolean permissionGrantedForTargetDevice  = false;
+
+            boolean permissionGrantedForTargetDevice = true;
+
 
             for (UsbDevice device : deviceList.values()) {
+                if (!usbManager.hasPermission(device)) {
 
-                if (device.getVendorId() == 4292 && device.getProductId() == 60000) {
-                    // Stop checking further as one permission is not granted
-                    if (usbManager.hasPermission(device)) {
-                        permissionGrantedForTargetDevice  = true;
-                        Log.e(TAG, "run:>> ! permission GRANTED");
-                    }else{
-
-                        Log.e(TAG, "run:>> ! permission NOT GRANTED");
-
-                        permissionGrantedForTargetDevice  = false;
-                        showPermissionRequestUI(usbManager, device);
+                    // Register receiver before requesting permission
+                    IntentFilter filter = new IntentFilter("com.imdc.milkdespencer.USB_PERMISSION");
+                    try {
+                        registerReceiver(usbPermissionReceiver, filter);
+                    } catch (IllegalArgumentException e) {
+                        Log.w("USB", "Receiver was already registered.");
                     }
-                    break;
-                }
 
+
+                    permissionGrantedForTargetDevice = false;
+                    showPermissionRequestUI(usbManager, device);
+                    break; // Stop checking further as one permission is not granted
+                }
             }
+
 
             if (permissionGrantedForTargetDevice) {
 
-                if(getChargingState && !isUsbPermissionGranted){
+                if (getChargingState && !isUsbPermissionGranted) {
                     isUsbPermissionGranted = true;
                     handlePermissionGranted();
                 }
-
-                registerReceiver(usbPermissionReceiver, filter);
             }
         }
 
@@ -301,14 +252,13 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         }
 
         private void handlePermissionGranted() {
-            Log.e(TAG, "run:>> ! handlePermissionGranted: Please wait");
+            logError(TAG, "run:>> ! handlePermissionGranted: Please wait");
             tv_Message.setText("Please wait...");
             btnDone.setVisibility(View.GONE);
             lvAnimation.setAnimation(R.raw.please_wait);
-            Log.e(TAG, "\"run:>> ! Permission is granted for all devices.");
-         //   handleChargingState();
+            logError(TAG, "run:>> ! Permission is granted for all devices.");
+            //   handleChargingState();
         }
-
 
 
 //        private void checkAndRequestUsbPermission() {
@@ -370,20 +320,17 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 //        }
 
 
-
-
-
         /*
          * If Battery is not in Charging State*/
         private void handleNotChargingState() {
-            Log.e("Battery Status", "Device is not charging.");
+            logError(TAG + "Battery Status", "Device is not charging.");
 
             runOnUiThread(() -> {
                 updateUIForNotChargingState();
 
                 if (cv_error.getVisibility() != View.VISIBLE) {
 
-                    Log.e("visiblity Visible","cv_error");
+                    logError(TAG + "visiblity Visible", "cv_error");
 
                     cv_error.setVisibility(View.VISIBLE);
                     btnDone.setVisibility(View.GONE);
@@ -417,7 +364,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
         /*
-        * Buttons visibility should be gone when not in charging*/
+         * Buttons visibility should be gone when not in charging*/
         private void updateUIForNotChargingState() {
 //            llCash.setVisibility(View.GONE);
 //            llQr.setVisibility(View.GONE);
@@ -431,10 +378,13 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 //        copyDatabase(this);
+
+        clearAllCache(getApplicationContext());
+
         FirebaseApp.initializeApp(this);
         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true);
 // Initialize Firebase Analytics
-     //   mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
+        //   mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
         keepScreenOn();
         hideSystemUI();
@@ -485,7 +435,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         btnDone = findViewById(R.id.btnDone);
         ivAgitator = findViewById(R.id.ivAgitator);
 
-        btnCrash =  findViewById(R.id.btnCrash);
+        btnCrash = findViewById(R.id.btnCrash);
 
         btnCrash.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
@@ -493,7 +443,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             }
         });
-
 
 
         ivCompressor = findViewById(R.id.ivCompressor);
@@ -509,7 +458,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         cvPayWithCash = findViewById(R.id.cvPayWithCash);
         cvPayWithQr = findViewById(R.id.cvPayWithQR);
 
-        tvProcessing= findViewById(R.id.tvProcessing);
+        tvProcessing = findViewById(R.id.tvProcessing);
 
         setupInitialVisibility();
         cv_error.bringToFront();
@@ -521,7 +470,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         cvPayWithQr.setVisibility(View.GONE);
         cvPayWithCash.setVisibility(View.GONE);
         cv_error.setVisibility(View.GONE);
-        Log.e("visiblity Gone","cv_error");
+        logError(TAG + "visiblity Gone", "cv_error");
         lvStatus.setVisibility(View.VISIBLE);
     }
 
@@ -561,7 +510,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         submitBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.e(TAG, "run:>> next button click");
+                logError(TAG , "run:>> next button click");
 
                 handleDialogSubmit(dialog, submitBtn);
             }
@@ -582,16 +531,16 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
 
-            Log.e(TAG, "run:>> responseTempStatus" +  preferencesManager.get(Constants.ResponseTempStatus, "").toString());
+            logError(TAG , "run:>> responseTempStatus" + preferencesManager.get(Constants.ResponseTempStatus, "").toString());
 
             if (responseTempStatus.getConnectivity() != null) {
                 if (!responseTempStatus.getConnectivity()) {
 
-                    Log.e(TAG, "run:>>" +  (responseTempStatus.getConnectivity().toString()));
+                    logError(TAG , "run:>>" + (responseTempStatus.getConnectivity().toString()));
 
                     submitBtn.setText(getString(R.string.start));
                     dialog.dismiss();
-                    Log.e(TAG, "run:>> handleDialogSubmit: ");
+                    logError(TAG, "run:>> handleDialogSubmit: ");
                     /// Here  user start the process of dispense. So start button will be gone
                     inMilkDispenseProcessLevel = true;
                     btnStart.setVisibility(View.GONE);
@@ -611,19 +560,19 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         if (usbSerialCommunication.connected) {
 
-            Log.e(TAG, "run:>> usbSerialCommunication is connected: ");
+            logError(TAG, "run:>> usbSerialCommunication is connected: ");
             cvPayWithQr.setVisibility(View.VISIBLE);
 //            llCash.setVisibility(View.VISIBLE);
 //            llQr.setVisibility(View.VISIBLE);
             tvProcessing.setVisibility(View.GONE);
 
-            if((preferencesManager.get(CashTransactionMode, "0")).toString().equals("0")){
+            if ((preferencesManager.get(CashTransactionMode, "0")).toString().equals("0")) {
 
-                Log.e(TAG, "run:>> usbSerialCommunication ahi nai aayo: ");
+                logError(TAG, "run:>> usbSerialCommunication ahi nai aayo: ");
 
                 cvPayWithCash.setVisibility(View.VISIBLE);
-            }else {
-                Log.e(TAG, "run:>> usbSerialCommunication ahi GONE chhee: ");
+            } else {
+                logError(TAG, "run:>> usbSerialCommunication ahi GONE chhee: ");
                 cvPayWithCash.setVisibility(View.GONE);
             }
 
@@ -644,9 +593,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             handlerProcessScreen.postDelayed(runnableProcessScreen, 30 * 1000); // 30 minutes
 
 
-
-        }else{
-            Log.e(TAG, "run:>> usbSerialCommunication not connected: ");
+        } else {
+            logError(TAG, "run:>> usbSerialCommunication not connected: ");
             /// iF USB connection failed... Start button will be visible again
             btnStart.setVisibility(View.VISIBLE);
             tvProcessing.setVisibility(View.GONE);
@@ -708,7 +656,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             Bundle bundle = new Bundle();
             bundle.putString("login_dialog", "open");
-          //  mFirebaseAnalytics.logEvent("login_event", bundle);
+            //  mFirebaseAnalytics.logEvent("login_event", bundle);
 
             // Handle edit action
             Constants.showLoginDialog(MainActivity.this, appDatabase);
@@ -726,7 +674,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         tvProcessing.setVisibility(View.GONE);
         hideSystemUI();
         registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
-        registerReceiver(usbPermissionReceiver, filter);
+//        registerReceiver(usbPermissionReceiver, filter);
 //        registerReceiver(usbPermissionReceiver, filter);
 
 //        sendInitialData();
@@ -741,8 +689,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             handlerProcessScreen.removeCallbacks(runnableProcessScreen);
         }
 
-
-
 //        unregisterReceiver(batteryReceiver);
 
     }
@@ -750,14 +696,22 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     @Override
     protected void onResume() {
         super.onResume();
-//        registerReceiver(usbPermissionReceiver, filter);
 
-        usbSerialCommunication.connect();
-        usbSerialCommunication.setBaudRate(115200);
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
 
+        for (UsbDevice device : deviceList.values()) {
+            if (device.getVendorId() == 4292 && device.getProductId() == 60000) {
+                if (usbManager.hasPermission(device)) {
 
+                    /// Here if usb permission is given that time
+                    // usbSerialCommunication connect and then open the device
+                    usbSerialCommunication.connect();
+                    usbSerialCommunication.setBaudRate(115200);
+                }
+            }
+        }
 
-//        sendInitialData();
 
     }
 
@@ -783,20 +737,20 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         try {
             if (usbPermissionReceiver != null) {
 
-                Log.e(TAG, "run:>> ! USB permission unregister");
+                logError(TAG, "run:>> ! USB permission unregister");
                 unregisterReceiver(usbPermissionReceiver);
             }
         } catch (IllegalArgumentException e) {
-            Log.e(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
+            logError(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
         }
 
         try {
             if (batteryReceiver != null) {
-                Log.e("unregisterReceiver", "batteryReceiver");
+                logError("unregisterReceiver", "batteryReceiver");
                 unregisterReceiver(batteryReceiver);
             }
         } catch (IllegalArgumentException e) {
-            Log.e(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
+            logError(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
         }
 
 
@@ -807,14 +761,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     }
 
 
-
-
     @Override
     public void onReadData(String data) {
         getUsbShowState = true;
 
         if (data == null || !data.contains("lowlevel")) {
-            Log.e(TAG, "run:>> onReadData: data is null or does not contain 'lowlevel'");
+            logError(TAG, "run:>> onReadData: data is null or does not contain 'lowlevel'");
             return;
         }
 
@@ -822,20 +774,20 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         try {
             responseTempStatus = new Gson().fromJson(data, ResponseTempStatus.class);
         } catch (Exception e) {
-            Log.e(TAG, "Error parsing responseTempStatus", e);
+            logError(TAG, "Error parsing responseTempStatus " +  e);
             return;
         }
 
         if (responseTempStatus == null) {
-            Log.e(TAG, "responseTempStatus is null after parsing");
+            logError(TAG, "responseTempStatus is null after parsing");
             return;
         }
 
         isShowError = true;
 
-        Log.e(TAG, "run: ==> onReadData: " + new Gson().toJson(responseTempStatus));
-        Log.e(TAG, "run: ==> getChargingState: " + getChargingState);
-        Log.e(TAG, "run: ==> isUsbPermissionGranted: " + isUsbPermissionGranted);
+        logError(TAG, "run: ==> onReadData: " + new Gson().toJson(responseTempStatus));
+        logError(TAG, "run: ==> getChargingState: " + getChargingState);
+        logError(TAG, "run: ==> isUsbPermissionGranted: " + isUsbPermissionGranted);
 
         runOnUiThread(() -> {
             updateTemperatureAndPrice(responseTempStatus);
@@ -849,14 +801,14 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                     handleNormalLevel();
                 }
             } else if (!getChargingState) {
-                Log.e(TAG, "Device is not charging");
+                logError(TAG, "Device is not charging");
                 cv_error.setVisibility(View.VISIBLE);
                 btnStart.setVisibility(View.GONE);
                 btnDone.setVisibility(View.GONE);
                 tv_Message.setText("No Electricity, please try after some time.");
                 lvAnimation.setAnimation(R.raw.no_electricity);
             } else if (!isUsbPermissionGranted) {
-                Log.e(TAG, "USB permission not granted");
+                logError(TAG, "USB permission not granted");
                 cv_error.setVisibility(View.VISIBLE);
                 btnStart.setVisibility(View.GONE);
                 btnDone.setVisibility(View.VISIBLE);
@@ -867,7 +819,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             // Optional: if you want to handle "please wait" scenario
 //        else if (!getUsbShowState && isUsbPermissionGranted) {
-//            Log.e(TAG, "Please wait..");
+//            logError(TAG, "Please wait..");
 //            cv_error.setVisibility(View.VISIBLE);
 //            btnDone.setVisibility(View.GONE);
 //            tv_Message.setText("Please wait..");
@@ -897,11 +849,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     /*If Level is low then
-    * Low Milk level Screen Will be Visible */
+     * Low Milk level Screen Will be Visible */
     private void handleLowLevel() {
 
         isLowMilkLevel = true;
-        Log.e(TAG, "low level");
+        logError(TAG, "low level");
         cv_error.setVisibility(View.VISIBLE);
         btnDone.setVisibility(View.GONE);
         btnStart.setVisibility(View.GONE);
@@ -922,10 +874,10 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         btnPayWithQr.setVisibility(View.VISIBLE);
         btnDone.setVisibility(View.GONE);
 
-        Log.e(TAG, "run: ==> Normal level");
+        logError(TAG, "run: ==> Normal level");
 
         if (cvPayWithQr.getVisibility() == View.GONE) {
-            Log.e(TAG, "run: ==> cvPayWithQr is GONE");
+            logError(TAG, "run: ==> cvPayWithQr is GONE");
 
             // Reset UI to initial state when QR section is hidden
             btnStart.setVisibility(View.VISIBLE);
@@ -935,13 +887,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             cvPayWithCash.setVisibility(View.GONE);
 
         } else if (cvPayWithQr.getVisibility() == View.VISIBLE) {
-            Log.e(TAG, "run: ==> cvPayWithQr is VISIBLE");
+            logError(TAG, "run: ==> cvPayWithQr is VISIBLE");
 
             // If QR section is visible, don't show Start button again
             btnStart.setVisibility(View.GONE);
         }
     }
-
 
 
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
@@ -993,7 +944,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             // Retrieve the data from the intent
 
 
-            Log.e("Here I come", "in Main Activity");
+            logError(TAG + " Here I come", "in Main Activity");
             btnStart.setVisibility(View.VISIBLE);
 //            llCash.setVisibility(View.GONE);
 //            llQr.setVisibility(View.GONE);
@@ -1015,7 +966,43 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     }
 
 
+    private void logError(String tag, String message){
+        Log.e(tag, message);
+    }
+
+
+    public void clearAllCache(Context context) {
+        deleteDir(context.getCacheDir()); // Internal cache
+        if (context.getExternalCacheDir() != null) {
+            deleteDir(context.getExternalCacheDir()); // External cache
+        }
+    }
 
 
 
+    public void clearAppCache(Context context) {
+        try {
+            File cacheDir = context.getCacheDir();
+            deleteDir(cacheDir);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean deleteDir(File dir) {
+        if (dir != null && dir.isDirectory()) {
+            String[] children = dir.list();
+            for (String child : children) {
+                boolean success = deleteDir(new File(dir, child));
+                if (!success) {
+                    return false;
+                }
+            }
+            return dir.delete();
+        } else if (dir != null && dir.isFile()) {
+            return dir.delete();
+        } else {
+            return false;
+        }
+    }
 }

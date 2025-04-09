@@ -56,6 +56,8 @@ public class UsbSerialCommunication {
 
     public static boolean isCipOn = false;
 
+    private boolean isUsbReceiverRegistered = false;
+
 
     public UsbSerialCommunication(Context context) {
         this.context = context;
@@ -94,15 +96,16 @@ public class UsbSerialCommunication {
             usbConnection.releaseInterface(usbInterface);
             usbConnection.close();
             openConnection(usbDevice);
+
         }
     }
 
     public void connect() {
 
-        Log.e("connect ", "method");
+        logError("connect ", "method");
 
         if (usbManager == null) {
-            Log.e(TAG, "UsbManager is null. Make sure USB is supported on this device.");
+            logError(TAG, "UsbManager is null. Make sure USB is supported on this device.");
             return;
         }
 
@@ -110,7 +113,7 @@ public class UsbSerialCommunication {
         UsbDevice device = findAnyUsbDevice();
         if (device == null) {
           //  Toast.makeText(context, "No USB device found. Please connect the device", Toast.LENGTH_SHORT).show();
-            Log.e(TAG, "No USB device found.");
+            logError(TAG, "No USB device found.");
             return;
         } else {
             Log.d(TAG, "Connected: " + device.getProductId() + " <---> " + device.getVendorId() + "\n " + device);
@@ -141,7 +144,7 @@ public class UsbSerialCommunication {
 //            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
 //            if (preferencesManager.hasValue(Constants.ResponseTempStatus)) {
 //                String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, null));
-//                Log.e(TAG, "connect: " + temperatureResponse);
+//                logError(TAG, "connect: " + temperatureResponse);
 //                if (!temperatureResponse.isEmpty()) {
 //                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
 //                    ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
@@ -166,17 +169,17 @@ public class UsbSerialCommunication {
         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
         for (UsbDevice device : usbDevices.values()) {
             if (device.getVendorId() == 4292 && device.getProductId() == 60000) {
-                Log.e(TAG, "findAnyUsbDevice: CONDI " + device);
+                logError(TAG, "findAnyUsbDevice: CONDI " + device);
                 return device;
             }
         }
 
         /*if (deviceIterator.hasNext()) {
             UsbDevice device = deviceIterator.next();
-            Log.e(TAG, "findAnyUsbDevice: CONDI " + device);
-            Log.e(TAG, usbDevices.values() + " <deviceIteratorSIZE ---- usbDevicesSIZE > " + usbDevices.size());
+            logError(TAG, "findAnyUsbDevice: CONDI " + device);
+            logError(TAG, usbDevices.values() + " <deviceIteratorSIZE ---- usbDevicesSIZE > " + usbDevices.size());
             if (device.getVendorId() == 4292 && device.getProductId() == 60000) {
-                Log.e(TAG, "findAnyUsbDevice: CONDI " + device);
+                logError(TAG, "findAnyUsbDevice: CONDI " + device);
                 return device;
             }
         }*/
@@ -214,16 +217,19 @@ public class UsbSerialCommunication {
         inEndpoint = usbInterface.getEndpoint(0);
         outEndpoint = usbInterface.getEndpoint(1);
 
+        logError(TAG + "getVendorId", String.valueOf(device.getVendorId()));
+        logError(TAG + "getProductId", String.valueOf(device.getProductId()));
+
         usbConnection = usbManager.openDevice(device);
 
-        Log.e("openConnection", "method");
+        logError("openConnection", "method");
 
         if (usbConnection != null) {
 
-            Log.e("usbConnection", "not null");
+            logError("usbConnection", "not null");
 
             if (usbConnection.claimInterface(usbInterface, true)) {
-                Log.e("usbConnection", " claimInterface");
+                logError("usbConnection", " claimInterface");
                 setBaudRateInternal();
                 connected = true;
                 checkAndStartReadingData();
@@ -232,7 +238,7 @@ public class UsbSerialCommunication {
                 if (!temperatureResponse.isEmpty()) {
 
 
-                    Log.e("temperatureResponse ", "not empty");
+                    logError("temperatureResponse ", "not empty");
 
                     float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
                     ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
@@ -241,21 +247,21 @@ public class UsbSerialCommunication {
                     fireOnStart(currentTemperature);
                 } else {
 
-                    Log.e("temperatureResponse ", "empty");
+                    logError("temperatureResponse ", "empty");
                     fireOnStart(0);
 
                 }
 //                fireOnStart(0);
             } else {
-                Log.e("usbConnection", "Failed claimInterface");
+                logError("usbConnection", "Failed claimInterface");
 
-                Log.e(TAG, "Failed to claim interface.");
+                logError(TAG, "Failed to claim interface.");
                 disconnect();
             }
         } else {
 
-            Log.e("Failed to open", " USB connection.");
-            Log.e(TAG, "Failed to open USB connection.");
+            logError("Failed to open", " USB connection.");
+            logError(TAG, "Failed to open USB connection.");
             requestPermission(device);
         }
     }
@@ -303,7 +309,7 @@ public class UsbSerialCommunication {
         int index = 0; // Zero-based endpoint number
 
         int result = usbConnection.controlTransfer(requestType, request, value, index, data, data.length, 5000);
-        Log.e("TAG", "setBaudRate: " + (result >= 0));
+        logError("TAG", "setBaudRate: " + (result >= 0));
     }
 
     private void startReadingData() {
@@ -342,7 +348,7 @@ public class UsbSerialCommunication {
                                 }
                             }
                             if (!completeData.matches("^[A-Za-z].*")) {
-//                                Log.e(TAG, inEndpoint.getMaxPacketSize() + " run:>><< completeData: receivedData " + completeData);
+//                                logError(TAG, inEndpoint.getMaxPacketSize() + " run:>><< completeData: receivedData " + completeData);
 //                                Log.i(TAG, "run: ==> BOOL " + " CR " + (currencyReceived && !completeData.contains("currentweight") && !completeData.contains("status") && !completeData.contains("setweight")) + " <^^> " + new Gson().toJson(sendToDevice));
 
                                 if (currencyReceived && !completeData.contains("currentweight") && !completeData.contains("status") && !completeData.contains("setweight")) {
@@ -374,7 +380,7 @@ public class UsbSerialCommunication {
 
                                     /// If status is true cip should be false and dialog will be close
                                     if (milkDispense.getStatus() && isCipOn) {
-                                        Log.e("Status is truueeeee", milkDispense.getStatus().toString());
+                                        logError("Status is truueeeee", milkDispense.getStatus().toString());
 
                                         Constants.saveLogs(context, "CIP Done");
 
@@ -386,7 +392,7 @@ public class UsbSerialCommunication {
 
                                     } else {
 
-                                        Log.e("Status is false", milkDispense.getStatus().toString());
+                                        logError("Status is false", milkDispense.getStatus().toString());
                                     }
 
                                     ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
@@ -410,7 +416,7 @@ public class UsbSerialCommunication {
 //                            Log.i(TAG, "run:ELSE  receivedData " + receivedData);
                             if (icCalibResponse) {
                                 if (readDataListener != null) {
-//                                    Log.e(TAG, "run:>><< Calibration RESP " + receivedData);
+//                                    logError(TAG, "run:>><< Calibration RESP " + receivedData);
                                     readDataListener.onReadData(receivedData);
                                     fromCalibration = false;
                                 }
@@ -439,7 +445,7 @@ public class UsbSerialCommunication {
 
 
     public void checkAndStartReadingData() {
-        Log.e(TAG, "checkAndStartReadingData: " + readingDataThreadRunning);
+        logError(TAG, "checkAndStartReadingData: " + readingDataThreadRunning);
         startReadingData();
     }
 
@@ -453,11 +459,11 @@ public class UsbSerialCommunication {
         if (connected) {
             byte[] buffer = data.getBytes();
             int bytesSent = usbConnection.bulkTransfer(outEndpoint, buffer, buffer.length, 0);
-//            Log.e(TAG, "run:>><< sendData: " + data);
-            Log.e(TAG, "run: ==> sendData: " + data);
+//            logError(TAG, "run:>><< sendData: " + data);
+            logError(TAG, "run: ==> sendData: " + data);
 
             if (bytesSent < 0) {
-                Log.e(TAG, "Error sending data." + data);
+                logError(TAG, "Error sending data." + data);
             }
 
             sendToDevice = new Gson().fromJson(data, SendToDevice.class);
@@ -481,7 +487,7 @@ public class UsbSerialCommunication {
     public void disconnect() {
         connected = false;
         unregisterPermissionReceiver();
-        Log.e(TAG, "disconnect run: >>> " + connected);
+        logError(TAG, "disconnect run: >>> " + connected);
 //        Toast.makeText(context, "Disconnected!!!", Toast.LENGTH_SHORT).show();
         if (usbConnection != null) {
             usbConnection.releaseInterface(usbInterface);
@@ -516,16 +522,30 @@ public class UsbSerialCommunication {
                     boolean permissionGranted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
 
                     if (permissionGranted && usbDevice != null) {
+                       /// Here I check that if milk vending device is found, then only open a connection
+
+                        logError(TAG, " permissionGranted usbDevice not null");
+
                         openConnection(usbDevice);
                     } else {
-                        Log.e(TAG, "USB permission denied.");
+                        logError(TAG, "USB permission denied.");
                     }
 
-                    context.unregisterReceiver(this);
+                    // Safe un registration without using a flag
+                    try {
+                        context.unregisterReceiver(this);
+                    } catch (IllegalArgumentException e) {
+                        Log.w(TAG, "Receiver already unregistered or not registered", e);
+                    }
                 }
             }
         }
     };
 
+
+
+    private void logError(String tag, String message){
+        Log.e(tag, message);
+    }
 
 }

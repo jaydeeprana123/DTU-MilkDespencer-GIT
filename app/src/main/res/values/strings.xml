@@ -34,7 +34,7 @@
     <string name="btnSetConfiguration">Set Configuration</string>
     <string name="btnAddUser">Register User</string>
     <string name="btnRegisterCustomerAdmin">Register Customer Admin</string>
-    <string name="btnHistoryByDate">Transaction History</string>
+    <string name="btnHistoryByDate">Transaction Summary</string>
     <string name="btnAddEndUser">Register End User</string>
     <string name="btnLogs">Show Transactions</string>
     <string name="btnCalibration">Calibration</string>
@@ -71,7 +71,7 @@
 
     <string name="login_title">Login</string>
     <string name="beaker_title">Follow the Steps</string>
-    <string name="transaction_title">Transaction History</string>
+    <string name="transaction_title">Transaction Summary</string>
     <string name="logs_title">Logs</string>
 
     <string name="calibration_title">Login</string>

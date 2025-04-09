@@ -77,9 +77,9 @@ public class TransactionHistoryActivity1 extends AppCompatActivity {
                     rvTransactions.setAdapter(logsAdapter);
                 } else {
                     if (getActionBar() != null) {
-                        getActionBar().setTitle("Transaction History");
+                        getActionBar().setTitle("Transaction Summary");
                     }
-                    tvTitle.setText("Transaction History");
+                    tvTitle.setText("Transaction Summary");
                     List<TransactionEntity> transactions = appDatabase.transactionDao().getAllTransactions();
                     Log.e("TAG", "run:getAllTransactions " + new Gson().toJson(transactions));
                     transactionAdapter = new TransactionAdapter(TransactionHistoryActivity1.this, transactions);

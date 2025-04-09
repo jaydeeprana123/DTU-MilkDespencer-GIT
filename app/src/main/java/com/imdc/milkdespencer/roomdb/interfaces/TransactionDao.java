@@ -32,7 +32,7 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET volume = :volume, milkPrice = :milkPrice, milkTemperature = :milkTemperature, transactionStatus = :transactionStatus WHERE id = :id")
     int updateTransactionDetails(String id, float volume, String milkPrice, String milkTemperature, String transactionStatus);
 
-    @Query("SELECT * FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate ORDER BY transactionDate ASC")
+    @Query("SELECT * FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate ORDER BY id DESC")
     List<TransactionEntity> getTransactionsBetweenDates(String startDate, String endDate);
 
 //    default String generateUniqueTransactionId() {
@@ -71,8 +71,15 @@ public interface TransactionDao {
 
 
     // Get the sum of the 'volume' column for today's data
-    @Query("SELECT SUM(amount) FROM transactions WHERE transactionDate = :todayDate AND transactionStatus = :transactionStatus")
-    float getTodayAmountSum(String todayDate, String transactionStatus);
+    @Query("SELECT SUM(amount) FROM transactions WHERE transactionDate = :todayDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED')")
+    Double getTodayTotalAmount(String todayDate);
+
+
+    @Query("SELECT SUM(volume) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus = 'SUCCESS'")
+    Float getTotalSuccessVolumeBetweenDates(String startDate, String endDate);
+
+    @Query("SELECT SUM(amount) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus IN ('SUCCESS', 'FAILED')")
+    Double getTotalAmountBetweenDates(String startDate, String endDate);
 
 
 }

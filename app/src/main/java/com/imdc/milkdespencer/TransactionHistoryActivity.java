@@ -65,34 +65,45 @@ public class TransactionHistoryActivity extends AppCompatActivity {
             AppDatabase appDatabase = AppDatabase.getInstance(TransactionHistoryActivity.this);
             Log.e("TAG", "run: " + new Gson().toJson(user));
 
-            boolean isAdmin = user.getUserType() == UserTypeEnum.ADMIN.value() || user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value();
+            boolean isAdmin = user.getUserType() == UserTypeEnum.ADMIN.value()
+                    || user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value();
+
             if (isAdmin) {
-                updateUI("Logs", appDatabase.logDao().getAllLogs(), true);
-                tvTodayTotalAmount.setVisibility(View.GONE);
-                tvTodayTotalVolume.setVisibility(View.GONE);
+                List<LogEntity> logs = appDatabase.logDao().getAllLogs();
+
+                runOnUiThread(() -> {
+                    updateUI("Logs", logs, true);
+                    tvTodayTotalAmount.setVisibility(View.GONE);
+                    tvTodayTotalVolume.setVisibility(View.GONE);
+                });
 
             } else {
-                updateUI("Transaction History", appDatabase.transactionDao().getAllTransactions(), false);
-                tvTodayTotalAmount.setVisibility(View.VISIBLE);
-                tvTodayTotalVolume.setVisibility(View.VISIBLE);
+                List<TransactionEntity> transactions = appDatabase.transactionDao().getAllTransactions();
 
-                /// Get Today date
+                // Get Today's date
                 String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
+                double totalAmount = appDatabase.transactionDao().getTodayTotalAmount(todayDate);
+                float totalVolume = appDatabase.transactionDao().getTodayVolumeSum(todayDate, "SUCCESS");
 
-                double totalAmount =  appDatabase.transactionDao().getTodayAmountSum(todayDate, "SUCCESS");
-                float totalVolume =  appDatabase.transactionDao().getTodayVolumeSum(todayDate,"SUCCESS");
-
-                 totalAmount = Double.parseDouble(String.format("%.2f", totalAmount));
-                 totalVolume = Float.parseFloat(String.format("%.2f", totalVolume));
+                totalAmount = Double.parseDouble(String.format("%.2f", totalAmount));
+                totalVolume = Float.parseFloat(String.format("%.2f", totalVolume));
 
                 Log.e("totalAmount", String.valueOf(totalAmount));
                 Log.e("totalVolume", String.valueOf(totalVolume));
-                tvTodayTotalAmount.setText("Today's Summary     ₹" + (String.valueOf(totalAmount)));
-                tvTodayTotalVolume.setText(String.valueOf(totalVolume) + "L");
 
+                float finalTotalVolume = totalVolume;
+                double finalTotalAmount = totalAmount;
+                runOnUiThread(() -> {
+                    updateUI("Transaction Summary", transactions, false);
+                    tvTodayTotalAmount.setVisibility(View.VISIBLE);
+                    tvTodayTotalVolume.setVisibility(View.VISIBLE);
+                    tvTodayTotalAmount.setText("Today's Summary     ₹" + finalTotalAmount);
+                    tvTodayTotalVolume.setText(finalTotalVolume + "L");
+                });
             }
         }).start();
+
     }
 
     // Helper method to update UI with fetched data

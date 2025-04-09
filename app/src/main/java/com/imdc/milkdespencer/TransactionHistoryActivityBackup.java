@@ -72,7 +72,7 @@ public class TransactionHistoryActivityBackup extends AppCompatActivity {
                 tvTodayTotalVolume.setVisibility(View.GONE);
 
             } else {
-                updateUI("Transaction History", appDatabase.transactionDao().getAllTransactions(), false);
+                updateUI("Transaction Summary", appDatabase.transactionDao().getAllTransactions(), false);
                 tvTodayTotalAmount.setVisibility(View.VISIBLE);
                 tvTodayTotalVolume.setVisibility(View.VISIBLE);
 
@@ -80,7 +80,7 @@ public class TransactionHistoryActivityBackup extends AppCompatActivity {
                 String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
 
-                double totalAmount =  appDatabase.transactionDao().getTodayAmountSum(todayDate, "SUCCESS");
+                double totalAmount =  appDatabase.transactionDao().getTodayTotalAmount(todayDate);
                 float totalVolume =  appDatabase.transactionDao().getTodayVolumeSum(todayDate,"SUCCESS");
 
                  totalAmount = Double.parseDouble(String.format("%.2f", totalAmount));

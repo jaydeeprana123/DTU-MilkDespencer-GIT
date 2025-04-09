@@ -10,7 +10,7 @@ public class SharedPreferencesManager {
     private final SharedPreferences sharedPreferences;
     private final SharedPreferences.Editor editor;
 
-    private SharedPreferencesManager(Context context) {
+    public SharedPreferencesManager(Context context) {
         sharedPreferences = context.getSharedPreferences(PREFERENCES_NAME, Context.MODE_PRIVATE);
         editor = sharedPreferences.edit();
     }

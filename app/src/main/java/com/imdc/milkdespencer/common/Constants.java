@@ -7,6 +7,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -24,6 +25,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.google.android.material.button.MaterialButton;
@@ -54,6 +56,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -163,6 +166,7 @@ public class Constants {
         titleView.setText(title);
         titleView.setTextSize(36); // Increase title font size
         titleView.setTypeface(null, Typeface.BOLD);
+        titleView.setTextColor(Color.parseColor("#000000"));
         titleView.setPadding(40, 30, 40, 30);
         titleView.setGravity(Gravity.CENTER);
         dialog.setCustomTitle(titleView);
@@ -173,7 +177,8 @@ public class Constants {
         messageView.setTextSize(30); // Increase message font size
         messageView.setPadding(50, 30, 50, 30);
         messageView.setGravity(Gravity.CENTER);
-
+        messageView.setTypeface(null, Typeface.BOLD);
+        messageView.setTextColor(Color.parseColor("#000000"));
         ScrollView scrollView = new ScrollView(context); // To handle long messages
         scrollView.addView(messageView);
 
@@ -201,6 +206,8 @@ public class Constants {
         if (positiveButton != null) {
             positiveButton.setTextSize(26); // Increase button text size
             positiveButton.setPadding(30, 20, 30, 20);
+            positiveButton.setTypeface(null, Typeface.BOLD);
+            positiveButton.setTextColor(Color.parseColor("#000000"));
         }
 
 
@@ -224,6 +231,8 @@ public class Constants {
         TextView titleView = new TextView(context);
         titleView.setText(title);
         titleView.setTextSize(36); // Increase title font size
+        titleView.setTypeface(null, Typeface.BOLD); // Bold text
+        titleView.setTextColor(Color.parseColor("#000000"));
         titleView.setPadding(20, 20, 20, 20);
         titleView.setGravity(Gravity.CENTER);
         dialog.setCustomTitle(titleView);
@@ -233,6 +242,8 @@ public class Constants {
         messageView.setText(message);
         messageView.setTextSize(32); // Increase message font size
         messageView.setPadding(30, 20, 30, 20);
+        messageView.setTypeface(null, Typeface.BOLD); // Bold text
+        messageView.setTextColor(Color.parseColor("#000000"));
         messageView.setGravity(Gravity.CENTER);
 
         ScrollView scrollView = new ScrollView(context); // Optional for long messages
@@ -261,11 +272,15 @@ public class Constants {
         if (positiveButton != null) {
             positiveButton.setTextSize(26); // Increase button text size
             positiveButton.setPadding(20, 20, 20, 20);
+            positiveButton.setTypeface(null, Typeface.BOLD); // Bold text
+            positiveButton.setTextColor(Color.parseColor("#000000"));
         }
 
         if (negativeButton != null) {
             negativeButton.setTextSize(26); // Increase button text size
             negativeButton.setPadding(20, 20, 20, 20);
+            negativeButton.setTypeface(null, Typeface.BOLD); // Bold text
+            negativeButton.setTextColor(Color.parseColor("#000000"));
         }
 
 
@@ -1130,15 +1145,15 @@ public class Constants {
             });
 
 
-//            if (transactionId > 0 && isNetworkAvailable(activity)) {
-//
-//                Executors.newSingleThreadExecutor().execute(() -> {
-//                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
-//                });
-//               // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
-//            } else {
-//                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
-//            }
+            if (transactionId > 0 && isNetworkAvailable(activity)) {
+
+                Executors.newSingleThreadExecutor().execute(() -> {
+                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
+                });
+               // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
+            } else {
+                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+            }
 
             return transactionId;
         } catch (Exception e) {
@@ -1232,9 +1247,25 @@ public class Constants {
 
         if (transactionId > 0 && isNetworkAvailable(activity)) {
 
+
             Executors.newSingleThreadExecutor().execute(() -> {
                 doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
             });
+
+//            Data data = new Data.Builder()
+//                    .putString("transaction_json", new Gson().toJson(transaction))
+//                    .build();
+//
+//            OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(TransactionPostWorker.class)
+//                    .setInputData(data)
+//                    .build();
+//
+//            WorkManager.getInstance(activity.getApplicationContext()).enqueue(workRequest);
+
+
+//            Executors.newSingleThreadExecutor().execute(() -> {
+//                doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
+//            });
             // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
         } else {
             //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
@@ -1267,6 +1298,62 @@ public class Constants {
     }
 
 
+
+
+    public static void doPostTransactionAfterUpdate(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction, Runnable onComplete) {
+        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
+        Log.e("Base URL", baseUrl);
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .build();
+
+        ApiService apiService = retrofit.create(ApiService.class);
+        ApiManager apiManager = new ApiManager(apiService);
+
+        String request = new Gson().toJson(transaction);
+        Log.e(TAG, "doPostTransaction: " + request);
+
+        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
+
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+
+        DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
+            @Override
+            public void onNext(ResponseBody response) {
+                try {
+                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
+                    String json = new Gson().toJson(jsonElement);
+                    Log.e(TAG, "onNext: " + json);
+
+                    onComplete.run();
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Response parsing error", e);
+                }
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "onError: ", e);
+                e.printStackTrace();
+
+                onComplete.run();
+            }
+
+            @Override
+            public void onComplete() {
+                // Completion logic if needed
+
+                onComplete.run();
+            }
+        };
+
+        apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
+    }
 
 
     public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction) {
@@ -1316,6 +1403,7 @@ public class Constants {
 
         apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
     }
+
 
 
 //    public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction, Activity activity) {

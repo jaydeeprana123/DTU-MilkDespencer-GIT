@@ -122,11 +122,36 @@ public class TransactionHistoryByDateActivity extends AppCompatActivity {
                             || user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value();
 
                     if (isAdmin) {
-                        updateUI("Logs", appDatabase.logDao().getAllLogs(), true);
-                        tvTodayTotalAmount.setVisibility(View.GONE);
-                        tvTodayTotalVolume.setVisibility(View.GONE);
+                        runOnUiThread(() -> {
+                            updateUI("Logs", appDatabase.logDao().getAllLogs(), true);
+                            tvTodayTotalAmount.setVisibility(View.GONE);
+                            tvTodayTotalVolume.setVisibility(View.GONE);
+                        });
+
                     } else {
-                        updateUI("Transaction History", appDatabase.transactionDao().getTransactionsBetweenDates(fromDate, finalToDate), false);
+
+
+                        List<TransactionEntity> transactions = appDatabase.transactionDao().getTransactionsBetweenDates(fromDate, finalToDate);
+                        double totalAmount = appDatabase.transactionDao().getTotalAmountBetweenDates(fromDate, finalToDate);
+                        float totalVolume = appDatabase.transactionDao().getTotalSuccessVolumeBetweenDates(fromDate, finalToDate);
+
+                        totalAmount = Double.parseDouble(String.format("%.2f", totalAmount));
+                        totalVolume = Float.parseFloat(String.format("%.2f", totalVolume));
+
+                        Log.e("totalAmount", String.valueOf(totalAmount));
+                        Log.e("totalVolume", String.valueOf(totalVolume));
+
+
+                        float finalTotalVolume = totalVolume;
+                        double finalTotalAmount = totalAmount;
+                        runOnUiThread(() -> {
+                            updateUI("Transaction Summary", transactions, false);
+                            tvTodayTotalAmount.setVisibility(View.VISIBLE);
+                            tvTodayTotalVolume.setVisibility(View.VISIBLE);
+                            tvTodayTotalAmount.setText("Total Summary     ₹" + finalTotalAmount);
+                            tvTodayTotalVolume.setText(finalTotalVolume + "L");
+                        });
+
 
 
                     }
@@ -142,7 +167,7 @@ public class TransactionHistoryByDateActivity extends AppCompatActivity {
 
     // Helper method to update UI with fetched data
     private void updateUI(String title, List<?> data, boolean isLog) {
-        runOnUiThread(() -> {
+
             if (getSupportActionBar() != null) {
                 getSupportActionBar().setTitle(title);
             }
@@ -170,7 +195,7 @@ public class TransactionHistoryByDateActivity extends AppCompatActivity {
 
 
             }
-        });
+
     }
 
 
