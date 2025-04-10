@@ -1,9 +1,6 @@
 package com.imdc.milkdespencer;
 
-import static com.imdc.milkdespencer.common.Constants.MachineId;
-import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
-import static com.imdc.milkdespencer.common.Constants.generateSafeUniqueTransactionId;
 
 import android.Manifest;
 import android.app.ProgressDialog;
@@ -61,7 +58,6 @@ import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDevice;
 import com.imdc.milkdespencer.network.ApiManager;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
-import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
 import org.json.JSONException;
@@ -74,7 +70,6 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 import device.itl.sspcoms.BarCodeReader;
 import device.itl.sspcoms.DeviceEvent;
@@ -87,7 +82,7 @@ import device.itl.sspcoms.SSPDeviceType;
 import device.itl.sspcoms.SSPSystem;
 import device.itl.sspcoms.SSPUpdate;
 
-public class CashCollectorActivity extends AppCompatActivity implements DeviceSetupListener, DeviceEventListener, DeviceFileUpdateListener {
+public class CashCollectorActivity_10_4 extends AppCompatActivity implements DeviceSetupListener, DeviceEventListener, DeviceFileUpdateListener {
 
     int tempIndex = 0;
 
@@ -102,10 +97,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     private static final int MY_PERMISSIONS_REQUEST_READ_STORAGE = 0;
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
-    private static final String TAG = CashCollectorActivity.class.getSimpleName();
+    private static final String TAG = CashCollectorActivity_10_4.class.getSimpleName();
     static FloatingActionButton fab;
     static LinearLayout bvDisplay;
-    static CashCollectorActivity cashCollectorActivity;
+    static CashCollectorActivity_10_4 cashCollectorActivity;
     static ListView listChannels;
     static ListView listEvents;
     static Button bttnAccept;
@@ -117,8 +112,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     static TextView txtSerial;
     static TextView txtConnect;
     static ProgressBar prgConnect;
-
-    private TextView tvProcessing;
     static ProgressDialog progress;
     static List<String> channelValues;
     static String[] eventValues;
@@ -133,19 +126,15 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     private static D2xxManager ftD2xx = null;
     private static FT_Device ftDev = null;
     private static SSPDevice sspDevice = null;
-    private static CashCollectorActivity instance = null;
+    private static CashCollectorActivity_10_4 instance = null;
 
-    LottieDialog milkDispensingDialog;
+
     private Handler handler = new Handler(); // Create a Handler instance
     private Runnable runnable; // Declare the Runnable
 
-    private boolean isMilkVendingStarted = false;
 
     private Handler timeoutHandler;
     private Runnable timeoutRunnable;
-
-    private boolean isElectricityLost = false;
-
 
 
     /**********   USB functions   ******************************************/
@@ -164,71 +153,39 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
 
             if (isCharging) {
-                if (isElectricityLost) {
-                    isElectricityLost = false;
-                }
+
 
             } else {
+                Constants.saveLogs(CashCollectorActivity_10_4.this, "Lost Electricity");
+                JSONObject paymentObject = null;
+                String paymentJson = preferencesManager.get(Constants.PaymentCashReceived, "").toString();
 
-                if (!isElectricityLost) {
-                    isElectricityLost = true;
+                if (!paymentJson.isEmpty()) {
+                    try {
 
-                    if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
-                        milkDispensingDialog.dismiss();
-                    }
+                        logError("paymentJson","is available");
+                        paymentObject = new JSONObject(paymentJson);
+                        if (paymentObject.has("amount")) {
+                            // Safely parse the amount as a float
+                            double amount = paymentObject.optDouble("amount", 0.0);
 
-                    Constants.saveLogs(CashCollectorActivity.this, "Lost Electricity");
-                    tvProcessing.setText("Sorry. No Electricity, please try after some time!");
-
-                    String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
-                    String paymentJson = (preferencesManager.get(Constants.PaymentCashReceived, "")).toString();
-
-                    if (!transactionJson.isEmpty()) {
-                        TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
-
-                        Log.e("ElectricityLost transactionJson ", transactionJson);
-
-                        updateTransactionIfElectricityLost(transactionEntity);
-                    } else if (!paymentJson.isEmpty()) {
-
-                        try {
-                            JSONObject paymentObject = new JSONObject(paymentJson);
-
-                            if (paymentObject.has("amount")) {
-                                // Safely parse the amount as a float
-                                double amount = paymentObject.optDouble("amount", 0.0);
-
-                                insertTransactionIfElectricityLost(amount);
-                            }
-
-
-                        } catch (JSONException e) {
-                            throw new RuntimeException(e);
+                            logError("Amount","is availableeee");
+                            showFailedProcessDoneDialog(amount);
+                        }else{
+                            logError("Amount","is not available");
                         }
-
+                    } catch (JSONException e) {
+                        logError("PaymentError", "Error parsing payment JSON" + e);
+                        // Handle error (optional: show error dialog or default value)
                     }
                 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
             }
         }
     };
     LottieAddCashDialog lottieAddCashDialog;
     AlertDialog loadingDialog;
-
+    LottieDialog lottieDialog;
     GridView grdCurrencyView;
 
     Button btnBackToHome;
@@ -251,7 +208,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     };
     private SSPUpdate sspUpdate = null;
 
-    public static CashCollectorActivity getInstance() {
+    public static CashCollectorActivity_10_4 getInstance() {
 
         return instance;
     }
@@ -269,7 +226,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
         // check for type comapable
         if (dev.type != SSPDeviceType.BillValidator) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity.getInstance());
+            AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity_10_4.getInstance());
             // 2. Chain together various setter methods to set the dialog characteristics
             builder.setMessage("Connected device is not BNV (" + dev.type.toString() + ")").setTitle("BNV");
             builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -463,361 +420,331 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     /*
      * When payment is done. Send for Vending the milk*/
-    private void sendForMilkVending(DeviceEvent ev, TransactionEntity transaction) {
-        double expectedAmount = Double.parseDouble(selectedCurrency.replace("₹", ""));
-        if (ev.value != expectedAmount) {
-            Constants.showAlertDialog(
-                    cashCollectorActivity,
-                    "Please insert correct note",
-                    "Selected note didn't match! Please insert correct note!"
-            );
+    private void sendForMilkVending(DeviceEvent ev) {
+        if (ev.value == Double.parseDouble(selectedCurrency.replace("₹", ""))) {
+            logError("TAG", "Currency: " + ev.currency + "<C  Vd>" + String.format("%.2f", ev.value) + "\n AMT " + ev.value + " Condition " + (ev.value == Double.parseDouble(selectedCurrency.replace("₹", ""))));
+            try {
+                ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+                float milkSellingPrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
+                float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+                float DENSITY_OF_MILK = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
+                float weight = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice))) * DENSITY_OF_MILK;
+
+//                float weight = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice)));
+                double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+                float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+
+                logError(TAG, "DisplayEvents: SEND COMMAND " + milkSellingPrice + " " + ev.value);
+                SendToDevice sendToDevice = new SendToDevice();
+                sendToDevice.setWeight(weight);
+                sendToDevice.setStatus(true);
+                sendToDevice.setCurtemperature(currentTemperature);
+
+                logError("milkSetTemperature sendForMilkVending", String.valueOf(milkSetTemperature));
+
+                sendToDevice.setSettemperature(milkSetTemperature);
+
+//                UsbSerialCommunication.currentClass = "CCA";
+                Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+                logError(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
+//                Toast.makeText(CashCollectorActivity.this, "Command SEND TO DEVICE On START ->\n " + new Gson().toJson(sendToDevice), Toast.LENGTH_LONG).show();
+
+                lottieDialog.show();
+
+                /// Here after 15 minute if status is not getting as a true.
+                // Dialog will be close and transaction will be add in the database as a TIME OUT
+                // Initialize the Handler and Runnable
+                timeoutHandler = new Handler(Looper.getMainLooper());
+                timeoutRunnable = () -> handleMilkSendingTimeout(lottieDialog, ev.value, 0);
+
+                // Post the Runnable with a delay
+                timeoutHandler.postDelayed(timeoutRunnable, 15 * 60 * 1000); // 15 minutes
+
+
+
+                /// Send Data to the usb Serial Communication
+                usbSerialCommunication.sendData(gson.toJson(sendToDevice));
+
+                usbSerialCommunication.setReadDataListener(new UsbSerialCommunication.ReadDataListener() {
+                    @Override
+                    public void onReadData(String data) {
+                        Log.d(TAG, "DisplayEvents:onReadData: " + data + "\n status " + data.contains("status"));
+
+                        if (data.contains("status")) {
+                            ResponseMilkDispense milkDispense = new Gson().fromJson(data, ResponseMilkDispense.class);
+                            Log.i(TAG, "run: ==>< onReadData: " + new Gson().toJson(milkDispense));
+
+                            if (milkDispense != null) {
+
+                                logError("Cashcollector status outside", milkDispense.getStatus().toString());
+
+                                //  double percentage = (milkDispense.getCurTemperature() / milkDispense.getSetTemperature()) * 100;
+//                                if (lottieDialog != null) {
+//                                    if (percentage > 0) {
+//                                        lottieDialog.setPercentage(percentage);
+//                                    }
+//                                }
+
+                                /// Here true status getting two times.
+                                // So put condition that if lottieDialog is showing that time only goes to this condition
+                                if (milkDispense.getStatus() && lottieDialog.isShowing()) {
+
+                                    float volumeOfMilk = (float) ((milkDispense.getCurrentWeight()) / DENSITY_OF_MILK);
+                                    logError("VOLUME OF MILK", String.valueOf(volumeOfMilk));
+
+                                    /// when status get as a true, timeOutHandler removed here
+                                    timeoutHandler.removeCallbacks(timeoutRunnable);
+                                    if (lottieDialog.isShowing()) {
+                                        lottieDialog.dismiss();
+                                    }
+
+
+                                    tempIndex++;
+
+                                    logError("tempIndex ", String.valueOf(tempIndex));
+
+                                    logError("milkDispense status ", milkDispense.getStatus().toString());
+
+                                    try {
+                                        if (lottieDialog.isShowing()) {
+                                            lottieDialog.dismiss();
+                                        }
+                                        preferencesManager.save(Constants.CurrentTemperature, currentSavedTemp);
+                                        preferencesManager = SharedPreferencesManager.getInstance(getInstance());
+                                        deviceCom.SetEscrowAction(SSPSystem.BillAction.Accept);
+                                        /*float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+                                        double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+                                        float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+                                        usbSerialCommunication.fireOnStart(currentTemperature);
+                                        usbSerialCommunication.fireOnStart(currentTemperature);*/
+//                                        usbSerialCommunication.fireOnStart(currentTemperature);
+                                        //                                        bttnAccept.performClick();
+                                        showAndProcessDoneDialog(sendToDevice, ev.value, volumeOfMilk);
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+
+                                } else {
+                                    logError("milkDispense status ", milkDispense.getStatus().toString());
+                                }
+                            }
+                        }
+
+                    }
+                });
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            Constants.showAlertDialog(cashCollectorActivity, "Please insert correct note", "Please insert correct note and selected note didn't match!!! please enter correct note!");
             deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
-            return;
-        }
-
-        try {
-            if (!isFinishing() && !isDestroyed()) {
-                milkDispensingDialog = new LottieDialog(CashCollectorActivity.this);
-                milkDispensingDialog.show();
-            }
-
-            // Load preferences
-            ResponseTempStatus responseTempStatus = new Gson().fromJson(
-                    preferencesManager.get(Constants.ResponseTempStatus, "").toString(),
-                    ResponseTempStatus.class
-            );
-            float milkSellingPrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
-            float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, "0.0").toString());
-            float milkDensity = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
-            float milkSetTemperature = Float.parseFloat(preferencesManager.get(Constants.TemperatureSet, "0.0").toString());
-
-            // Calculations
-            float weight = (float) ((ev.value / milkSellingPrice) * milkDensity);
-            double currentSavedTemp = responseTempStatus.getTemperature() / 10.0;
-            float currentTemperature = (float) (currentSavedTemp + offSet);
-
-            transaction.setMilkTemperature(String.valueOf(currentTemperature));
-            preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
-
-            // Prepare data for USB
-            SendToDevice sendToDevice = new SendToDevice();
-            sendToDevice.setWeight(weight);
-            sendToDevice.setStatus(true);
-            sendToDevice.setCurtemperature(currentTemperature);
-            sendToDevice.setSettemperature(milkSetTemperature);
-
-            Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
-            String commandJson = gson.toJson(sendToDevice);
-
-
-            /// Check that usb serial is not null
-            if (usbSerialCommunication != null) {
-                usbSerialCommunication.sendData(commandJson);
-
-                // Set the listener and handle in a different method
-                usbSerialCommunication.setReadDataListener(data ->
-                        handleSerialReadingResponse(data, currentSavedTemp, milkDensity,milkSellingPrice, transaction)
-                );
-            } else {
-                logError(TAG + "UsbSerialCommunication", "usbSerialCommunication is null");
-
-                /// Here if usbSerialCommunication getting null then dismiss the dialog.
-                /// And open error message that Something went wrong. Please try again letter
-                if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
-                    milkDispensingDialog.dismiss();
-                }
-                Constants.saveLogs(CashCollectorActivity.this, "Dispensation Not Started");
-                updateTransactionIfUSBSerialCommunicationLost(transaction);
-            }
-
-        } catch (Exception e) {
-            Log.e(TAG, "Exception in sendForMilkVending", e);
         }
     }
 
 
-
-
-    /// Read serial data from USB
-    private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity,float milkSellingPrice, TransactionEntity transaction) {
-        Log.d(TAG, "DisplayEvents:onReadData: " + data + "\n status " + data.contains("status"));
-
-        if (!data.contains("status")) return;
-
-        try {
-            ResponseMilkDispense milkDispense = new Gson().fromJson(data, ResponseMilkDispense.class);
-            if (milkDispense == null) return;
-
-            logError("Cashcollector status outside", String.valueOf(milkDispense.getStatus()));
-
-            if (milkDispense.getStatus() && milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
-                float volumeOfMilk = (float) (milkDispense.getCurrentWeight() / milkDensity);
-                logError("VOLUME OF MILK", String.valueOf(volumeOfMilk));
-
-                timeoutHandler.removeCallbacks(timeoutRunnable);
-                milkDispensingDialog.dismiss();
-
-                tempIndex++;
-                logError("tempIndex", String.valueOf(tempIndex));
-
-                preferencesManager.save(Constants.CurrentTemperature, currentSavedTemp);
-                preferencesManager = SharedPreferencesManager.getInstance(this);
-                deviceCom.SetEscrowAction(SSPSystem.BillAction.Accept);
-
-                updateDataInDatabaseWhenProcessDone(volumeOfMilk, transaction);
-            } else {
-                logError("milkDispense status", String.valueOf(milkDispense.getStatus()));
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error parsing or handling milk dispense response", e);
-        }
-    }
-
-
-    /**
-     * If payment is done and electricity is lost, show a failure dialog.
-     */
-    private void insertTransactionIfElectricityLost(double amt) {
-        runOnUiThread(() -> Constants.showAcceptDialog(
-                CashCollectorActivity.this,
-                "Error",
-                "Lost Electricity Connection!! Please try after some time.",
-                (dialog, which) -> handleTransactionInsert(dialog, amt),
-                (dialog, which) -> handleTransactionInsert(dialog, amt)
-        ));
-    }
-
-
-    private void handleTransactionInsert(DialogInterface dialog, double amt) {
-        new Thread(() -> {
-            try {
-                String dateFormat = "yyyy-MM-dd";
-                String timeFormat = "HH:mm:ss";
-                SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat, Locale.getDefault());
-                SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat, Locale.getDefault());
-
-                String date = dateFormatter.format(System.currentTimeMillis());
-                String time = timeFormatter.format(System.currentTimeMillis());
-
-                TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
-                long transactionId = Constants.insertTransaction(
-                        CashCollectorActivity.this,
-                        transactionDao,
-                        "ONLINE",
-                        "",
-                        date,
-                        time,
-                        amt,
-                        "FAILED",
-                        "",
-                        0,
-                        "111"
-                );
-
-                runOnUiThread(() -> {
-                    logError(TAG, "Transaction ID: " + transactionId);
-                    logError(TAG, "All Transactions: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                    dialog.dismiss();
-                    goToHomeScreen();
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
-
-    /**
-     * If payment is done and electricity is lost after inserting the transaction,
-     * show a failure dialog and update the transaction accordingly.
-     */
-    private void updateTransactionIfElectricityLost(TransactionEntity transactionEntity) {
-        runOnUiThread(() -> Constants.showAcceptDialog(
-                CashCollectorActivity.this,
-                "Error",
-                "Lost Electricity Connection!! Please try after some time.",
-                (dialog, which) -> handleFailedUpdateInDatabase(dialog, transactionEntity),
-                (dialog, which) -> handleFailedUpdateInDatabase(dialog, transactionEntity)
-        ));
-    }
-
-
-
-    /**
-     * If payment is done and Milk dispense not initiate due to serial communication lost,
-     * show a failure dialog and update the transaction accordingly.
-     */
-    private void updateTransactionIfUSBSerialCommunicationLost(TransactionEntity transactionEntity) {
-        runOnUiThread(() -> Constants.showDispenseErrorMessageDialog(
-                CashCollectorActivity.this,
-                "Error",
-                "Sorry. Something Went wrong!! Please try after some time.",
-                (dialog, which) -> handleFailedUpdateInDatabase(dialog, transactionEntity)
-        ));
-    }
-
-
-
-    private void handleFailedUpdateInDatabase(DialogInterface dialog, TransactionEntity transactionEntity) {
-        new Thread(() -> {
-            try {
-                TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
-
-                Constants.updateTransaction(
-                        CashCollectorActivity.this,
-                        transactionDao,
-                        transactionEntity.getId(),
-                        "FAILED",
-                        0,
-                        transactionEntity.getMilkTemperature(),
-                        transactionEntity
-                );
-
-                runOnUiThread(() -> {
-                    logError(TAG, "Updated Transaction: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                    dialog.dismiss();
-                    goToHomeScreen();
-                });
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
-
-    /// When process is completed. Data will be updated into database
-    void updateDataInDatabaseWhenProcessDone(float volumeOfMilk, TransactionEntity transaction) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-
+    /*If 15 minutes done and status is not getting as a true.
+   Transaction will be added as a FAILED*/
+    private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volumeOfMilk) {
+        if (lottieDialog != null && lottieDialog.isShowing()) {
+            lottieDialog.dismiss();
+            new Thread(() -> {
                 try {
-                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
-                    /// Here I convert volume of milk into string and set 3 digits after dot(.)
-                    float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
+                    String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
+                    String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
+                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity_10_4.this).transactionDao();
+                    Constants.insertTransaction(CashCollectorActivity_10_4.this, transactionDao, "CASH", "", date, time, (amt), "FAILED", "", volumeOfMilk, "");
 
+                    logError("Time is out", "After 15 minutes");
 
-                    // Ensure milkTemperature is formatted as float before formatting
-                    float milkTemp = Float.parseFloat(transaction.getMilkTemperature());
-                    String strMilkTemperature = String.format("%.3f", milkTemp);
-
-                    Constants.updateTransaction(CashCollectorActivity.this, transactionDao, transaction.getId(), "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
-
-                    // Now show dialog on UI thread
-                    runOnUiThread(() -> {
-                        logError(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
-
-                        showAndProcessDoneDialog(transaction.getAmount(), volumeOfMilk);
-                    });
-
+                    goToHomeScreen();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            }
-        }).start();
+            }).start();
+        }
     }
 
 
-
-    /*If 5 minutes done and status is not getting as a true.
-   Transaction will be added as a FAILED*/
-    private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volume, TransactionEntity transaction) {
-        if (CashCollectorActivity.this.isFinishing() || CashCollectorActivity.this.isDestroyed()) {
-            return; // Activity is no longer valid, skip dismiss
-        }
-
-        if (lottieDialog != null && lottieDialog.isShowing()) {
-            try {
-                lottieDialog.dismiss();
-            } catch (Exception e) {
-                e.printStackTrace(); // This is a last-resort guard
-            }
-        }
-
-        new Thread(() -> {
-            try {
-                TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
-                Constants.updateTransaction(CashCollectorActivity.this, transactionDao, transaction.getId(), "FAILED", 0, transaction.getMilkTemperature(), transaction);
-
-                logError(TAG + "Time is out", "After 5 minutes");
-
-                if (!isFinishing() && !isDestroyed()) {
-                    runOnUiThread(this::goToHomeScreen);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
+    public void showAndProcessDoneDialog(SendToDevice sendToDevice, double currency, float volumeOfMilk) {
 
 
+        logError("showAndProcessDoneDialog", "Show");
 
-    /// If milk is send to the customer. Show process done dialog
-    public void showAndProcessDoneDialog(double currency, float volumeOfMilk) {
-
-        if (isFinishing() || isDestroyed()) return; // Prevent dialog if activity is finishing
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity.this);
-        LayoutInflater inflater = getLayoutInflater();
-        View view = inflater.inflate(R.layout.dialog_lottie, null);
-
-        LottieAnimationView lottieAnimationView = view.findViewById(R.id.lottieAnimationView);
-        LottieAnimationView lottieAnimationViewDone = view.findViewById(R.id.lottieAnimationViewDone);
-        TextView tvProgressDialog = view.findViewById(R.id.tvProgressDialog);
-        MaterialButton btnDone = view.findViewById(R.id.doneButton);
-        TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
-        TextView tvDispenseVolume = view.findViewById(R.id.tvDispenseVolume);
-        TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
-
-        btnDone.setVisibility(View.VISIBLE);
-        lottieAnimationView.setVisibility(View.GONE);
-        lottieAnimationViewDone.setVisibility(View.VISIBLE);
-        tvProcessDoneText.setVisibility(View.VISIBLE);
-        tvOpenTheDoor.setVisibility(View.VISIBLE);
-        tvProgressDialog.setVisibility(View.GONE);
-        tvDispenseVolume.setVisibility(View.VISIBLE);
-
-        float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
-        tvDispenseVolume.setText(getString(R.string.dispense_volume) + " " + truncatedValueOfMilkVolume + " L");
-
-        lottieAnimationViewDone.setAnimation(R.raw.process_done);
-        lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
-        lottieAnimationViewDone.playAnimation();
-
-        builder.setView(view);
-        builder.setCancelable(false);
-
-        AlertDialog dialog = builder.create();
-        dialog.show();
-
-        handler = new Handler();
-        Long screenTimeOut = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0.0").toString());
-
-        runnable = () -> {
-            dialog.dismiss();
-            closeDevice();
-            runOnUiThread(() -> goToHomeScreen());
-        };
-
-        handler.postDelayed(runnable, screenTimeOut * 1000);
-
-        btnDone.setOnClickListener(new View.OnClickListener() {
+        runOnUiThread(new Runnable() {
             @Override
-            public void onClick(View v) {
-                if (handler != null && runnable != null) {
-                    handler.removeCallbacks(runnable);
-                }
+            public void run() {
+                AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity_10_4.this);
+                LayoutInflater inflater = getLayoutInflater();
+                View view = inflater.inflate(R.layout.dialog_lottie, null);
 
-                dialog.dismiss();
-                closeDevice();
-                runOnUiThread(() -> goToHomeScreen());
+                LottieAnimationView lottieAnimationView = view.findViewById(R.id.lottieAnimationView);
+                LottieAnimationView lottieAnimationViewDone = view.findViewById(R.id.lottieAnimationViewDone);
+                TextView tvProgressDialog = view.findViewById(R.id.tvProgressDialog);
 
+                MaterialButton btnDone = view.findViewById(R.id.doneButton);
+                TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
+                TextView tvDispenseVolume = view.findViewById(R.id.tvDispenseVolume);
+                TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
+                btnDone.setVisibility(View.VISIBLE);
+                lottieAnimationView.setVisibility(View.GONE);
+                lottieAnimationViewDone.setVisibility(View.VISIBLE);
+                tvProcessDoneText.setVisibility(View.VISIBLE);
+
+                tvOpenTheDoor.setVisibility(View.VISIBLE);
+                tvProgressDialog.setVisibility(View.GONE);
+
+                /// Added on 16-1
+                tvDispenseVolume.setVisibility(View.VISIBLE);
+                /// Here I convert volume of milk into string and set 3 digits after dot(.)
+                float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
+
+                tvDispenseVolume.setText(getString(R.string.dispense_volume) + " " + truncatedValueOfMilkVolume + " L");
+
+                lottieAnimationViewDone.setAnimation(R.raw.process_done);
+                lottieAnimationViewDone.setRepeatMode(LottieDrawable.RESTART);
+                lottieAnimationViewDone.playAnimation();
+
+                // Customize the LottieAnimationView and TextView here
+
+                builder.setView(view);
+                builder.setCancelable(false); // Set to true if you want the dialog to be cancellable
+
+                AlertDialog dialog = builder.create();
+                dialog.show();
+
+
+                /// Initialize the handler
+                handler = new Handler();
+                Long screenTimeOut = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0.0").toString());
+
+                // Define the Runnable task
+                runnable = () -> {
+                    // Task to execute after delay
+                    dialog.dismiss();
+                    closeDevice();
+//                        onDestroy();
+
+                    insertDataOnProcessDone(currency, volumeOfMilk, sendToDevice.getCurtemperature());
+                };
+
+                // Post the Runnable with a 15-second delay
+                handler.postDelayed(runnable, screenTimeOut * 1000);
+
+
+                btnDone.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+
+                        //  If User clicks on the done button. Runnable should be close
+                        // Cancel the delayed task
+                        if (handler != null && runnable != null) {
+                            handler.removeCallbacks(runnable);
+                        }
+
+                        dialog.dismiss();
+                        closeDevice();
+//                        onDestroy();
+
+                        insertDataOnProcessDone(currency, volumeOfMilk,sendToDevice.getCurtemperature());
+
+//                doPostTransaction(Constants.PostTransactionURL);
+                    }
+                });
+            }
+        });
+
+
+    }
+
+    private void showFailedProcessDoneDialog(double amt) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+
+                Constants.showAcceptDialog(CashCollectorActivity_10_4.this, "Error", "Lost Electricity Connection!! Please Try after sometime.", (dialog1, which) -> {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+
+                            logError("Error Electricity" ,"First");
+
+                            try {
+                                String dateFormat = "yyyy-MM-dd";
+                                String timeFormat = "HH:mm:ss";
+                                SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
+                                SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
+
+                                String date = dateFormatter.format(System.currentTimeMillis());
+                                String time = timeFormatter.format(System.currentTimeMillis());
+                                // Print the combined date and time
+
+                                logError("date", date);
+
+                                TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity_10_4.this).transactionDao();
+                                assert date != null;
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity_10_4.this, transactionDao, "CASH", "", date, time, amt, "FAILED", "", 0, "");
+                                logError(TAG, "onCreate: " + transactionId);
+                                logError(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
+
+
+                                /// Close current dialog
+                                dialog1.dismiss();
+                                /// Go to Home screen
+                                goToHomeScreen();
+
+//                                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                                finish();
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
+                }, (dialog1, which) -> {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            logError("Error Electricity" ,"Second");
+
+
+                            try {
+                                String dateFormat = "yyyy-MM-dd";
+                                String timeFormat = "HH:mm:ss";
+                                SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
+                                SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
+
+                                String date = dateFormatter.format(System.currentTimeMillis());
+                                String time = timeFormatter.format(System.currentTimeMillis());
+                                // Print the combined date and time
+
+                                TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity_10_4.this).transactionDao();
+                                assert date != null;
+                                long transactionId = Constants.insertTransaction(CashCollectorActivity_10_4.this, transactionDao, "CASH", "", date, time,amt, "FAILED", "", 0, "");
+                                logError(TAG, "onCreate: " + transactionId);
+                                logError(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
+
+
+                                /// Close current dialog
+                                dialog1.dismiss();
+
+                                /// Go to Home screen
+                                goToHomeScreen();
+
+//                                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+//                                startActivity(intent);
+//                                finish();
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
+                });
 
             }
         });
     }
-
 
     public void DisplayEvents(DeviceEvent ev) {
 
@@ -888,7 +815,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                 ivCurrency.setImageResource(R.drawable.pay_with_cash);
                         }
 
-                        //  msg = eventValues[1] + " is detected you will get " + volumeToDisplay + " liters of Milk.\n Please ensure the door is closed starting the dispensation!! Press Start to Confirm!!!";
+                      //  msg = eventValues[1] + " is detected you will get " + volumeToDisplay + " liters of Milk.\n Please ensure the door is closed starting the dispensation!! Press Start to Confirm!!!";
 
                         msg = "Ensure the door is closed.";
 
@@ -902,11 +829,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 cancelBtn.setOnClickListener(v -> {
                     deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
                     dialog.dismiss();
-
-                    grdCurrencyView.setVisibility(View.VISIBLE);
-                    btnBackToHome.setVisibility(View.VISIBLE);
-                    tvProcessing.setVisibility(View.GONE);
-
                 });
                 submitBtn.setOnClickListener(v -> {
 
@@ -915,19 +837,19 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     volumeToDisplay = Float.parseFloat(String.format("%.2f", volumeToDisplay));
 
                     /// Check that volume amount is more than 5 lites
-                    if (volumeToDisplay > 5) {
+                    if(volumeToDisplay > 5){
 
                         // If door is open then close the cash machine and send to the home page
                         deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
                         dialog.dismiss();
                         showAlertExceedLimit();
-                    } else {
+                    }else{
 
                         ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
 
                         /// Here it will check that door is open or close
                         // If door is close then allow to start milking
-                        if (!responseTempStatus.getConnectivity()) {
+                        if(!responseTempStatus.getConnectivity()){
 
                             /// Here if submit button is pressed,
                             // Payment is set as a received and amount will be save in a shared preference
@@ -946,74 +868,13 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                             /// Save into shared preference
                             preferencesManager.save(Constants.PaymentCashReceived, paymentObjectString);
 
-                            /// Here when payment is received.. save in the database as a "FAILED" transaction
-                            new Thread(() -> {
-                                try {
-                                    SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                                    SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-
-                                    String date = dateFormatter.format(System.currentTimeMillis());
-                                    String time = timeFormatter.format(System.currentTimeMillis());
-
-                                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
-
-                                    TransactionEntity transaction = new TransactionEntity();
-                                    transaction.setUserName("Admin");
-                                    transaction.setPassword("QWRtaW4="); // base64 for 'Admin'
-                                    transaction.setTransactionType("ONLINE");
-                                    transaction.setBankTransactionNo("");
-                                    transaction.setTransactionDate(date);
-                                    transaction.setTransactionTime(time);
-                                    transaction.setAmount(ev.value);
-                                    transaction.setVolume(0);
-
-                                    // Set extra fields
-                                    transaction.setMilkPrice((preferencesManager.get(MilkBasePrice, "")).toString());
-                                    transaction.setMilkTemperature("");
-                                    transaction.setTransactionStatus("FAILED");
-                                    transaction.setUpiId("");
-                                    transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
-
-                                    String uniqueId = generateSafeUniqueTransactionId(transactionDao);
-                                    transaction.setUniqueTransactionId(uniqueId);
-
-                                    // Insert into database
-                                    long transactionId = transactionDao.insert(transaction);
-                                    transaction.setId(transactionId);
+                            /// Here when payment is received.. save in the database as an insert
 
 
-                                    Log.e("save karti ", new Gson().toJson(transaction));
 
-                                    preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
-
-                                    runOnUiThread(() -> {
-
-                                        //    Toast.makeText(PayWithQrActivity.this, "Transaction id : " + (String.valueOf(transactionId)), Toast.LENGTH_SHORT).show();
-
-                                        if (!isMilkVendingStarted) {
-                                            isMilkVendingStarted = true;
-
-                                             /// Here after 5 minute if status is not getting as a true.
-                                            // Dialog will be close and transaction will be add in the database as a TIME OUT
-                                            // Initialize the Handler and Runnable
-                                            timeoutHandler = new Handler(Looper.getMainLooper());
-                                            timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, ev.value, 0, transaction);
-
-                                            // Post the Runnable with a delay
-                                            timeoutHandler.postDelayed(timeoutRunnable, 5 * 60 * 1000); // 15 minutes
-
-                                            sendForMilkVending(ev,transaction);
-                                            dialog.dismiss();
-                                        }
-                                    });
-
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            }).start();
-
-
-                        } else {
+                            sendForMilkVending(ev);
+                            dialog.dismiss();
+                        }else{
 
                             // If door is open then close the cash machine and send to the home page
                             deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
@@ -1123,7 +984,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         grdCurrencyView = findViewById(R.id.gridViewCurrency);
         btnBackToHome = findViewById(R.id.btnBackToHome);
         bvDisplay = findViewById(R.id.content_bill_validator);
-        tvProcessing = findViewById(R.id.tvProcessing);
         bvDisplay.setVisibility(View.INVISIBLE);
         cashCollectorActivity = this;
         instance = this;
@@ -1132,6 +992,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         /// When user comes first delete the previously saved payment data in shared preference
         preferencesManager.delete(Constants.PaymentCashReceived);
 
+
+        lottieDialog = new LottieDialog(getInstance());
         lottieAddCashDialog = new LottieAddCashDialog(this);
         CurrencyAdapter adapter = new CurrencyAdapter(this);
         grdCurrencyView.setAdapter(adapter);
@@ -1141,7 +1003,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         registerReceiver(batteryReceiver, battertyFilter);
 
-        progress = new ProgressDialog(CashCollectorActivity.this);
+        progress = new ProgressDialog(CashCollectorActivity_10_4.this);
         /* ask for permission to storeage read  */
         int permissionCheck = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
         if (permissionCheck != PackageManager.PERMISSION_GRANTED) {
@@ -1244,17 +1106,12 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
-                openDevice();
-
 //                If User clicks on the grid item. Runnable should be close
                 // Cancel the delayed task
                 if (handler != null && runnable != null) {
                     handler.removeCallbacks(runnable);
                 }
 
-                grdCurrencyView.setVisibility(View.GONE);
-                btnBackToHome.setVisibility(View.GONE);
-                tvProcessing.setVisibility(View.VISIBLE);
 
                 selectedCurrency = grdCurrencyView.getAdapter().getItem(i).toString();
                 milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
@@ -1277,7 +1134,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 } else {
                     //  Toast.makeText(CashCollectorActivity.this, "Please Wait initiating the Connection!!! ", Toast.LENGTH_SHORT).show();
                 }
-
+                openDevice();
             }
         });
 
@@ -1317,6 +1174,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 bttnReject.setVisibility(View.INVISIBLE);
                 bttnAccept.setVisibility(View.INVISIBLE);
 
+
                 /// Go to Home Page
                 goToHomeScreen();
 //                Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
@@ -1334,7 +1192,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         bttnReject.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
                 bttnReject.setVisibility(View.INVISIBLE);
                 bttnAccept.setVisibility(View.INVISIBLE);
@@ -1662,34 +1519,85 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         finish(); // Finish the activity
 
 
+//        Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+//        // Clear all previous activities
+//        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//        startActivity(intent);
+
     }
+
+    /// When process is completed. Data will be insert into database
+    void insertDataOnProcessDone(double currency, float volumeOfMilk, float milkTemperature) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                try {
+                    String dateFormat = "yyyy-MM-dd";
+                    String timeFormat = "HH:mm:ss";
+                    SimpleDateFormat dateFormatter = new SimpleDateFormat(dateFormat);
+                    SimpleDateFormat timeFormatter = new SimpleDateFormat(timeFormat);
+
+                    String date = dateFormatter.format(System.currentTimeMillis());
+                    String time = timeFormatter.format(System.currentTimeMillis());
+                    // Print the combined date and time
+
+                    TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity_10_4.this).transactionDao();
+                    assert date != null;
+
+                    /// Here I convert volume of milk into string and set 3 digits after dot(.)
+                    float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
+
+                    /// Here I convert temperature of milk into string and set 3 digits after dot(.)
+                    String strMilkTemperature = String.format("%.3f", milkTemperature);
+
+                    long transactionId = Constants.insertTransaction(CashCollectorActivity_10_4.this, transactionDao, "CASH", "", date, time, currency, "SUCCESS", "", truncatedValueOfMilkVolume, strMilkTemperature);
+                    logError(TAG, "onCreate: " + transactionId);
+                    logError(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
+
+
+                    /// Go to home page
+                    goToHomeScreen();
+
+//                    Intent intent = new Intent(CashCollectorActivity.this, MainActivity.class);
+//                    // Clear all previous activities
+//                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+//                    startActivity(intent);
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+    }
+
 
 
     /// If volume amount is more than 5 liters.
     // It will show error tha vending volume can not be more than 5 liters
-    private void showAlertExceedLimit() {
-        // Create AlertDialog.Builder instance
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Exceed Limit");
-        builder.setMessage("Vending volume can not be more than 5 liters.");
+        private void showAlertExceedLimit() {
+            // Create AlertDialog.Builder instance
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Exceed Limit");
+            builder.setMessage("Vending volume can not be more than 5 liters.");
 
-        // Positive button
-        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-                goToHomeScreen();
-            }
-        });
+            // Positive button
+            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                   dialog.dismiss();
+                    goToHomeScreen();
+                }
+            });
 
-        // Show the dialog
-        AlertDialog dialog = builder.create();
-        dialog.setCancelable(false);
-        dialog.show();
-    }
+            // Show the dialog
+            AlertDialog dialog = builder.create();
+            dialog.setCancelable(false);
+            dialog.show();
+        }
 
 
-    private void logError(String tag, String message) {
+    private void logError(String tag, String message){
         Log.e(tag, message);
     }
 

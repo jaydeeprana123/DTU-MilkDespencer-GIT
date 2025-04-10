@@ -337,7 +337,7 @@ public class UsbSerialCommunication {
                             // Process the complete JSON string
                             String completeData = acdStr.substring(startIndex, endIndex);
                             SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
-                            Log.d(TAG, " run: ==>< completeData " + completeData);
+                          //  Log.d(TAG, " run: ==>< completeData " + completeData);
 
                             if (fromCalibration) {
                                 if (sendToDevice != null) {
@@ -545,7 +545,7 @@ public class UsbSerialCommunication {
 
 
     private void logError(String tag, String message){
-        Log.e(tag, message);
+       // Log.e(tag, message);
     }
 
 }

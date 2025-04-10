@@ -194,6 +194,7 @@
         android:text="@string/generateQr"
         android:layout_marginRight="@dimen/_12sdp"
         android:textAlignment="center"
+        android:visibility="gone"
         android:textColor="@color/md_theme_light_onPrimary"
         app:backgroundTint="@color/md_theme_light_primary"
        />

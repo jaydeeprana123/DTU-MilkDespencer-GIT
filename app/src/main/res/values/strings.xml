@@ -47,6 +47,7 @@
     <string name="dispense_volume">Dispense Volume</string>
     <string name="you_can_open_door">You can now open the door.</string>
     <string name="set_configurations">Set Configurations</string>
+    <string name="export_transactions">Export Transactions</string>
     <string name="api_configurations">API Configurations</string>
     <string name="btnCIP">CIP</string>
     <string name="submit">submit</string>

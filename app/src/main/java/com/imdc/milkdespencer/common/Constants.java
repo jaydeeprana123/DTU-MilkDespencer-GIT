@@ -1,9 +1,9 @@
 package com.imdc.milkdespencer.common;
 
-import static androidx.core.content.ContextCompat.getSystemService;
-
 import android.app.Activity;
 import android.app.ProgressDialog;
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -11,8 +11,11 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.text.InputFilter;
 import android.util.Log;
 import android.view.Gravity;
@@ -25,6 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.FileProvider;
 
 
 import com.airbnb.lottie.LottieAnimationView;
@@ -34,12 +38,10 @@ import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import com.imdc.milkdespencer.PayWithQrActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adminUi.AdminActivity;
 import com.imdc.milkdespencer.models.Response.ConfigurationResponse;
-import com.imdc.milkdespencer.models.Response.Datum;
 import com.imdc.milkdespencer.models.Response.ResponseOTP;
 import com.imdc.milkdespencer.network.ApiManager;
 import com.imdc.milkdespencer.network.ApiService;
@@ -51,12 +53,15 @@ import com.imdc.milkdespencer.roomdb.entities.User;
 import com.imdc.milkdespencer.roomdb.interfaces.LogDao;
 import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -287,6 +292,67 @@ public class Constants {
 //        AlertDialog.Builder builder = new AlertDialog.Builder(context);
 //        builder.setTitle(title).setMessage(message).setPositiveButton("Yes", yesClickListener).setNegativeButton("No", noClickListener).show();
     }
+
+
+    public static void showDispenseErrorMessageDialog(Context context, String title, String message, DialogInterface.OnClickListener okClickListener) {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        AlertDialog dialog = builder.create();
+// Prevent dismissing on outside touch
+        dialog.setCanceledOnTouchOutside(false);
+// Set custom title
+        TextView titleView = new TextView(context);
+        titleView.setText(title);
+        titleView.setTextSize(36); // Increase title font size
+        titleView.setTypeface(null, Typeface.BOLD); // Bold text
+        titleView.setTextColor(Color.parseColor("#000000"));
+        titleView.setPadding(20, 20, 20, 20);
+        titleView.setGravity(Gravity.CENTER);
+        dialog.setCustomTitle(titleView);
+
+// Set custom message
+        TextView messageView = new TextView(context);
+        messageView.setText(message);
+        messageView.setTextSize(32); // Increase message font size
+        messageView.setPadding(30, 20, 30, 20);
+        messageView.setTypeface(null, Typeface.BOLD); // Bold text
+        messageView.setTextColor(Color.parseColor("#000000"));
+        messageView.setGravity(Gravity.CENTER);
+
+        ScrollView scrollView = new ScrollView(context); // Optional for long messages
+        scrollView.addView(messageView);
+
+        dialog.setView(scrollView); // Set the custom view with increased text size
+
+// Add buttons
+        dialog.setButton(AlertDialog.BUTTON_POSITIVE, "Okay", okClickListener);
+
+        dialog.show();
+
+
+        // Set custom dialog width
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+        layoutParams.copyFrom(dialog.getWindow().getAttributes());
+        layoutParams.width = (int) (context.getResources().getDisplayMetrics().widthPixels * 0.9); // 90% of screen width
+        dialog.getWindow().setAttributes(layoutParams);
+
+
+// Customize buttons
+        Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+
+        if (positiveButton != null) {
+            positiveButton.setTextSize(26); // Increase button text size
+            positiveButton.setPadding(20, 20, 20, 20);
+            positiveButton.setTypeface(null, Typeface.BOLD); // Bold text
+            positiveButton.setTextColor(Color.parseColor("#000000"));
+        }
+
+
+//        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+//        builder.setTitle(title).setMessage(message).setPositiveButton("Yes", yesClickListener).setNegativeButton("No", noClickListener).show();
+    }
+
+
 
     public static void showConfigDialog(Context context) {
         // Create a layout inflater to inflate the custom dialog layout
@@ -644,13 +710,15 @@ public class Constants {
 
         preferencesManager = SharedPreferencesManager.getInstance(context);
 
-
         final boolean[] isOtpSend = {false};
 
         /// Url get from shared preference
         Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(SMSApiUrl, "https://api.kaleyra.io/v1/").toString()) // Replace with your base URL
                 .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
                 .addConverterFactory(GsonConverterFactory.create()).build();
+
+
+        Log.e(TAG + " SMS URL ", preferencesManager.get(SMSApiUrl, "https://api.kaleyra.io/v1/").toString());
 
 
 //        Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.kaleyra.io/v1/") // Replace with your base URL
@@ -749,10 +817,13 @@ public class Constants {
                                         fields.put("api-key", preferencesManager.get(SMSApiKey, "Ae0de2903bdeb26110fd03ccab96e92a1").toString());
 //                                        fields.put("api-key", "Ae0de2903bdeb26110fd03ccab96e92a1");
 
+                                        Log.e("fields OF SMS ", fields.toString());
+
+
                                         HashMap<String, String> headers = new HashMap<>();
                                         headers.put("Content-Type", "application/x-www-form-urlencoded");
                                         headers.put("api-key", preferencesManager.get(SMSApiKey, "Ae0de2903bdeb26110fd03ccab96e92a1").toString());
-
+                                        Log.e("headers OF sms ", headers.toString());
                                         /// Old API : A5b9c8ba406fbc9bf361ffeb8bf6cb120
 
                                         DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
@@ -785,6 +856,9 @@ public class Constants {
                                             @Override
                                             public void onError(Throwable e) {
                                                 handler.post(() -> {
+
+                                                    Log.e("SMS onError", e.toString());
+
                                                     pd.dismiss(); // Dismiss the ProgressDialog on the main thread
                                                     Utils.handleApiError(context, e, apiManager);
                                                 });
@@ -797,9 +871,11 @@ public class Constants {
                                         };
 
                                         /// Get from shared preference
-                                        apiManager.makeOTPRequestCall((preferencesManager.get(SMSSid, "https://api.kaleyra.io/v1/").toString())
-                                                + "/messages/", fields, headers, disposableObserver);
+                                        apiManager.makeOTPRequestCall("", fields, headers, disposableObserver);
 
+
+                                        Log.e("SMS URL ", (preferencesManager.get(SMSSid, "").toString()) + (preferencesManager.get(SMSSid, "").toString())
+                                                + "/messages/");
 
                                         //  apiManager.makeOTPRequestCall("HXIN1764058706IN/messages/", fields, headers, disposableObserver);
                                     }).start();
@@ -1104,7 +1180,7 @@ public class Constants {
     }
 
     public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, double amount, String transactionStatus, String upiId, float volume, String milkTemperature) {
-        SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(activity);
+         preferencesManager = SharedPreferencesManager.getInstance(activity);
 
         TransactionEntity transaction = new TransactionEntity();
         transaction.setUserName("Admin");
@@ -1165,71 +1241,10 @@ public class Constants {
     }
 
 
-    public static long insertTransactionAfterPaymentDone(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, double amount, String transactionStatus, String upiId, float volume, String milkTemperature, TransactionEntity transaction) {
-        //    SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(activity);
+    /// Update the transactions
+    public static void updateTransaction(Activity activity, TransactionDao transactionDao, long transactionId, String transactionStatus, float volume, String milkTemperature, TransactionEntity transaction) {
+         preferencesManager = SharedPreferencesManager.getInstance(activity);
 
-//        TransactionEntity transaction = new TransactionEntity();
-//        transaction.setUserName("Admin");
-//        transaction.setPassword("QWRtaW4=");
-//        transaction.setTransactionType(transactionType);
-//        transaction.setBankTransactionNo(bankTransactionNo);
-//        transaction.setTransactionDate(transactionDate);
-//        transaction.setTransactionTime(transactionTime);
-//        transaction.setAmount(amount);
-//        transaction.setVolume(volume);
-//
-//        /// Added new on 4-1-2025
-//        transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
-//        transaction.setMilkTemperature(milkTemperature);
-//
-//        transaction.setTransactionStatus(transactionStatus);
-//        transaction.setUpiId(upiId);
-
-        try {
-//            String uniqueId = generateSafeUniqueTransactionId(transactionDao);
-//
-//            transaction.setUniqueTransactionId(uniqueId);
-//
-////        transaction.setUniqueTransactionId(transactionDao.generateUniqueTransactionId());
-//
-//            /// Added on 1-1 2025
-//            transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
-
-            /// Insert into Sqlite database
-            long transactionId = transactionDao.insert(transaction);
-
-
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    Toast.makeText(activity, String.valueOf(transactionId), Toast.LENGTH_SHORT).show();
-                }
-            });
-
-
-//            if (transactionId > 0 && isNetworkAvailable(activity)) {
-//
-//                Executors.newSingleThreadExecutor().execute(() -> {
-//                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
-//                });
-//               // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
-//            } else {
-//                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
-//            }
-
-            return transactionId;
-        } catch (Exception e) {
-            Log.e("InsertTransaction", "Failed to insert transaction: " + e.getMessage(), e);
-            return -1;
-        }
-
-
-    }
-
-
-
-
-    public static void updateTransactionAfterVolumeDispense(Activity activity, TransactionDao transactionDao,long transactionId, String transactionStatus, float volume, String milkTemperature, TransactionEntity transaction) {
         transactionDao.updateTransactionDetails(
                 String.valueOf(transactionId),           // Unique Transaction ID
                 volume,                 // volume
@@ -1239,7 +1254,6 @@ public class Constants {
 
         );
 
-
         transaction.setVolume(volume);
         transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
         transaction.setMilkTemperature(milkTemperature);
@@ -1247,8 +1261,15 @@ public class Constants {
 
         if (transactionId > 0 && isNetworkAvailable(activity)) {
 
-
             Executors.newSingleThreadExecutor().execute(() -> {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Log.e("api call ", "Yes");
+                    }
+                });
+
+
                 doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
             });
 
@@ -1296,7 +1317,6 @@ public class Constants {
 
         return uniqueId;
     }
-
 
 
 
@@ -1479,6 +1499,11 @@ public class Constants {
                 .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
                 .addConverterFactory(GsonConverterFactory.create()).build();
 
+        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/api/").toString();
+
+        Log.d(TAG + "Base URL  run: ==>", baseUrl);
+        Log.d(TAG + "Base URL  run: ==> GetConfigurationUrl",baseUrl +  GetConfigurationUrl);
+
         ApiService apiService = retrofit.create(ApiService.class);
 
         ApiManager apiManager = new ApiManager(apiService);
@@ -1503,7 +1528,7 @@ public class Constants {
 
                         /// Save in shared preference
                         Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
-                        preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL());
+                        preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL() + "/");
                         preferencesManager.save(SMSSid, configurationResponse.getData().get(0).getSmsSid());
                         preferencesManager.save(SMSApiKey, configurationResponse.getData().get(0).getSmsAPIKey());
                         preferencesManager.save(SMSSender, configurationResponse.getData().get(0).getSmsSender());
@@ -1548,6 +1573,148 @@ public class Constants {
         NetworkInfo activeNetworkInfo = connectivityManager != null ? connectivityManager.getActiveNetworkInfo() : null;
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
+
+
+    public static String exportUsersToCSV(Context context, AppDatabase db) {
+        List<TransactionEntity> transactions = db.transactionDao().getAllTransactions();
+        File csvFile = null;
+
+        try {
+            StringBuilder data = new StringBuilder();
+            data.append("ID,UserName,Password,Transaction Type," +
+                    "Bank Transaction No,Transaction Date,Transaction Time," +
+                    "Amount,Volume,Milk Price,Milk Temperature,Machine Id," +
+                    "Transaction Status,UPI Id,Unique Transaction Id,CreatedBy \n");
+
+
+            for (TransactionEntity transaction : transactions) {
+                data.append((transaction.getId())).append(",");
+                data.append(transaction.getUserName()).append(",");
+                data.append(transaction.getPassword()).append(",");
+                data.append(transaction.getTransactionType()).append(",");
+                data.append(transaction.getBankTransactionNo()).append(",");
+                data.append(transaction.getTransactionDate()).append(",");
+                data.append(transaction.getTransactionTime()).append(",");
+                data.append(transaction.getAmount()).append(",");
+                data.append(transaction.getVolume()).append(",");
+                data.append(transaction.getMilkPrice()).append(",");
+                data.append(transaction.getMilkTemperature()).append(",");
+                data.append(transaction.getMachineId()).append(",");
+                data.append(transaction.getTransactionStatus()).append(",");
+                data.append(transaction.getUpiId()).append(",");
+                data.append(transaction.getUniqueTransactionId()).append(",");
+                data.append(transaction.getCreatedBy()).append("\n");
+            }
+
+            File dir = new File(context.getExternalFilesDir(null), "exportedCSV");
+            if (!dir.exists()) dir.mkdirs();
+
+            csvFile = new File(dir, "Transactions.csv");
+            FileWriter writer = new FileWriter(csvFile);
+            writer.write(data.toString());
+            writer.close();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return csvFile != null ? csvFile.getAbsolutePath() : null;
+    }
+
+
+
+    public static void sendEmailWithAttachment(Context context, String filePath) {
+        File file = new File(filePath);
+        if (!file.exists()) {
+            Toast.makeText(context, "File not found", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("text/csv");
+        intent.putExtra(Intent.EXTRA_EMAIL, new String[]{"jaideep1210@gmail.com"});
+        intent.putExtra(Intent.EXTRA_SUBJECT, "Room Database CSV Export");
+        intent.putExtra(Intent.EXTRA_TEXT, "Attached is the exported CSV.");
+
+        Uri uri = FileProvider.getUriForFile(
+                context,
+                "com.imdc.milkdespencer.provider",
+                file
+        );
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        context.startActivity(Intent.createChooser(intent, "Send Email..."));
+    }
+
+
+    public static void exportTransactionsToCSVAndShare(Context context, List<TransactionEntity> transactions) {
+        if (transactions == null || transactions.isEmpty()) {
+            Toast.makeText(context, "No transactions to export", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        StringBuilder csvBuilder = new StringBuilder();
+
+        csvBuilder.append("ID,UserName,Password,Transaction Type," +
+                "Bank Transaction No,Transaction Date,Transaction Time," +
+                "Amount,Volume,Milk Price,Milk Temperature,Machine Id," +
+                "Transaction Status,UPI Id,Unique Transaction Id,CreatedBy \n");
+
+        for (TransactionEntity transaction : transactions) {
+            csvBuilder.append((transaction.getId())).append(",");
+            csvBuilder.append(transaction.getUserName()).append(",");
+            csvBuilder.append(transaction.getPassword()).append(",");
+            csvBuilder.append(transaction.getTransactionType()).append(",");
+            csvBuilder.append(transaction.getBankTransactionNo()).append(",");
+            csvBuilder.append(transaction.getTransactionDate()).append(",");
+            csvBuilder.append(transaction.getTransactionTime()).append(",");
+            csvBuilder.append(transaction.getAmount()).append(",");
+            csvBuilder.append(transaction.getVolume()).append(",");
+            csvBuilder.append(transaction.getMilkPrice()).append(",");
+            csvBuilder.append(transaction.getMilkTemperature()).append(",");
+            csvBuilder.append(transaction.getMachineId()).append(",");
+            csvBuilder.append(transaction.getTransactionStatus()).append(",");
+            csvBuilder.append(transaction.getUpiId()).append(",");
+            csvBuilder.append(transaction.getUniqueTransactionId()).append(",");
+            csvBuilder.append(transaction.getCreatedBy()).append("\n");
+        }
+
+
+        String fileName = "Transactions.csv";
+        String mimeType = "text/csv";
+
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+        values.put(MediaStore.Downloads.MIME_TYPE, mimeType);
+        values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/MilkDispenser");
+
+        ContentResolver resolver = context.getContentResolver();
+        Uri uri = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+        }
+
+        if (uri != null) {
+            try (OutputStream os = resolver.openOutputStream(uri)) {
+                os.write(csvBuilder.toString().getBytes(StandardCharsets.UTF_8));
+                os.flush();
+
+                // Share
+                Intent intent = new Intent(Intent.ACTION_SEND);
+                intent.setType(mimeType);
+                intent.putExtra(Intent.EXTRA_STREAM, uri);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                context.startActivity(Intent.createChooser(intent, "Share CSV via"));
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(context, "Error writing file", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            Toast.makeText(context, "Error creating file URI", Toast.LENGTH_SHORT).show();
+        }
+    }
+
 
 
 }

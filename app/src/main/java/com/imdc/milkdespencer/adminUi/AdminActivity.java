@@ -3,13 +3,19 @@ package com.imdc.milkdespencer.adminUi;
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.RazorPayCustomerID;
 import static com.imdc.milkdespencer.common.Constants.doGetConfigurationData;
+import static com.imdc.milkdespencer.common.Constants.exportTransactionsToCSVAndShare;
+import static com.imdc.milkdespencer.common.Constants.sendEmailWithAttachment;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -18,12 +24,14 @@ import android.widget.Button;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.gson.Gson;
 import com.imdc.milkdespencer.MainActivity;
+import com.imdc.milkdespencer.PayWithQrActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.TransactionHistoryActivity;
 import com.imdc.milkdespencer.TransactionHistoryByDateActivity;
@@ -32,12 +40,17 @@ import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adapter.UserAdapter;
 import com.imdc.milkdespencer.common.Constants;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
+import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.entities.User;
 
+import java.util.List;
+
 public class AdminActivity extends AppCompatActivity {
-//    private FirebaseAnalytics mFirebaseAnalytics;
-     SharedPreferencesManager preferencesManager;
-    Button btnSetConfigurations,btnApiConfiguration,btnCIP, btnCustomerAdmin, btnLogs, btnCalibration,btnCashButtonOnOff, btnAddEndUser,btnHistoryByDate;
+    //    private FirebaseAnalytics mFirebaseAnalytics;
+    SharedPreferencesManager preferencesManager;
+    Button btnSetConfigurations, btnApiConfiguration, btnCIP,
+            btnCustomerAdmin, btnLogs, btnCalibration, btnCashButtonOnOff,
+            btnAddEndUser, btnHistoryByDate, btnExportTransactions;
     AppDatabase appDatabase;
     User user;
     private RecyclerView recyclerView;
@@ -67,9 +80,9 @@ public class AdminActivity extends AppCompatActivity {
                 if (getSupportActionBar() != null) {
                     if (user.getUserType() == UserTypeEnum.ADMIN.value()) {
                         getSupportActionBar().setTitle("Admin Panel");
-                    }else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
+                    } else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
                         getSupportActionBar().setTitle("Customer Admin Panel");
-                    } else if (user.getUserType() == UserTypeEnum.END_USER.value()){
+                    } else if (user.getUserType() == UserTypeEnum.END_USER.value()) {
                         getSupportActionBar().setTitle("User Panel");
                     }
                 }
@@ -87,14 +100,15 @@ public class AdminActivity extends AppCompatActivity {
         btnCustomerAdmin = findViewById(R.id.btnAddUser);
         btnAddEndUser = findViewById(R.id.btnAddEndUser);
         btnLogs = findViewById(R.id.btnLogs);
-        btnHistoryByDate= findViewById(R.id.btnHistoryByDate);
+        btnHistoryByDate = findViewById(R.id.btnHistoryByDate);
+        btnExportTransactions = findViewById(R.id.btnExportTransactions);
         btnCalibration = findViewById(R.id.btnCalibration);
-        btnCashButtonOnOff= findViewById(R.id.btnCashButtonOnOff);
+        btnCashButtonOnOff = findViewById(R.id.btnCashButtonOnOff);
 
 
-        if(preferencesManager.get(CashTransactionMode, "0").equals("0")){
+        if (preferencesManager.get(CashTransactionMode, "0").equals("0")) {
             btnCashButtonOnOff.setText(getResources().getString(R.string.btnCashOff));
-        }else{
+        } else {
             btnCashButtonOnOff.setText(getResources().getString(R.string.btnCashOnO));
         }
 
@@ -108,7 +122,8 @@ public class AdminActivity extends AppCompatActivity {
             btnApiConfiguration.setVisibility(View.VISIBLE);
             btnCIP.setVisibility(View.GONE);
             btnHistoryByDate.setVisibility(View.GONE);
-        }else if(user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()){
+            btnExportTransactions.setVisibility(View.GONE);
+        } else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
 
             btnLogs.setText("Show Logs");
             btnCalibration.setVisibility(View.VISIBLE);
@@ -118,9 +133,8 @@ public class AdminActivity extends AppCompatActivity {
             btnApiConfiguration.setVisibility(View.GONE);
             btnCIP.setVisibility(View.GONE);
             btnHistoryByDate.setVisibility(View.GONE);
-        }
-
-        else if(user.getUserType() == UserTypeEnum.END_USER.value()){
+            btnExportTransactions.setVisibility(View.GONE);
+        } else if (user.getUserType() == UserTypeEnum.END_USER.value()) {
             btnCIP.setVisibility(View.VISIBLE);
             btnSetConfigurations.setText("View Configurations");
             btnLogs.setText("Show Transactions");
@@ -130,13 +144,14 @@ public class AdminActivity extends AppCompatActivity {
             btnCustomerAdmin.setVisibility(View.GONE);
             btnAddEndUser.setVisibility(View.GONE);
             btnApiConfiguration.setVisibility(View.GONE);
+            btnExportTransactions.setVisibility(View.VISIBLE);
         }
 
         btnCIP.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
 
-                Log.e("btn CIP"," is pressed");
+                Log.e("btn CIP", " is pressed");
                 isCipOn = true;
                 showCIPRunningDialog(AdminActivity.this);
 
@@ -148,11 +163,11 @@ public class AdminActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                if(preferencesManager.get(CashTransactionMode, "0").equals("0")){
+                if (preferencesManager.get(CashTransactionMode, "0").equals("0")) {
 
                     preferencesManager.save(CashTransactionMode, "1");
                     btnCashButtonOnOff.setText(getResources().getString(R.string.btnCashOnO));
-                }else{
+                } else {
                     preferencesManager.save(CashTransactionMode, "0");
                     btnCashButtonOnOff.setText(getResources().getString(R.string.btnCashOff));
                 }
@@ -168,7 +183,6 @@ public class AdminActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
 
 
         btnLogs.setOnClickListener(new View.OnClickListener() {
@@ -222,10 +236,10 @@ public class AdminActivity extends AppCompatActivity {
             public void onClick(View v) {
                 runOnUiThread(() -> {
                     if (user.getUserType() == UserTypeEnum.ADMIN.value()) {
-                        Constants.showAdminConfigDialog(AdminActivity.this,0);
-                    }else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
+                        Constants.showAdminConfigDialog(AdminActivity.this, 0);
+                    } else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
                         Constants.showAdminConfigDialog(AdminActivity.this, 2);
-                    } else if (user.getUserType() == UserTypeEnum.END_USER.value()){
+                    } else if (user.getUserType() == UserTypeEnum.END_USER.value()) {
                         Constants.showAdminConfigDialog(AdminActivity.this, 1);
                     }
                 });
@@ -241,6 +255,38 @@ public class AdminActivity extends AppCompatActivity {
                         Constants.showAPIConfigDialog(AdminActivity.this);
                     }
                 });
+            }
+        });
+
+        btnExportTransactions.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+//                if (ContextCompat.checkSelfPermission(AdminActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+//                        != PackageManager.PERMISSION_GRANTED) {
+//                    ActivityCompat.requestPermissions(AdminActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 1);
+//                }
+
+
+                new Thread(() -> {
+                    List<TransactionEntity> transactions = AppDatabase.getInstance(AdminActivity.this).transactionDao().getAllTransactions();
+
+                    // Run export on main thread
+                    new Handler(Looper.getMainLooper()).post(() -> {
+                        exportTransactionsToCSVAndShare(AdminActivity.this, transactions);
+                    });
+                }).start();
+
+
+//                String path = Constants.exportUsersToCSV(AdminActivity.this, AppDatabase.getInstance(AdminActivity.this));
+//
+//
+//                Log.e("path", path);
+//
+//                if (path != null) {
+//                   // sendEmailWithAttachment(AdminActivity.this, path);
+//                }
+
             }
         });
 
