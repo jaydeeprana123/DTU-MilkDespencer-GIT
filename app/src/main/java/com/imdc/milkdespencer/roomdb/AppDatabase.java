@@ -7,6 +7,7 @@ import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
+import androidx.room.migration.Migration;
 import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.imdc.milkdespencer.roomdb.entities.LogEntity;
@@ -18,28 +19,29 @@ import com.imdc.milkdespencer.roomdb.interfaces.UserDao;
 
 import java.util.concurrent.Executors;
 
-@Database(entities = {User.class, TransactionEntity.class, LogEntity.class}, version = 3, exportSchema = false)
+/// Change the version 3 to 4
+@Database(entities = {User.class, TransactionEntity.class, LogEntity.class}, version = 4, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     private static AppDatabase instance;
+
+    // ✅ Migration: Add uploadToServer to transactions
+    private static final Migration MIGRATION_3_4 = new Migration(3, 4) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+            database.execSQL("ALTER TABLE transactions ADD COLUMN uploadToServer INTEGER NOT NULL DEFAULT 1");
+        }
+    };
+
+
     private static final RoomDatabase.Callback roomCallback = new RoomDatabase.Callback() {
         @Override
         public void onCreate(@NonNull SupportSQLiteDatabase db) {
             super.onCreate(db);
-            // Insert initial admin user when the database is created
             Executors.newSingleThreadExecutor().execute(new Runnable() {
                 @Override
                 public void run() {
 
                     Log.e("Admin ", "inserted");
-
-//                    UserDao userDao = instance.userDao();
-//                    long userId = userDao.insert(new User("admin", "Mvb@idmc123", 0));
-//                    User existUser = userDao.getUserByUserType(0);
-//                    if(existUser == null){
-//                        long userId = userDao.insert(new User("admin", "Mvb@idmc123", 0));
-//                    }
-//                    UserDao userDao = instance.userDao();
-//                    userDao.insert(new User("admin", "Mvb@idmc123", 0));
                 }
             });
         }
@@ -48,11 +50,12 @@ public abstract class AppDatabase extends RoomDatabase {
     public static synchronized AppDatabase getInstance(Context context) {
         if (instance == null) {
             instance = Room.databaseBuilder(context.getApplicationContext(),
-                    AppDatabase.class, "IDMC-MilkVending").
-                    addCallback(roomCallback).
-                    fallbackToDestructiveMigrationFrom(1).
-                    enableMultiInstanceInvalidation()
-                    .allowMainThreadQueries().build();
+                     AppDatabase.class, "IDMC-MilkVending")
+                    .addCallback(roomCallback)
+                    .addMigrations(MIGRATION_3_4) // ✅ Important for older users
+                    .enableMultiInstanceInvalidation()
+                    .allowMainThreadQueries()
+                    .build();
         }
         return instance;
     }

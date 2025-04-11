@@ -29,6 +29,17 @@ public class TransactionEntity {
     private String uniqueTransactionId;
     private String createdBy;
 
+    // ✅ New Field
+    private int uploadToServer = 0;
+
+    public int getUploadToServer() {
+        return uploadToServer;
+    }
+
+    public void setUploadToServer(int uploadToServer) {
+        this.uploadToServer = uploadToServer;
+    }
+
     public long getId() {
         return id;
     }

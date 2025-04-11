@@ -1198,6 +1198,7 @@ public class Constants {
 
         transaction.setTransactionStatus(transactionStatus);
         transaction.setUpiId(upiId);
+        transaction.setUploadToServer(1);
 
         try {
             String uniqueId = generateSafeUniqueTransactionId(transactionDao);

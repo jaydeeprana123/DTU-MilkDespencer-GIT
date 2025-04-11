@@ -129,7 +129,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     if (!transactionJson.isEmpty()) {
                         TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
 
-                        Log.e("ElectricityLost transactionJson ", transactionJson);
+                        logError("ElectricityLost transactionJson ", transactionJson);
 
                         updateTransactionIfElectricityLost(transactionEntity);
                     } else if (!paymentJson.isEmpty()) {
@@ -211,13 +211,15 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 transaction.setUpiId(qrCodeId);
                                 transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
 
+                                /// Yet uploaded to server flag set.. Need to change. Only it will insert into Local DB
+                                transaction.setUploadToServer(1);
+
                                 String uniqueId = generateSafeUniqueTransactionId(transactionDao);
                                 transaction.setUniqueTransactionId(uniqueId);
 
                                 // Insert into database
                                 long transactionId = transactionDao.insert(transaction);
                                 transaction.setId(transactionId);
-
 
                                 Log.e("save karti " , new Gson().toJson(transaction));
 
@@ -230,13 +232,13 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                     if (!isMilkVendingStarted) {
                                         isMilkVendingStarted = true;
 
-                                        /// Here after 5 minute if status is not getting as a true.
+                                        /// Here after 3 minute if status is not getting as a true.
                                         // Dialog will be close and transaction will be add in the database as a TIME OUT
                                         timeoutHandler = new Handler(Looper.getMainLooper());
                                         timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, amt, 0, transaction);
 
                                         // Post the Runnable with a delay
-                                        timeoutHandler.postDelayed(timeoutRunnable, 5 * 60 * 1000); // 15 minutes
+                                        timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
 
                                         sendForMilkVending(amt, payment, payCodeId, transaction);
                                     }
@@ -1462,7 +1464,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-        Log.e(tag, message);
+      //  Log.e(tag, message);
     }
 
 
