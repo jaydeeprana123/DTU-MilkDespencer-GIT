@@ -79,7 +79,7 @@ public class AdminActivity extends AppCompatActivity {
 
         appDatabase = AppDatabase.getInstance(this);
         TransactionEntity transaction = new TransactionEntity();
-        transaction.setUpiId("jdcorporation@gmail.com");
+        transaction.setUpiId("meerapopat@gmail.com");
         transaction.setAmount(1011256);
         appDatabase.transactionDao().insert(transaction);
 
