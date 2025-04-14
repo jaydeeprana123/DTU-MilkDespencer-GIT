@@ -36,6 +36,9 @@ public interface TransactionDao {
     int updateTransactionUploadToServerStatus(String id, int uploadToServer);
 
 
+    @Query("UPDATE transactions SET uploadToServer = :uploadToServer WHERE id IN (:idList)")
+    void updateTransactionUploadToServerStatusForIds(int uploadToServer, List<String> idList);
+
 
     @Query("SELECT * FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate ORDER BY id DESC")
     List<TransactionEntity> getTransactionsBetweenDates(String startDate, String endDate);

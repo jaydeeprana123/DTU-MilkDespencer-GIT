@@ -1474,6 +1474,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         Log.e("BackButton", "User pressed the back button!");
 
         // Your logic here
+        Constants.saveLogs(PayWithQrActivity.this, "Back Pressed");
         super.onBackPressed();  // if you want the default behavior
     }
 

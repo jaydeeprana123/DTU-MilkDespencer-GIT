@@ -91,7 +91,6 @@ public class PayWithQrActivity1 extends AppCompatActivity implements PaymentResu
             } else {
                 Constants.saveLogs(PayWithQrActivity1.this, "Lost Electricity");
 
-
                 Payment payment = new Gson().fromJson(preferencesManager.get(Constants.PaymentReceived, "").toString(), Payment.class);
                 if (payment != null && payment.get("amount") != null) {
                     float amount = Float.parseFloat(payment.get("amount").toString());

@@ -35,6 +35,7 @@ public abstract class AppDatabase extends RoomDatabase {
             database.execSQL("ALTER TABLE logs ADD COLUMN machineId TEXT");
             database.execSQL("ALTER TABLE logs ADD COLUMN username TEXT");
             database.execSQL("ALTER TABLE logs ADD COLUMN password TEXT");
+            database.execSQL("ALTER TABLE logs ADD COLUMN uploadToServer INTEGER NOT NULL DEFAULT 0");
 
             // Update all old rows with default values
             database.execSQL("UPDATE logs SET machineId = '000000A31122024', username = 'Admin', password = 'QWRtaW4='");

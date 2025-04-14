@@ -59,6 +59,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Random;
@@ -1140,10 +1141,13 @@ public class Constants {
             public void run() {
                 AppDatabase database = AppDatabase.getInstance(context);
                 LogDao logDao = database.logDao();
-                LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "").toString(), "Admin", "QWRtaW4=");
-                logDao.insert(logEntity);
+                LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "").toString(), "Admin", "QWRtaW4=", 0);
+                long logId =  logDao.insert(logEntity);
+                logEntity.setId((int) logId);
 
                 Log.e(TAG, "run: saveLogs " + logDao.getAllLogs());
+
+                doPostLog(preferencesManager, "/api/Log/PostLog",logEntity,logDao);
 
             }
         }).start();
@@ -1390,7 +1394,10 @@ public class Constants {
         ApiService apiService = retrofit.create(ApiService.class);
         ApiManager apiManager = new ApiManager(apiService);
 
-        String request = new Gson().toJson(transaction);
+        /// Here one transaction add into array
+        List<TransactionEntity> transactionList = new ArrayList<>();
+        transactionList.add(transaction);
+        String request = new Gson().toJson(transactionList);
         Log.e(TAG, "doPostTransaction: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
@@ -1407,6 +1414,176 @@ public class Constants {
                     Log.e(TAG, "onNext: " + json);
 
                     transactionDao.updateTransactionUploadToServerStatus(String.valueOf(transaction.getId()), 1);
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Response parsing error", e);
+                }
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "onError: ", e);
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onComplete() {
+                // Completion logic if needed
+            }
+        };
+
+        apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
+    }
+
+    public static void doPostAsyncTransactions(SharedPreferencesManager preferencesManager, String url, ArrayList<TransactionEntity> transactionList,TransactionDao transactionDao) {
+        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
+        Log.e("Base URL", baseUrl);
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .build();
+
+        ApiService apiService = retrofit.create(ApiService.class);
+        ApiManager apiManager = new ApiManager(apiService);
+
+        /// Here one transaction add into array
+        String request = new Gson().toJson(transactionList);
+        Log.e(TAG, "doPostTransactionList: " + request);
+
+        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
+
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+
+        DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
+            @Override
+            public void onNext(ResponseBody response) {
+                try {
+                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
+                    String json = new Gson().toJson(jsonElement);
+                    Log.e(TAG, "onNext: " + json);
+
+                    ArrayList idList = new ArrayList();
+                    for (int i=0; i<transactionList.size(); i++){
+                        idList.add(String.valueOf(transactionList.get(i).getId()));
+                    }
+
+                    transactionDao.updateTransactionUploadToServerStatusForIds( 1, idList);
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Response parsing error", e);
+                }
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "onError: ", e);
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onComplete() {
+                // Completion logic if needed
+            }
+        };
+
+        apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
+    }
+
+
+    public static void doPostLog(SharedPreferencesManager preferencesManager, String url, LogEntity log,LogDao logDao) {
+        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
+        Log.e("Base URL", baseUrl);
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .build();
+
+        ApiService apiService = retrofit.create(ApiService.class);
+        ApiManager apiManager = new ApiManager(apiService);
+
+        /// Here one transaction add into array
+        List<LogEntity> logList = new ArrayList<>();
+        logList.add(log);
+        String request = new Gson().toJson(logList);
+        Log.e(TAG, "doPostLog: " + request);
+
+        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
+
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+
+        DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
+            @Override
+            public void onNext(ResponseBody response) {
+                try {
+                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
+                    String json = new Gson().toJson(jsonElement);
+                    Log.e(TAG, "onNext: " + json);
+
+                    logDao.updateLogUploadToServerStatus(String.valueOf(log.getId()), 1);
+
+                } catch (Exception e) {
+                    Log.e(TAG, "Response parsing error", e);
+                }
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.e(TAG, "onError: ", e);
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onComplete() {
+                // Completion logic if needed
+            }
+        };
+
+        apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
+    }
+
+
+    public static void doPostAsyncLogs(SharedPreferencesManager preferencesManager, String url, ArrayList<LogEntity> logList,LogDao logDao) {
+        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
+        Log.e("Base URL", baseUrl);
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .build();
+
+        ApiService apiService = retrofit.create(ApiService.class);
+        ApiManager apiManager = new ApiManager(apiService);
+
+        /// Here one transaction add into array
+        String request = new Gson().toJson(logList);
+        Log.e(TAG, "doPostLogList: " + request);
+
+        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
+
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+
+        DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
+            @Override
+            public void onNext(ResponseBody response) {
+                try {
+                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
+                    String json = new Gson().toJson(jsonElement);
+                    Log.e(TAG, "onNext: " + json);
+
+                    ArrayList idList = new ArrayList();
+                    for (int i=0; i<logList.size(); i++){
+                        idList.add(String.valueOf(logList.get(i).getId()));
+                    }
+
+                    logDao.updateLogsUploadToServerStatusForIds( 1, idList);
 
                 } catch (Exception e) {
                     Log.e(TAG, "Response parsing error", e);

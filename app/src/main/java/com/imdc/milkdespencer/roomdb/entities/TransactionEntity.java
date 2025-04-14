@@ -18,6 +18,8 @@ public class TransactionEntity {
     private double amount;
 
     private float volume;
+
+    // ✅ New Field
     private float remainingvolume;
 
     private String milkPrice;
