@@ -32,6 +32,7 @@ import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adapter.UserAdapter;
 import com.imdc.milkdespencer.common.Constants;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
+import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.entities.User;
 
 public class AdminActivity extends AppCompatActivity {
@@ -77,6 +78,10 @@ public class AdminActivity extends AppCompatActivity {
         }
 
         appDatabase = AppDatabase.getInstance(this);
+        TransactionEntity transaction = new TransactionEntity();
+        transaction.setUpiId("jdcorporation@gmail.com");
+        transaction.setAmount(1011256);
+        appDatabase.transactionDao().insert(transaction);
 
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this)); // Set the number of columns as needed
