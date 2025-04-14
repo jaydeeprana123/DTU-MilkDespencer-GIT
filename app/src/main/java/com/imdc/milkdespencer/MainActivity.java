@@ -411,7 +411,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
     /*Hide System UI*/
     private void hideSystemUI() {
-       // getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
     }
 
 
@@ -982,7 +982,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-         Log.e(tag, message);
+        // Log.e(tag, message);
     }
 
 

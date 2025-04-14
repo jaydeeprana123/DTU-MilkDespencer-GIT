@@ -156,6 +156,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     private final BroadcastReceiver paymentStatusReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+
             if ("payment_status_action".equals(intent.getAction())) {
 
                 // Cancel QR code timeout
@@ -917,7 +918,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         // Set the QR code bitmap to the ImageView
         Glide.with(this).load(imageUrl).timeout(10000).into(imageViewQRCode);
 
-        qrCodeDialog.setCancelable(true);
+        qrCodeDialog.setCancelable(false);
 
         // Show the dialog
 
@@ -1479,4 +1480,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        logError(TAG, "on resume called");
+
+    }
 }
