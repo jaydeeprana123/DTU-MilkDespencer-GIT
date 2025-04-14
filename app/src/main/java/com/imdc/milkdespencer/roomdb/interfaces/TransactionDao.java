@@ -6,6 +6,7 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
 
+import com.imdc.milkdespencer.roomdb.entities.LogEntity;
 import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 
 import java.util.List;
@@ -79,15 +80,24 @@ public interface TransactionDao {
 
 
     // Get the sum of the 'volume' column for today's data
-    @Query("SELECT SUM(amount) FROM transactions WHERE transactionDate = :todayDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED')")
-    Double getTodayTotalAmount(String todayDate);
+//    @Query("SELECT SUM(amount) FROM transactions WHERE transactionDate = :todayDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED')")
+//    Double getTodayTotalAmount(String todayDate);
 
 
-    @Query("SELECT SUM(volume) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus = 'SUCCESS'")
-    Float getTotalSuccessVolumeBetweenDates(String startDate, String endDate);
+    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate = :todayDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED')")
+    double getTodayTotalAmount(String todayDate);
 
-    @Query("SELECT SUM(amount) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus IN ('SUCCESS', 'FAILED')")
-    Double getTotalAmountBetweenDates(String startDate, String endDate);
 
+    @Query("SELECT IFNULL(SUM(volume), 0) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus = 'SUCCESS'")
+    float getTotalSuccessVolumeBetweenDates(String startDate, String endDate);
+
+
+    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus IN ('SUCCESS', 'FAILED')")
+    double getTotalAmountBetweenDates(String startDate, String endDate);
+
+
+
+    @Query("SELECT * FROM transactions WHERE uploadToServer = 0")
+    List<TransactionEntity> getUnUploadedTransactions();
 
 }

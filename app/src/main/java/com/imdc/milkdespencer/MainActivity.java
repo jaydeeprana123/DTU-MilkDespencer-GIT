@@ -5,6 +5,9 @@ import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
+import static com.imdc.milkdespencer.common.Constants.doPostAsyncLogs;
+import static com.imdc.milkdespencer.common.Constants.doPostAsyncTransactions;
+import static com.imdc.milkdespencer.common.Constants.isNetworkAvailable;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
@@ -52,10 +55,16 @@ import com.imdc.milkdespencer.common.UsbSerialCommunication;
 import com.imdc.milkdespencer.enums.ScreenEnum;
 import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
+import com.imdc.milkdespencer.roomdb.entities.LogEntity;
+import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.entities.User;
+import com.imdc.milkdespencer.roomdb.interfaces.LogDao;
+import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener {
@@ -85,7 +94,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
     Button btnCrash;
 
-    AlertDialog alertDialog;
     boolean isShowError = false;
 
 
@@ -152,7 +160,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
             boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
-            logError(TAG, "Battery Status " +" Charging: " + isCharging);
+            logError(TAG, "Battery Status " + " Charging: " + isCharging);
             if (isCharging) {
 
                 if (!getChargingState) {
@@ -181,7 +189,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 handleNotChargingState();
             }
         }
-
 
 
         private void checkAndRequestUsbPermission() {
@@ -404,7 +411,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
     /*Hide System UI*/
     private void hideSystemUI() {
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+       // getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
     }
 
 
@@ -419,11 +426,32 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
 
         appDatabase = AppDatabase.getInstance(this);
-        alertDialog = new AlertDialog.Builder(this)
-                .setTitle("No Electricity Connections")
-                .setMessage("Please check again after sometime. Thank You!")
-                .setCancelable(false)
-                .create();
+
+        // Check If internet is available
+        if(isNetworkAvailable(MainActivity.this)){
+            TransactionDao transactionDao = appDatabase.transactionDao();
+
+            /// Get un uploaded  transactions
+            List<TransactionEntity> unUploadTransactionList = transactionDao.getUnUploadedTransactions();
+
+            if (!unUploadTransactionList.isEmpty()) {
+
+                /// Upload on the server
+                new Thread(() -> doPostAsyncTransactions(preferencesManager, "/api/Transaction/PostTransaction", new ArrayList<>(unUploadTransactionList), transactionDao)).start();
+            }
+
+            LogDao logDao = appDatabase.logDao();
+
+            /// Get un uploaded logs
+            List<LogEntity> unUploadLogsList = logDao.getUnUploadedLogs();
+            if (!unUploadLogsList.isEmpty()) {
+
+                /// Upload on the server
+                new Thread(() -> doPostAsyncLogs(preferencesManager, "/api/Log/PostLog", new ArrayList<>(unUploadLogsList), logDao)).start();
+
+            }
+        }
+
     }
 
 
@@ -510,7 +538,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         submitBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                logError(TAG , "run:>> next button click");
+                logError(TAG, "run:>> next button click");
 
                 handleDialogSubmit(dialog, submitBtn);
             }
@@ -531,12 +559,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
 
-            logError(TAG , "run:>> responseTempStatus" + preferencesManager.get(Constants.ResponseTempStatus, "").toString());
+            logError(TAG, "run:>> responseTempStatus" + preferencesManager.get(Constants.ResponseTempStatus, "").toString());
 
             if (responseTempStatus.getConnectivity() != null) {
                 if (!responseTempStatus.getConnectivity()) {
 
-                    logError(TAG , "run:>>" + (responseTempStatus.getConnectivity().toString()));
+                    logError(TAG, "run:>>" + (responseTempStatus.getConnectivity().toString()));
 
                     submitBtn.setText(getString(R.string.start));
                     dialog.dismiss();
@@ -774,7 +802,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         try {
             responseTempStatus = new Gson().fromJson(data, ResponseTempStatus.class);
         } catch (Exception e) {
-            logError(TAG, "Error parsing responseTempStatus " +  e);
+            logError(TAG, "Error parsing responseTempStatus " + e);
             return;
         }
 
@@ -921,19 +949,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         startActivity(startMain);
     }*/
 
-    private void showConnectivityDialog(boolean isConnect) {
-
-        if (!isConnect) {
-            if (!alertDialog.isShowing()) {
-                alertDialog.show();
-            } else {
-                alertDialog.dismiss();
-            }
-        } else {
-            alertDialog.dismiss();
-        }
-    }
-
 
     /// When user comes from the screen
     @Override
@@ -966,8 +981,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     }
 
 
-    private void logError(String tag, String message){
-       // Log.e(tag, message);
+    private void logError(String tag, String message) {
+         Log.e(tag, message);
     }
 
 
@@ -977,7 +992,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             deleteDir(context.getExternalCacheDir()); // External cache
         }
     }
-
 
 
     public void clearAppCache(Context context) {

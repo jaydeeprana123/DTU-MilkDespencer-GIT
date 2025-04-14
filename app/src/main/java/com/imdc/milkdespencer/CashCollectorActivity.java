@@ -720,7 +720,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
 
-    /*If 5 minutes done and status is not getting as a true.
+    /*If 3 minutes done and status is not getting as a true.
    Transaction will be added as a FAILED*/
     private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volume, TransactionEntity transaction) {
         if (CashCollectorActivity.this.isFinishing() || CashCollectorActivity.this.isDestroyed()) {
@@ -740,7 +740,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                 Constants.updateTransaction(CashCollectorActivity.this, transactionDao, transaction.getId(), "FAILED", 0, transaction.getMilkTemperature(), transaction);
 
-                logError(TAG + "Time is out", "After 5 minutes");
+                logError(TAG + "Time is out", "After 3 minutes");
 
                 if (!isFinishing() && !isDestroyed()) {
                     runOnUiThread(this::goToHomeScreen);
@@ -993,14 +993,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                         if (!isMilkVendingStarted) {
                                             isMilkVendingStarted = true;
 
-                                             /// Here after 5 minute if status is not getting as a true.
+                                             /// Here after 3 minute if status is not getting as a true.
                                             // Dialog will be close and transaction will be add in the database as a TIME OUT
                                             // Initialize the Handler and Runnable
                                             timeoutHandler = new Handler(Looper.getMainLooper());
                                             timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, ev.value, 0, transaction);
 
                                             // Post the Runnable with a delay
-                                            timeoutHandler.postDelayed(timeoutRunnable, 5 * 60 * 1000); // 15 minutes
+                                            timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
 
                                             sendForMilkVending(ev,transaction);
                                             dialog.dismiss();
@@ -1691,6 +1691,17 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     private void logError(String tag, String message) {
         Log.e(tag, message);
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        // This runs when the user clicks the back button
+        Log.e("BackButton", "User pressed the back button!");
+
+        // Your logic here
+        Constants.saveLogs(CashCollectorActivity.this, "Back Pressed");
+        super.onBackPressed();  // if you want the default behavior
     }
 
 }

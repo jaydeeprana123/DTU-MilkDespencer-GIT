@@ -59,9 +59,12 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
@@ -1141,13 +1144,17 @@ public class Constants {
             public void run() {
                 AppDatabase database = AppDatabase.getInstance(context);
                 LogDao logDao = database.logDao();
-                LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "").toString(), "Admin", "QWRtaW4=", 0);
+                LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "000000A31122024").toString(), "Admin", "QWRtaW4=", 0);
                 long logId =  logDao.insert(logEntity);
                 logEntity.setId((int) logId);
 
                 Log.e(TAG, "run: saveLogs " + logDao.getAllLogs());
 
-                doPostLog(preferencesManager, "/api/Log/PostLog",logEntity,logDao);
+                if(logId > 0 && isNetworkAvailable(context)){
+                    doPostLog(preferencesManager, "/api/Log/PostLog",logEntity,logDao);
+                }
+
+
 
             }
         }).start();
@@ -1748,7 +1755,7 @@ public class Constants {
 
 
     /*Check that internet connection is available or not*/
-    public static boolean isNetworkAvailable(Activity context) {
+    public static boolean isNetworkAvailable(Context context) {
         ConnectivityManager connectivityManager
                 = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo activeNetworkInfo = connectivityManager != null ? connectivityManager.getActiveNetworkInfo() : null;
@@ -1896,6 +1903,11 @@ public class Constants {
         }
     }
 
+
+    private String convertTimestamp(long millis) {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS", Locale.getDefault());
+        return sdf.format(new Date(millis));
+    }
 
 
 }

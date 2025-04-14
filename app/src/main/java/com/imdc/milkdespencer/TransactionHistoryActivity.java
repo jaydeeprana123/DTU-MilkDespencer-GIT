@@ -89,8 +89,8 @@ public class TransactionHistoryActivity extends AppCompatActivity {
                 totalAmount = Double.parseDouble(String.format("%.2f", totalAmount));
                 totalVolume = Float.parseFloat(String.format("%.2f", totalVolume));
 
-                Log.e("totalAmount", String.valueOf(totalAmount));
-                Log.e("totalVolume", String.valueOf(totalVolume));
+//                Log.e("totalAmount", String.valueOf(totalAmount));
+//                Log.e("totalVolume", String.valueOf(totalVolume));
 
                 float finalTotalVolume = totalVolume;
                 double finalTotalAmount = totalAmount;

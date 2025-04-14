@@ -26,4 +26,6 @@ public interface LogDao {
     @Query("UPDATE logs SET uploadToServer = :uploadToServer WHERE id IN (:idList)")
     void updateLogsUploadToServerStatusForIds(int uploadToServer, List<String> idList);
 
+    @Query("SELECT * FROM logs WHERE uploadToServer = 0")
+    List<LogEntity> getUnUploadedLogs();
 }
