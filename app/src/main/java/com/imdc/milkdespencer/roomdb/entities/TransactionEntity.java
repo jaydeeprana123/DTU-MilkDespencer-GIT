@@ -18,6 +18,8 @@ public class TransactionEntity {
     private double amount;
 
     private float volume;
+    private float remainingVolume;
+    private float addedVolume;
 
     private String milkPrice;
 
@@ -31,6 +33,22 @@ public class TransactionEntity {
 
     // ✅ New Field
     private int uploadToServer = 0;
+
+    public float getRemainingVolume() {
+        return remainingVolume;
+    }
+
+    public void setRemainingVolume(float remainingVolume) {
+        this.remainingVolume = remainingVolume;
+    }
+
+    public float getAddedVolume() {
+        return addedVolume;
+    }
+
+    public void setAddedVolume(float addedVolume) {
+        this.addedVolume = addedVolume;
+    }
 
     public int getUploadToServer() {
         return uploadToServer;

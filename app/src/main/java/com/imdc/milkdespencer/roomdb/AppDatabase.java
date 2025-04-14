@@ -29,6 +29,9 @@ public abstract class AppDatabase extends RoomDatabase {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
             database.execSQL("ALTER TABLE transactions ADD COLUMN uploadToServer INTEGER NOT NULL DEFAULT 1");
+            database.execSQL("ALTER TABLE transactions ADD COLUMN remainingVolume REAL NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE transactions ADD COLUMN addedVolume REAL NOT NULL DEFAULT 0");
+
         }
     };
 
