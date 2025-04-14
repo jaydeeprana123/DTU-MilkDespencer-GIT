@@ -10,10 +10,23 @@ public class LogEntity {
     private int id;
     private String message;
     private long timestamp;
+    private String machineId;
 
-    public LogEntity(String message) {
+    private String username;
+
+    private String password;
+
+//    public LogEntity(String message) {
+//        this.message = message;
+//        this.timestamp = System.currentTimeMillis();
+//    }
+
+    public LogEntity(String message, String machineId, String username, String password) {
         this.message = message;
         this.timestamp = System.currentTimeMillis();
+        this.machineId = machineId;
+        this.username = username;
+        this.password = password;
     }
 
     public int getId() {

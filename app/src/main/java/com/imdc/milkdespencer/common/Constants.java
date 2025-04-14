@@ -1134,13 +1134,13 @@ public class Constants {
 
 
     public static void saveLogs(Context context, String message) {
-
+        preferencesManager = SharedPreferencesManager.getInstance(context);
         new Thread(new Runnable() {
             @Override
             public void run() {
                 AppDatabase database = AppDatabase.getInstance(context);
                 LogDao logDao = database.logDao();
-                LogEntity logEntity = new LogEntity(message);
+                LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "").toString(), "Admin", "QWRtaW4=");
                 logDao.insert(logEntity);
 
                 Log.e(TAG, "run: saveLogs " + logDao.getAllLogs());
@@ -1212,7 +1212,7 @@ public class Constants {
 
             // Insert into Sqlite database
             long transactionId = transactionDao.insert(transaction);
-
+            transaction.setId(transactionId);
 
             activity.runOnUiThread(new Runnable() {
                 @Override
@@ -1225,7 +1225,7 @@ public class Constants {
             if (transactionId > 0 && isNetworkAvailable(activity)) {
 
                 Executors.newSingleThreadExecutor().execute(() -> {
-                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
+                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
                 });
                // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
             } else {
@@ -1271,7 +1271,7 @@ public class Constants {
                 });
 
 
-                doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
+                doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
             });
 
 //            Data data = new Data.Builder()
@@ -1377,7 +1377,7 @@ public class Constants {
     }
 
 
-    public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction) {
+    public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction,TransactionDao transactionDao) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
         Log.e("Base URL", baseUrl);
 
@@ -1405,6 +1405,9 @@ public class Constants {
                     JsonElement jsonElement = JsonParser.parseReader(response.charStream());
                     String json = new Gson().toJson(jsonElement);
                     Log.e(TAG, "onNext: " + json);
+
+                    transactionDao.updateTransactionUploadToServerStatus(String.valueOf(transaction.getId()), 1);
+
                 } catch (Exception e) {
                     Log.e(TAG, "Response parsing error", e);
                 }

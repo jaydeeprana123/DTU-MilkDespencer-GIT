@@ -32,6 +32,11 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET volume = :volume, milkPrice = :milkPrice, milkTemperature = :milkTemperature, transactionStatus = :transactionStatus WHERE id = :id")
     int updateTransactionDetails(String id, float volume, String milkPrice, String milkTemperature, String transactionStatus);
 
+    @Query("UPDATE transactions SET uploadToServer = :uploadToServer WHERE id = :id")
+    int updateTransactionUploadToServerStatus(String id, int uploadToServer);
+
+
+
     @Query("SELECT * FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate ORDER BY id DESC")
     List<TransactionEntity> getTransactionsBetweenDates(String startDate, String endDate);
 

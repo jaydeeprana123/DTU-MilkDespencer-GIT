@@ -28,8 +28,19 @@ public abstract class AppDatabase extends RoomDatabase {
     private static final Migration MIGRATION_3_4 = new Migration(3, 4) {
         @Override
         public void migrate(@NonNull SupportSQLiteDatabase database) {
+
             database.execSQL("ALTER TABLE transactions ADD COLUMN uploadToServer INTEGER NOT NULL DEFAULT 1");
-            database.execSQL("ALTER TABLE transactions ADD COLUMN remainingVolume REAL NOT NULL DEFAULT 0");
+            database.execSQL("ALTER TABLE transactions ADD COLUMN remainingvolume REAL NOT NULL DEFAULT 0");
+
+            database.execSQL("ALTER TABLE logs ADD COLUMN machineId TEXT");
+            database.execSQL("ALTER TABLE logs ADD COLUMN username TEXT");
+            database.execSQL("ALTER TABLE logs ADD COLUMN password TEXT");
+
+            // Update all old rows with default values
+            database.execSQL("UPDATE logs SET machineId = '000000A31122024', username = 'Admin', password = 'QWRtaW4='");
+
+
+
         }
     };
 

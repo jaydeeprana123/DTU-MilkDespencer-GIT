@@ -212,7 +212,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
 
                                 /// Yet uploaded to server flag set.. Need to change. Only it will insert into Local DB
-                                transaction.setUploadToServer(1);
+                                transaction.setUploadToServer(0);
 
                                 String uniqueId = generateSafeUniqueTransactionId(transactionDao);
                                 transaction.setUniqueTransactionId(uniqueId);
@@ -1465,6 +1465,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     private void logError(String tag, String message) {
       //  Log.e(tag, message);
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        // This runs when the user clicks the back button
+        Log.e("BackButton", "User pressed the back button!");
+
+        // Your logic here
+        super.onBackPressed();  // if you want the default behavior
     }
 
 
