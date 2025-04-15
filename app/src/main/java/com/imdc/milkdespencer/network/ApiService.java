@@ -20,6 +20,21 @@ public interface ApiService {
     @GET()
     Observable<ResponseBody> doGetRequest(@Url String url);
 
+    @GET
+    Observable<ResponseBody> doGetRequestWithBody(
+            @Url String url,
+            @Body RequestBody body
+    );
+
+    @POST
+    Observable<ResponseBody> doPostRequestWithBody(
+            @Url String url,
+            @Body RequestBody body
+    );
+
+
+
+
     @POST()
     Observable<ResponseBody> doPostRequest(@Url String url, @Body RequestBody requestBody, @HeaderMap HashMap<String, String> header_map);
 

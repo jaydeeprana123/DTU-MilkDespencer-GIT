@@ -78,8 +78,13 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
     private boolean isDischargeState = false;
 
-
+    private static MainActivity instance = null;
     private boolean isLowMilkLevel = false;
+
+        public static MainActivity getInstance() {
+
+        return instance;
+    }
 
 
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
@@ -397,6 +402,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         hideSystemUI();
         setContentView(R.layout.activity_main2);
 
+        instance = this;
         initializeDependencies();
         initializeUI();
         setupListeners();
@@ -428,29 +434,38 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         appDatabase = AppDatabase.getInstance(this);
 
         // Check If internet is available
-        if(isNetworkAvailable(MainActivity.this)){
-            TransactionDao transactionDao = appDatabase.transactionDao();
+        if (isNetworkAvailable(MainActivity.this)) {
+            new Thread(() -> {
+                TransactionDao transactionDao = appDatabase.transactionDao();
 
-            /// Get un uploaded  transactions
-            List<TransactionEntity> unUploadTransactionList = transactionDao.getUnUploadedTransactions();
+                // Get un-uploaded transactions
+                List<TransactionEntity> unUploadTransactionList = transactionDao.getUnUploadedTransactions();
 
-            if (!unUploadTransactionList.isEmpty()) {
+                for (TransactionEntity transaction : unUploadTransactionList) {
+                    if (transaction.getMilkTemperature() == null || transaction.getMilkTemperature().isEmpty()) {
+                        transaction.setMilkTemperature("111");
+                    }
+                }
 
-                /// Upload on the server
-                new Thread(() -> doPostAsyncTransactions(preferencesManager, "/api/Transaction/PostTransaction", new ArrayList<>(unUploadTransactionList), transactionDao)).start();
-            }
+                if (!unUploadTransactionList.isEmpty()) {
+                    // Upload on the server
+                    doPostAsyncTransactions(preferencesManager, "/api/Transaction/PostTransaction",
+                            new ArrayList<>(unUploadTransactionList), transactionDao);
+                }
 
-            LogDao logDao = appDatabase.logDao();
+                LogDao logDao = appDatabase.logDao();
 
-            /// Get un uploaded logs
-            List<LogEntity> unUploadLogsList = logDao.getUnUploadedLogs();
-            if (!unUploadLogsList.isEmpty()) {
+                // Get un-uploaded logs
+                List<LogEntity> unUploadLogsList = logDao.getUnUploadedLogs();
 
-                /// Upload on the server
-                new Thread(() -> doPostAsyncLogs(preferencesManager, "/api/Log/PostLog", new ArrayList<>(unUploadLogsList), logDao)).start();
-
-            }
+                if (!unUploadLogsList.isEmpty()) {
+                    // Upload on the server
+                    doPostAsyncLogs(preferencesManager, "/api/Log/PostLog",
+                            new ArrayList<>(unUploadLogsList), logDao);
+                }
+            }).start();
         }
+
 
     }
 

@@ -1,7 +1,7 @@
 package com.imdc.milkdespencer;
 
 
-import static com.imdc.milkdespencer.CashCollectorActivity.getInstance;
+import static com.imdc.milkdespencer.MainActivity.getInstance;
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
 

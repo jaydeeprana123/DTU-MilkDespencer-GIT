@@ -5,7 +5,6 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "logs")
 public class LogEntity {
-
     @PrimaryKey(autoGenerate = true)
     private int id;
     private String message;

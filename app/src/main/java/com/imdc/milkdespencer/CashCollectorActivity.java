@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer;
 
+import static com.imdc.milkdespencer.MainActivity.getInstance;
 import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
@@ -133,7 +134,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     private static D2xxManager ftD2xx = null;
     private static FT_Device ftDev = null;
     private static SSPDevice sspDevice = null;
-    private static CashCollectorActivity instance = null;
+//    private static CashCollectorActivity instance = null;
 
     LottieDialog milkDispensingDialog;
     private Handler handler = new Handler(); // Create a Handler instance
@@ -251,10 +252,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     };
     private SSPUpdate sspUpdate = null;
 
-    public static CashCollectorActivity getInstance() {
-
-        return instance;
-    }
+//    public static CashCollectorActivity getInstance() {
+//
+//        return instance;
+//    }
 
     public static void DisplaySetUp(SSPDevice dev) {
 
@@ -269,7 +270,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
         // check for type comapable
         if (dev.type != SSPDeviceType.BillValidator) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity.getInstance());
+            AlertDialog.Builder builder = new AlertDialog.Builder(getInstance());
             // 2. Chain together various setter methods to set the dialog characteristics
             builder.setMessage("Connected device is not BNV (" + dev.type.toString() + ")").setTitle("BNV");
             builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
@@ -958,8 +959,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                     TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
 
                                     TransactionEntity transaction = new TransactionEntity();
-                                    transaction.setUserName("Admin");
-                                    transaction.setPassword("QWRtaW4="); // base64 for 'Admin'
+                                    transaction.setUserName("");
+                                    transaction.setPassword(""); // base64 for 'Admin'
                                     transaction.setTransactionType("ONLINE");
                                     transaction.setBankTransactionNo("");
                                     transaction.setTransactionDate(date);
@@ -1126,7 +1127,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         tvProcessing = findViewById(R.id.tvProcessing);
         bvDisplay.setVisibility(View.INVISIBLE);
         cashCollectorActivity = this;
-        instance = this;
 
         preferencesManager = SharedPreferencesManager.getInstance(this);
         /// When user comes first delete the previously saved payment data in shared preference

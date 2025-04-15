@@ -36,7 +36,9 @@ import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
@@ -58,6 +60,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.Key;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -123,7 +126,12 @@ public class Constants {
     public static final String BASE_URL = "https://portal.idmc.coop:5151/api/";
 
 
-    public static final String GetConfigurationUrl = "SMSConfiguration/GetSMSConfiguration";
+    public static final String GetConfigurationUrl = "api/SMSConfiguration/GetSMSConfiguration";
+
+
+    public static final String KeyForApi = "Admin";
+
+    public static final String ValueForApi = "Mvb@102405A19022025";
 
     public static final String SMSApiUrl = "SMSApiUrl";
 
@@ -1144,7 +1152,7 @@ public class Constants {
             public void run() {
                 AppDatabase database = AppDatabase.getInstance(context);
                 LogDao logDao = database.logDao();
-                LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "000000A31122024").toString(), "Admin", "QWRtaW4=", 0);
+                LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "000000A31122024").toString(), "", "", 0);
                 long logId =  logDao.insert(logEntity);
                 logEntity.setId((int) logId);
 
@@ -1194,8 +1202,8 @@ public class Constants {
          preferencesManager = SharedPreferencesManager.getInstance(activity);
 
         TransactionEntity transaction = new TransactionEntity();
-        transaction.setUserName("Admin");
-        transaction.setPassword("QWRtaW4=");
+        transaction.setUserName("");
+        transaction.setPassword("");
         transaction.setTransactionType(transactionType);
         transaction.setBankTransactionNo(bankTransactionNo);
         transaction.setTransactionDate(transactionDate);
@@ -1224,13 +1232,6 @@ public class Constants {
             // Insert into Sqlite database
             long transactionId = transactionDao.insert(transaction);
             transaction.setId(transactionId);
-
-            activity.runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                   Toast.makeText(activity, String.valueOf(transactionId), Toast.LENGTH_SHORT).show();
-                }
-            });
 
 
             if (transactionId > 0 && isNetworkAvailable(activity)) {
@@ -1274,33 +1275,23 @@ public class Constants {
         if (transactionId > 0 && isNetworkAvailable(activity)) {
 
             Executors.newSingleThreadExecutor().execute(() -> {
-                activity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Log.e("api call ", "Yes");
-                    }
-                });
+
+
+//                if (activity != null && !activity.isFinishing()) {
+//                    activity.runOnUiThread(() -> Log.e("api call ", "Yes"));
+//                }
 
 
                 doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
             });
 
-//            Data data = new Data.Builder()
-//                    .putString("transaction_json", new Gson().toJson(transaction))
-//                    .build();
-//
-//            OneTimeWorkRequest workRequest = new OneTimeWorkRequest.Builder(TransactionPostWorker.class)
-//                    .setInputData(data)
-//                    .build();
-//
-//            WorkManager.getInstance(activity.getApplicationContext()).enqueue(workRequest);
 
-
-//            Executors.newSingleThreadExecutor().execute(() -> {
-//                doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction);
-//            });
-            // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
         } else {
+
+            preferencesManager.delete(Constants.PaymentReceived);
+            preferencesManager.delete(Constants.PaidAmt);
+            preferencesManager.delete(Constants.SavedTransaction);
+
             //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
         }
 
@@ -1404,7 +1395,19 @@ public class Constants {
         /// Here one transaction add into array
         List<TransactionEntity> transactionList = new ArrayList<>();
         transactionList.add(transaction);
-        String request = new Gson().toJson(transactionList);
+
+        // Create JSON Array
+        // And add Key And Value in the request
+        JsonArray jsonArray = new JsonArray();
+
+        for (TransactionEntity transactionEntity : transactionList) {
+            JsonObject jsonObject = new Gson().toJsonTree(transactionEntity).getAsJsonObject();
+            jsonObject.addProperty("Key", KeyForApi);
+            jsonObject.addProperty("value", ValueForApi);
+            jsonArray.add(jsonObject);
+        }
+
+        String request = new Gson().toJson(jsonArray);
         Log.e(TAG, "doPostTransaction: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
@@ -1420,7 +1423,20 @@ public class Constants {
                     String json = new Gson().toJson(jsonElement);
                     Log.e(TAG, "onNext: " + json);
 
-                    transactionDao.updateTransactionUploadToServerStatus(String.valueOf(transaction.getId()), 1);
+
+                    if (transactionDao != null) {
+                        new Thread(() -> {
+                            transactionDao.updateTransactionUploadToServerStatus(String.valueOf(transaction.getId()), 1);
+                        }).start();
+                    }
+
+
+                    if(preferencesManager != null){
+                        /// Delete the saved transactions
+                        preferencesManager.delete(Constants.PaymentReceived);
+                        preferencesManager.delete(Constants.PaidAmt);
+                        preferencesManager.delete(Constants.SavedTransaction);
+                    }
 
                 } catch (Exception e) {
                     Log.e(TAG, "Response parsing error", e);
@@ -1455,8 +1471,19 @@ public class Constants {
         ApiService apiService = retrofit.create(ApiService.class);
         ApiManager apiManager = new ApiManager(apiService);
 
-        /// Here one transaction add into array
-        String request = new Gson().toJson(transactionList);
+
+        // Create JSON Array
+        // And add Key And Value in the request
+        JsonArray jsonArray = new JsonArray();
+
+        for (TransactionEntity transactionEntity : transactionList) {
+            JsonObject jsonObject = new Gson().toJsonTree(transactionEntity).getAsJsonObject();
+            jsonObject.addProperty("Key", KeyForApi);
+            jsonObject.addProperty("value", ValueForApi);
+            jsonArray.add(jsonObject);
+        }
+
+        String request = new Gson().toJson(jsonArray);
         Log.e(TAG, "doPostTransactionList: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
@@ -1470,14 +1497,19 @@ public class Constants {
                 try {
                     JsonElement jsonElement = JsonParser.parseReader(response.charStream());
                     String json = new Gson().toJson(jsonElement);
-                    Log.e(TAG, "onNext: " + json);
+                    Log.e(TAG, "onNext list: " + json);
 
                     ArrayList idList = new ArrayList();
                     for (int i=0; i<transactionList.size(); i++){
                         idList.add(String.valueOf(transactionList.get(i).getId()));
                     }
 
-                    transactionDao.updateTransactionUploadToServerStatusForIds( 1, idList);
+
+                    if (transactionDao != null && !idList.isEmpty()) {
+                        new Thread(() -> {
+                            transactionDao.updateTransactionUploadToServerStatusForIds(1, idList);
+                        }).start();
+                    }
 
                 } catch (Exception e) {
                     Log.e(TAG, "Response parsing error", e);
@@ -1516,7 +1548,21 @@ public class Constants {
         /// Here one transaction add into array
         List<LogEntity> logList = new ArrayList<>();
         logList.add(log);
-        String request = new Gson().toJson(logList);
+
+
+        // Create JSON Array
+        // And add Key And Value in the request
+        JsonArray jsonArray = new JsonArray();
+
+        for (LogEntity logEntity : logList) {
+            JsonObject jsonObject = new Gson().toJsonTree(logEntity).getAsJsonObject();
+            jsonObject.addProperty("Key", KeyForApi);
+            jsonObject.addProperty("value", ValueForApi);
+            jsonArray.add(jsonObject);
+        }
+
+        String request = new Gson().toJson(jsonArray);
+
         Log.e(TAG, "doPostLog: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
@@ -1532,8 +1578,11 @@ public class Constants {
                     String json = new Gson().toJson(jsonElement);
                     Log.e(TAG, "onNext: " + json);
 
-                    logDao.updateLogUploadToServerStatus(String.valueOf(log.getId()), 1);
-
+                    if (log != null && logDao != null) {
+                        new Thread(() -> {
+                            logDao.updateLogUploadToServerStatus(String.valueOf(log.getId()), 1);
+                        }).start();
+                    }
                 } catch (Exception e) {
                     Log.e(TAG, "Response parsing error", e);
                 }
@@ -1568,8 +1617,19 @@ public class Constants {
         ApiService apiService = retrofit.create(ApiService.class);
         ApiManager apiManager = new ApiManager(apiService);
 
-        /// Here one transaction add into array
-        String request = new Gson().toJson(logList);
+
+        // Create JSON Array
+        // And add Key And Value in the request
+        JsonArray jsonArray = new JsonArray();
+
+        for (LogEntity logEntity : logList) {
+            JsonObject jsonObject = new Gson().toJsonTree(logEntity).getAsJsonObject();
+            jsonObject.addProperty("Key", KeyForApi);
+            jsonObject.addProperty("value", ValueForApi);
+            jsonArray.add(jsonObject);
+        }
+
+        String request = new Gson().toJson(jsonArray);
         Log.e(TAG, "doPostLogList: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
@@ -1590,7 +1650,13 @@ public class Constants {
                         idList.add(String.valueOf(logList.get(i).getId()));
                     }
 
-                    logDao.updateLogsUploadToServerStatusForIds( 1, idList);
+
+                    // Update database in a background thread to avoid main thread access
+                    if (logDao != null && !idList.isEmpty()) {
+                        new Thread(() -> {
+                            logDao.updateLogsUploadToServerStatusForIds(1, idList);
+                        }).start();
+                    }
 
                 } catch (Exception e) {
                     Log.e(TAG, "Response parsing error", e);
@@ -1614,57 +1680,75 @@ public class Constants {
 
 
 
-//    public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction, Activity activity) {
+
+    /*Here in this getting the configuration data (SMS, Razorpay). We have to save it into shared preference*/
+//    public static void doGetConfigurationData(Activity activity) {
 //
-//        Log.e("base Url ", preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString());
-//        Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString()) // Replace with your base URL
+//        Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/api/").toString()) // Replace with your base URL
 //                .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
-//               // .addConverterFactory(GsonConverterFactory.create()).build();
+//                .addConverterFactory(GsonConverterFactory.create()).build();
+//
+//        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/api/").toString();
+//
+//        Log.d(TAG + "Base URL  run: ==>", baseUrl);
+//        Log.d(TAG + "Base URL  run: ==> GetConfigurationUrl",baseUrl +  GetConfigurationUrl);
 //
 //        ApiService apiService = retrofit.create(ApiService.class);
 //
 //        ApiManager apiManager = new ApiManager(apiService);
 //
-//        HashMap<String, String> header = new HashMap<>();
-//        MediaType mediaType = MediaType.parse("application/json; charset=utf-8");
-//        String request = new Gson().toJson(transaction);
-//        RequestBody requestBody = RequestBody.create(mediaType, request);
-//
-//        Log.e(TAG, "doPostTransaction: " + new Gson().toJson(requestBody));
 //        Handler handler = new Handler(Looper.getMainLooper());
 //        handler.post(() -> {
-////            ProgressDialog pd = new ProgressDialog(activity);
-////            pd.setTitle("Please Wait...");
-////            pd.setCancelable(false);
-////            pd.show();
+//            ProgressDialog pd = new ProgressDialog(activity);
+//            pd.setTitle("Please Wait...");
+//            pd.setCancelable(false);
+//            pd.show();
 //            DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
 //                @Override
 //                public void onNext(ResponseBody response) {
-////                    pd.dismiss();
+//                    pd.dismiss();
 //                    if (!response.toString().isEmpty()) {
 //                        String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
-//                        Log.e(TAG, "onNext: " + json);
+//                        Log.e(TAG, "Configuration Data: " + json);
+//
+//                        preferencesManager = SharedPreferencesManager.getInstance(activity);
+//                        ConfigurationResponse configurationResponse = new Gson().fromJson(json, ConfigurationResponse.class);
+//
+//
+//                        /// Save in shared preference
+//                        Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
+//                        preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL() + "/");
+//                        preferencesManager.save(SMSSid, configurationResponse.getData().get(0).getSmsSid());
+//                        preferencesManager.save(SMSApiKey, configurationResponse.getData().get(0).getSmsAPIKey());
+//                        preferencesManager.save(SMSSender, configurationResponse.getData().get(0).getSmsSender());
+//                        preferencesManager.save(SMSTemplateId, configurationResponse.getData().get(0).getSmsTemplateID());
+//                        preferencesManager.save(SMSTemplateContent, configurationResponse.getData().get(0).getSmsTemplateContent());
+//
+//
+//                        preferencesManager.save(RazorPayKey, "rzp_live_oTrQqk0HauuUWZ");
+//
+//                      //  preferencesManager.save(RazorPayKey, configurationResponse.getData().get(0).getRazorPayKey());
+//
+//                        preferencesManager.save(RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F");
+//
+//
+//                        //     preferencesManager.save(RazorPaySecretKey, configurationResponse.getData().get(0).getRazorPaySecretKey());
 //                    }
 //                }
 //
 //                @Override
 //                public void onError(Throwable e) {
-//
-//                    Log.e(TAG, "onError: " + e);
-//
 //                    // Handle the error
-////                    if (pd != null && pd.isShowing()) {
-////                        pd.dismiss();
-////                    }
+//                    if (pd != null && pd.isShowing()) {
+//                        pd.dismiss();
+//                    }
 //                    e.printStackTrace();
-//
-//                    /// Here I comment because when internet is not available then it will be crash because of this
-////                    activity.runOnUiThread(new Runnable() {
-////                        @Override
-////                        public void run() {
-////                            Utils.handleApiError(activity, e, apiManager);
-////                        }
-////                    });
+//                    activity.runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+//                            Utils.handleApiError(activity, e, apiManager);
+//                        }
+//                    });
 //                }
 //
 //                @Override
@@ -1672,16 +1756,18 @@ public class Constants {
 //                    // Handle completion if needed
 //                }
 //            };
-//            apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
+//
+//            String url = GetConfigurationUrl + "?Key=" + KeyForApi + "&value=" + ValueForApi;
+//            apiManager.makeGetResponseCall(url, disposableObserver);
+//
+//          //  apiManager.makeGetResponseCall(GetConfigurationUrl, disposableObserver);
 //        });
 //
 //
 //    }
 
 
-    /*Here in this getting the configuration data (SMS, Razorpay). We have to save it into shared preference*/
     public static void doGetConfigurationData(Activity activity) {
-
 
         Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/api/").toString()) // Replace with your base URL
                 .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
@@ -1722,8 +1808,16 @@ public class Constants {
                         preferencesManager.save(SMSSender, configurationResponse.getData().get(0).getSmsSender());
                         preferencesManager.save(SMSTemplateId, configurationResponse.getData().get(0).getSmsTemplateID());
                         preferencesManager.save(SMSTemplateContent, configurationResponse.getData().get(0).getSmsTemplateContent());
-                        preferencesManager.save(RazorPayKey, configurationResponse.getData().get(0).getRazorPayKey());
-                        preferencesManager.save(RazorPaySecretKey, configurationResponse.getData().get(0).getRazorPaySecretKey());
+
+
+                        preferencesManager.save(RazorPayKey, "rzp_live_oTrQqk0HauuUWZ");
+
+                        //  preferencesManager.save(RazorPayKey, configurationResponse.getData().get(0).getRazorPayKey());
+
+                        preferencesManager.save(RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F");
+
+
+                        //     preferencesManager.save(RazorPaySecretKey, configurationResponse.getData().get(0).getRazorPaySecretKey());
                     }
                 }
 
@@ -1747,10 +1841,122 @@ public class Constants {
                     // Handle completion if needed
                 }
             };
-            apiManager.makeGetResponseCall(GetConfigurationUrl, disposableObserver);
+
+            JsonObject jsonObject = new JsonObject();
+            jsonObject.addProperty("Key", "Admin");
+            jsonObject.addProperty("value", "Mvb@102405A19022025");
+
+            RequestBody requestBody = RequestBody.create(
+                    MediaType.parse("application/json; charset=utf-8"),
+                    jsonObject.toString()
+            );
+
+            apiManager.makeGetResponseCallWithBody(
+                    GetConfigurationUrl,
+                    requestBody,
+                    disposableObserver
+            );
+
+            //  apiManager.makeGetResponseCall(GetConfigurationUrl, disposableObserver);
         });
 
 
+    }
+
+
+
+    public static void doPostConfigurationData(Activity activity, String url) {
+        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
+        Log.e("Base URL", baseUrl + url);
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .build();
+
+        ApiService apiService = retrofit.create(ApiService.class);
+        ApiManager apiManager = new ApiManager(apiService);
+
+        // Create JSON Array and add Key And Value in the request
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("Key", KeyForApi);
+        jsonObject.addProperty("value", ValueForApi);
+
+        String request = new Gson().toJson(jsonObject);
+        Log.e(TAG, "doPostLog: " + request);
+
+        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
+
+        HashMap<String, String> header = new HashMap<>();
+        header.put("Content-Type", "application/json");
+
+        // Create a ProgressDialog to show progress while API call is in progress
+        ProgressDialog progressDialog = new ProgressDialog(activity);
+        progressDialog.setTitle("Loading...");
+        progressDialog.setMessage("Please wait while we fetch the configuration...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
+        DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
+            @Override
+            public void onNext(ResponseBody response) {
+                try {
+                    // Dismiss the progress dialog once the response is received
+                    progressDialog.dismiss();
+
+                    if (response != null && !response.toString().isEmpty()) {
+                        String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
+                        Log.e(TAG, "Configuration Data: " + json);
+
+                        preferencesManager = SharedPreferencesManager.getInstance(activity);
+                        ConfigurationResponse configurationResponse = new Gson().fromJson(json, ConfigurationResponse.class);
+
+                        // Save configuration data in SharedPreferences
+                        Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
+                        preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL() + "/");
+                        preferencesManager.save(SMSSid, configurationResponse.getData().get(0).getSmsSid());
+                        preferencesManager.save(SMSApiKey, configurationResponse.getData().get(0).getSmsAPIKey());
+                        preferencesManager.save(SMSSender, configurationResponse.getData().get(0).getSmsSender());
+                        preferencesManager.save(SMSTemplateId, configurationResponse.getData().get(0).getSmsTemplateID());
+                        preferencesManager.save(SMSTemplateContent, configurationResponse.getData().get(0).getSmsTemplateContent());
+
+//                        preferencesManager.save(RazorPayKey, "rzp_live_oTrQqk0HauuUWZ");
+//                        preferencesManager.save(RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F");
+
+                      //  preferencesManager.save(RazorPayKey, "rzp_live_oTrQqk0HauuUWZ");
+                        preferencesManager.save(RazorPayKey, configurationResponse.getData().get(0).getRazorPayKey());
+                      //  preferencesManager.save(RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F");
+                        preferencesManager.save(RazorPaySecretKey, configurationResponse.getData().get(0).getRazorPaySecretKey());
+
+
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Response parsing error", e);
+                }
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                // Dismiss progress dialog if there is an error
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+                Log.e(TAG, "onError: ", e);
+                e.printStackTrace();
+            }
+
+            @Override
+            public void onComplete() {
+                // Completion logic if needed
+                if (progressDialog != null && progressDialog.isShowing()) {
+                    progressDialog.dismiss();
+                }
+            }
+        };
+
+        // Make the API request with the provided URL, request body, and header
+        apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
     }
 
 

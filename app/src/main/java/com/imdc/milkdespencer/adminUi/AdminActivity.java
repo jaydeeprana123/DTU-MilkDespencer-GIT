@@ -1,10 +1,10 @@
 package com.imdc.milkdespencer.adminUi;
 
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
-import static com.imdc.milkdespencer.common.Constants.RazorPayCustomerID;
-import static com.imdc.milkdespencer.common.Constants.doGetConfigurationData;
+
+import static com.imdc.milkdespencer.common.Constants.GetConfigurationUrl;
+import static com.imdc.milkdespencer.common.Constants.doPostConfigurationData;
 import static com.imdc.milkdespencer.common.Constants.exportTransactionsToCSVAndShare;
-import static com.imdc.milkdespencer.common.Constants.sendEmailWithAttachment;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
 
@@ -67,7 +67,7 @@ public class AdminActivity extends AppCompatActivity {
 //        bundle.putString(FirebaseAnalytics.Param.SCREEN_CLASS, "AdminActivity");
 //        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle);
 
-        doGetConfigurationData(AdminActivity.this);
+        doPostConfigurationData(AdminActivity.this,GetConfigurationUrl);
         preferencesManager = SharedPreferencesManager.getInstance(this);
         // When user comes first time isCip should be false
         isCipOn = false;

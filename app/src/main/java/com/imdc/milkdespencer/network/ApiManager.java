@@ -22,6 +22,17 @@ public class ApiManager {
         makeApiCall(observable, observer);
     }
 
+    public void makeGetResponseCallWithBody(String url, RequestBody body, DisposableObserver<ResponseBody> observer) {
+        Observable<ResponseBody> observable = apiService.doGetRequestWithBody(url, body);
+        makeApiCall(observable, observer);
+    }
+
+
+    public void makePostResponseCallWithBody(String url, RequestBody body, DisposableObserver<ResponseBody> observer) {
+        Observable<ResponseBody> observable = apiService.doPostRequestWithBody(url, body);
+        makeApiCall(observable, observer);
+    }
+
     public void makePostRequestCall(String url, RequestBody requestBody, HashMap<String, String> headers, DisposableObserver<ResponseBody> observer) {
         Observable<ResponseBody> observable = apiService.doPostRequest(url, requestBody, headers);
         makeApiCall(observable, observer);

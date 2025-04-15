@@ -1,6 +1,6 @@
 package com.imdc.milkdespencer.common;
 
-import static com.imdc.milkdespencer.CashCollectorActivity.getInstance;
+import static com.imdc.milkdespencer.MainActivity.getInstance;
 import static com.imdc.milkdespencer.common.Constants.PREF_PERMISSION_GRANTED;
 import static com.imdc.milkdespencer.common.Constants.cipDialog;
 
