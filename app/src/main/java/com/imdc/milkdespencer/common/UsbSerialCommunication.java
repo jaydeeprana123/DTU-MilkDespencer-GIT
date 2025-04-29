@@ -280,7 +280,7 @@ public class UsbSerialCommunication {
             sendToDevice.setCIP(isCipOn);
 
             if (isCipOn) {
-                sendToDevice.setWeight(2.0f);
+                sendToDevice.setWeight(100.0f);
                 sendToDevice.setStatus(true);
             } else {
                 sendToDevice.setWeight(weight);
@@ -545,7 +545,7 @@ public class UsbSerialCommunication {
 
 
     private void logError(String tag, String message){
-       // Log.e(tag, message);
+        Log.e(tag, message);
     }
 
 }

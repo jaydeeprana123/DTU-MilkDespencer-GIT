@@ -732,6 +732,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             handlerProcessScreen.removeCallbacks(runnableProcessScreen);
         }
 
+
+
 //        unregisterReceiver(batteryReceiver);
 
     }

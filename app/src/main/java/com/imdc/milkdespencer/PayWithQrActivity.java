@@ -1,7 +1,6 @@
 package com.imdc.milkdespencer;
 
 
-
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
@@ -75,6 +74,9 @@ import java.util.regex.Pattern;
 public class PayWithQrActivity extends AppCompatActivity implements PaymentResultWithDataListener {
 
     private boolean isMilkVendingStarted = false;
+
+    private boolean isDatabaseOperationStarted = false;
+
     private String qrCodeId = "";
 
     private LottieDialog milkDispensingDialog;
@@ -148,7 +150,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 // Optional: log or handle parse error
                             }
                         }
-                    }else {
+                    } else {
                         btnBackToHome.setVisibility(View.VISIBLE);
                     }
                 }
@@ -228,13 +230,13 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 long transactionId = transactionDao.insert(transaction);
                                 transaction.setId(transactionId);
 
-                                Log.e("save karti " , new Gson().toJson(transaction));
+                                Log.e("save karti ", new Gson().toJson(transaction));
 
                                 preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
 
                                 runOnUiThread(() -> {
 
-                                //    Toast.makeText(PayWithQrActivity.this, "Transaction id : " + (String.valueOf(transactionId)), Toast.LENGTH_SHORT).show();
+                                    //    Toast.makeText(PayWithQrActivity.this, "Transaction id : " + (String.valueOf(transactionId)), Toast.LENGTH_SHORT).show();
 
                                     if (!isMilkVendingStarted) {
                                         isMilkVendingStarted = true;
@@ -748,10 +750,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         } catch (RazorpayException | JSONException e) {
 
 
-
             runOnUiThread(() -> {
 
-                logError("Error razor",e.getMessage());
+                logError("Error razor", e.getMessage());
 
                 btnBackToHome.setVisibility(View.VISIBLE);
                 tvProcessing.setText("We're sorry! Please try again after a while.");
@@ -836,7 +837,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         };
 
         // Start the timeout task
-        qrCodeTimeoutHandler.postDelayed(qrCodeTimeoutRunnable, 6 *60 * 1000);
+        qrCodeTimeoutHandler.postDelayed(qrCodeTimeoutRunnable, 6 * 60 * 1000);
 
 
 //        new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -1050,8 +1051,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
                     milkDispensingDialog.dismiss();
                 }
-                Constants.saveLogs(PayWithQrActivity.this, "Dispensation Not Started");
-                updateTransactionIfUSBSerialCommunicationLost(transaction);
+
+                /// Here if database operation is not started then start.
+                // So api will not call again and again
+                if (!isDatabaseOperationStarted) {
+                    isDatabaseOperationStarted = true;
+                    Constants.saveLogs(PayWithQrActivity.this, "Dispensation Not Started");
+                    updateTransactionIfUSBSerialCommunicationLost(transaction);
+                }
             }
 
         } catch (Exception e) {
@@ -1109,7 +1116,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             /// Here true status getting two times.
             // So put condition that if lottieDialog is showing that time only goes to this condition
             if (milkDispense != null && milkDispense.getStatus() && lottieDialog.isShowing()) {
-
+                if (lottieDialog.isShowing()) {
+                    lottieDialog.dismiss();
+                }
                 /// Here we calculate volume of milk
                 float volumeOfMilk = (float) ((milkDispense.getCurrentWeight()) / milkDensity);
 
@@ -1120,16 +1129,19 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     timeoutHandler.removeCallbacks(timeoutRunnable);
                 }
 
-                if (lottieDialog.isShowing()) {
-                    lottieDialog.dismiss();
-                }
+
 
                 isCommandSent = false;
-                preferencesManager.save(Constants.CurrentTemperature, milkDispense.getCurrentWeight());
 
 //                tvProcessing.setText("Thank You..");
+                preferencesManager.save(Constants.CurrentTemperature, milkDispense.getCurrentWeight());
 
-                updateDataInDatabaseWhenProcessDone(amt, payCodeId, payment, volumeOfMilk, milkTemperature, transaction);
+                /// Here if database operation is not started then start.
+                // So api will not call again and again
+                if (!isDatabaseOperationStarted) {
+                    isDatabaseOperationStarted = true;
+                   updateDataInDatabaseWhenProcessDone(amt, payCodeId, payment, volumeOfMilk, milkTemperature, transaction);
+                }
 
             }
         }
@@ -1223,7 +1235,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
-
     /**
      * If payment is done and electricity is lost after inserting the transaction,
      * show a failure dialog and update the transaction accordingly.
@@ -1237,7 +1248,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 (dialog, which) -> handleFailedUpdateInDatabase(dialog, transactionEntity)
         ));
     }
-
 
 
     /**
@@ -1524,7 +1534,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-      //  Log.e(tag, message);
+          Log.e(tag, message);
     }
 
 
@@ -1564,7 +1574,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
         super.onBackPressed();  // Call this only after your logic is done
     }
-
 
 
     @Override

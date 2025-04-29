@@ -152,8 +152,12 @@ public class AdminActivity extends AppCompatActivity {
             public void onClick(View view) {
 
                 Log.e("btn CIP", " is pressed");
-                isCipOn = true;
-                showCIPRunningDialog(AdminActivity.this);
+
+                    Intent intent = new Intent(AdminActivity.this, CIPActivity.class);
+                    startActivity(intent);
+
+//                isCipOn = true;
+//                showCIPRunningDialog(AdminActivity.this);
 
             }
         });

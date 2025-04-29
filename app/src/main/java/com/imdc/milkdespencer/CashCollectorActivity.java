@@ -101,6 +101,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     //  "lowlevel": true, if true close the system and show the dialog low on Milk.
     //}
 
+
+    private boolean isDatabaseOperationStarted = false;
+
     private static final int MY_PERMISSIONS_REQUEST_READ_STORAGE = 0;
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
     private static final String TAG = CashCollectorActivity.class.getSimpleName();
@@ -146,7 +149,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     private Runnable timeoutRunnable;
 
     private boolean isElectricityLost = false;
-
 
 
     /**********   USB functions   ******************************************/
@@ -209,19 +211,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                     }
                 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
             }
@@ -517,7 +506,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                 // Set the listener and handle in a different method
                 usbSerialCommunication.setReadDataListener(data ->
-                        handleSerialReadingResponse(data, currentSavedTemp, milkDensity,milkSellingPrice, transaction)
+                        handleSerialReadingResponse(data, currentSavedTemp, milkDensity, milkSellingPrice, transaction)
                 );
             } else {
                 logError(TAG + "UsbSerialCommunication", "usbSerialCommunication is null");
@@ -527,8 +516,17 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
                     milkDispensingDialog.dismiss();
                 }
-                Constants.saveLogs(CashCollectorActivity.this, "Dispensation Not Started");
-                updateTransactionIfUSBSerialCommunicationLost(transaction);
+
+
+                /// Here if database operation is not started then start.
+                // So api will not call again and again
+                if (!isDatabaseOperationStarted) {
+                    isDatabaseOperationStarted = true;
+                    Constants.saveLogs(CashCollectorActivity.this, "Dispensation Not Started");
+                    updateTransactionIfUSBSerialCommunicationLost(transaction);
+                }
+
+
             }
 
         } catch (Exception e) {
@@ -537,10 +535,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
 
-
-
     /// Read serial data from USB
-    private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity,float milkSellingPrice, TransactionEntity transaction) {
+    private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity, float milkSellingPrice, TransactionEntity transaction) {
         Log.d(TAG, "DisplayEvents:onReadData: " + data + "\n status " + data.contains("status"));
 
         if (!data.contains("status")) return;
@@ -565,7 +561,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 preferencesManager = SharedPreferencesManager.getInstance(this);
                 deviceCom.SetEscrowAction(SSPSystem.BillAction.Accept);
 
-                updateDataInDatabaseWhenProcessDone(volumeOfMilk, transaction);
+                /// Here if database operation is not started then start.
+                // So api will not call again and again
+                if (!isDatabaseOperationStarted) {
+                    isDatabaseOperationStarted = true;
+                    updateDataInDatabaseWhenProcessDone(volumeOfMilk, transaction);
+                }
+
+
             } else {
                 logError("milkDispense status", String.valueOf(milkDispense.getStatus()));
             }
@@ -643,7 +646,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
 
-
     /**
      * If payment is done and Milk dispense not initiate due to serial communication lost,
      * show a failure dialog and update the transaction accordingly.
@@ -656,7 +658,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 (dialog, which) -> handleFailedUpdateInDatabase(dialog, transactionEntity)
         ));
     }
-
 
 
     private void handleFailedUpdateInDatabase(DialogInterface dialog, TransactionEntity transactionEntity) {
@@ -720,7 +721,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
 
-
     /*If 3 minutes done and status is not getting as a true.
    Transaction will be added as a FAILED*/
     private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volume, TransactionEntity transaction) {
@@ -751,7 +751,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             }
         }).start();
     }
-
 
 
     /// If milk is send to the customer. Show process done dialog
@@ -994,7 +993,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                         if (!isMilkVendingStarted) {
                                             isMilkVendingStarted = true;
 
-                                             /// Here after 3 minute if status is not getting as a true.
+                                            /// Here after 3 minute if status is not getting as a true.
                                             // Dialog will be close and transaction will be add in the database as a TIME OUT
                                             // Initialize the Handler and Runnable
                                             timeoutHandler = new Handler(Looper.getMainLooper());
@@ -1003,7 +1002,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                             // Post the Runnable with a delay
                                             timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
 
-                                            sendForMilkVending(ev,transaction);
+                                            sendForMilkVending(ev, transaction);
                                             dialog.dismiss();
                                         }
                                     });

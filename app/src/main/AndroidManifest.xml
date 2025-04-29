@@ -49,6 +49,11 @@
             android:name=".TransactionHistoryActivity"
             android:screenOrientation="landscape"
             android:exported="false" />
+
+        <activity
+            android:name=".adminUi.CIPActivity"
+            android:screenOrientation="landscape"
+            android:exported="false" />
         <activity
             android:name=".adminUi.CalibrationActivity"
             android:screenOrientation="landscape"

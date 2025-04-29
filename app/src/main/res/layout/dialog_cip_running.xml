@@ -22,4 +22,26 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
 
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnStopCIP"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="@dimen/_14ssp"
+        android:gravity="center"
+        android:paddingHorizontal="@dimen/_20sdp"
+        android:text="@string/stop"
+        android:textAlignment="center"
+        android:textColor="@color/md_theme_light_onPrimary"
+        app:backgroundTint="@color/md_theme_light_primary"
+
+        android:layout_marginTop="@dimen/_20sdp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tvCIPRunning"
+        />
+
+
+
 </androidx.constraintlayout.widget.ConstraintLayout>

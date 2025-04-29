@@ -24,103 +24,116 @@
         android:layout_height="wrap_content"
         android:scrollbars="vertical"
         android:visibility="gone"
-        app:layout_constraintBottom_toTopOf="@+id/btnAddUser"
+        app:layout_constraintBottom_toTopOf="@+id/llBtns"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-
-    <Button
-        android:id="@+id/btnExportTransactions"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/llBtns"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginLeft="@dimen/_10sdp"
-        android:layout_marginRight="@dimen/_10sdp"
-        android:text="@string/export_transactions"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/btnSetConfiguration"/>
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginBottom="@dimen/_4sdp"
+        >
 
-    <Button
-        android:id="@+id/btnSetConfiguration"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginLeft="@dimen/_10sdp"
-        android:layout_marginRight="@dimen/_20sdp"
-        android:text="@string/set_configurations"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toStartOf="@id/btnApiConfiguration"/>
+        <Button
+            android:id="@+id/btnExportTransactions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="@dimen/_10sdp"
+            android:text="@string/export_transactions"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            />
 
-    <Button
-        android:id="@+id/btnApiConfiguration"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginRight="@dimen/_20sdp"
-        android:text="@string/api_configurations"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/btnSetConfiguration"
-        app:layout_constraintEnd_toStartOf="@id/btnAddEndUser"/>
+        <Button
+            android:id="@+id/btnSetConfiguration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="@dimen/_10sdp"
 
-    <Button
-        android:id="@+id/btnCIP"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginHorizontal="@dimen/_10sdp"
-        android:text="@string/btnCIP"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/btnSetConfiguration" />
+            android:text="@string/set_configurations"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnApiConfiguration"/>
 
+        <Button
+            android:id="@+id/btnApiConfiguration"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="@dimen/_10sdp"
+            android:text="@string/api_configurations"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btnSetConfiguration"
+            app:layout_constraintEnd_toStartOf="@id/btnAddEndUser"/>
 
-
-    <Button
-        android:id="@+id/btnAddEndUser"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginRight="@dimen/_20sdp"
-        android:text="@string/btnAddEndUser"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btnAddUser"
-        app:layout_constraintStart_toEndOf="@+id/btnApiConfiguration" />
-
-    <Button
-        android:id="@+id/btnAddUser"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginRight="@dimen/_20sdp"
-        android:text="@string/btnRegisterCustomerAdmin"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btnLogs"
-        app:layout_constraintStart_toEndOf="@+id/btnAddEndUser" />
-
-    <Button
-        android:id="@+id/btnHistoryByDate"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginRight="@dimen/_20sdp"
-        android:text="@string/btnHistoryByDate"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btnLogs"
-        app:layout_constraintStart_toEndOf="@+id/btnAddEndUser" />
+        <Button
+            android:id="@+id/btnCIP"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="@dimen/_10sdp"
+            android:text="@string/btnCIP"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toEndOf="@id/btnSetConfiguration" />
 
 
 
-    <Button
-        android:id="@+id/btnLogs"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginHorizontal="@dimen/_10sdp"
-        android:text="@string/btnLogs"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <Button
+            android:id="@+id/btnAddEndUser"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="@dimen/_10sdp"
+            android:text="@string/btnAddEndUser"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnAddUser"
+            app:layout_constraintStart_toEndOf="@+id/btnApiConfiguration" />
+
+        <Button
+            android:id="@+id/btnAddUser"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="@dimen/_10sdp"
+            android:text="@string/btnRegisterCustomerAdmin"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnLogs"
+            app:layout_constraintStart_toEndOf="@+id/btnAddEndUser" />
+
+        <Button
+            android:id="@+id/btnHistoryByDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="@dimen/_10sdp"
+            android:text="@string/btnHistoryByDate"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnLogs"
+            app:layout_constraintStart_toEndOf="@+id/btnAddEndUser" />
+
+
+
+        <Button
+            android:id="@+id/btnLogs"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginLeft="@dimen/_10sdp"
+            android:text="@string/btnLogs"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+
+    </LinearLayout>
+
 
     <Button
         android:id="@+id/btnCalibration"

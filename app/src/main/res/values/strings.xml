@@ -49,7 +49,7 @@
     <string name="set_configurations">Set Configurations</string>
     <string name="export_transactions">Export Transactions</string>
     <string name="api_configurations">API Configurations</string>
-    <string name="btnCIP">CIP</string>
+    <string name="btnCIP">START CIP</string>
     <string name="submit">submit</string>
     <string name="temperature_offset">Temperature Offset</string>
     <string name="temperature">Temperature</string>
@@ -98,7 +98,12 @@
     <string name="password">Password</string>
     <string name="login">Login</string>
     <string name="generateQr">Pay With Qr</string>
+    <string name="remove_milk">Remove Milk</string>
+    <string name="compressor_off">Compressor OFF</string>
+    <string name="agitator_off">Agitator OFF</string>
+    <string name="CIP">CIP</string>
     <string name="backToHome">Back To Home</string>
+    <string name="stop">STOP</string>
     <string name="forgot_password">Forgot Password ?</string>
     <string name="forgot_password_title">Forgot Password</string>
     <string name="registration_title">Register User</string>

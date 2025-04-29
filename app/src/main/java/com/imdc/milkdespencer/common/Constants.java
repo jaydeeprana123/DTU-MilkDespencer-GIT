@@ -21,6 +21,8 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ScrollView;
@@ -40,6 +42,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.imdc.milkdespencer.CashCollectorActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adminUi.AdminActivity;
@@ -605,7 +608,7 @@ public class Constants {
     /*
      * if CIP is true = > Show this dialog
      * */
-    public static void showCIPRunningDialog(Context context) {
+    public static void showCIPRunningDialog(Context context, DialogInterface.OnClickListener stopClickListener, String title) {
         // Create a layout inflater to inflate the custom dialog layout
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.dialog_cip_running, null);
@@ -618,8 +621,32 @@ public class Constants {
         cipDialog = builder.create();
         cipDialog.setCancelable(false);
 
+        TextView tvCIPRunning = view.findViewById(R.id.tvCIPRunning);
+        tvCIPRunning.setText(title);
+        MaterialButton btnStopCIP = view.findViewById(R.id.btnStopCIP);
+        btnStopCIP.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (stopClickListener != null) {
+                    stopClickListener.onClick(cipDialog, DialogInterface.BUTTON_NEGATIVE);
+                    cipDialog.dismiss();
+                }
+            }
+        });
+
+
         // Show the dialog
         cipDialog.show();
+
+        // Make dialog larger — for example, 90% of screen width and height
+        Window window = cipDialog.getWindow();
+        if (window != null) {
+            WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+            layoutParams.copyFrom(window.getAttributes());
+            layoutParams.width = (int) (context.getResources().getDisplayMetrics().widthPixels * 0.9);
+            layoutParams.height = (int) (context.getResources().getDisplayMetrics().heightPixels * 0.8);
+            window.setAttributes(layoutParams);
+        }
     }
 
 
@@ -1241,6 +1268,9 @@ public class Constants {
                 });
                // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
             } else {
+
+                Constants.saveLogs(activity, "Internet Connection Error");
+
                 //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
             }
 
@@ -1287,7 +1317,7 @@ public class Constants {
 
 
         } else {
-
+            Constants.saveLogs(activity, "Internet Connection Error");
             preferencesManager.delete(Constants.PaymentReceived);
             preferencesManager.delete(Constants.PaidAmt);
             preferencesManager.delete(Constants.SavedTransaction);
