@@ -30,8 +30,8 @@ public interface TransactionDao {
     long getLastTransactionId();
 
 
-    @Query("UPDATE transactions SET volume = :volume, milkPrice = :milkPrice, milkTemperature = :milkTemperature, transactionStatus = :transactionStatus WHERE id = :id")
-    int updateTransactionDetails(String id, float volume, String milkPrice, String milkTemperature, String transactionStatus);
+    @Query("UPDATE transactions SET volume = :volume, milkPrice = :milkPrice, milkTemperature = :milkTemperature, transactionStatus = :transactionStatus, remainingvolume = :remainingVolume WHERE id = :id")
+    int updateTransactionDetails(String id, float volume, String milkPrice, String milkTemperature, String transactionStatus, float remainingVolume);
 
     @Query("UPDATE transactions SET uploadToServer = :uploadToServer WHERE id = :id")
     int updateTransactionUploadToServerStatus(String id, int uploadToServer);

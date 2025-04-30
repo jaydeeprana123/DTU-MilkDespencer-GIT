@@ -8,6 +8,7 @@ import static com.imdc.milkdespencer.common.Constants.exportTransactionsToCSVAnd
 import static com.imdc.milkdespencer.common.Constants.showAddedVolumeDialog;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
+import static com.imdc.milkdespencer.common.UsbSerialCommunication.isSendDataStop;
 
 import android.Manifest;
 import android.content.Intent;
@@ -167,7 +168,7 @@ public class AdminActivity extends AppCompatActivity {
             public void onClick(View view) {
 
                 Log.e("btn CIP", " is pressed");
-
+                    isCipOn = true;
                     Intent intent = new Intent(AdminActivity.this, CIPActivity.class);
                     startActivity(intent);
 

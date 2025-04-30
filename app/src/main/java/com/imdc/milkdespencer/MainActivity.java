@@ -1,6 +1,8 @@
 package com.imdc.milkdespencer;
 
 import static com.imdc.milkdespencer.DatabaseExporter.copyDatabase;
+import static com.imdc.milkdespencer.common.UsbSerialCommunication.isLowLevel;
+
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
@@ -154,7 +156,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private TextView tvProcessing;
 
     private AppDatabase appDatabase;
-    private TextView tvTemperature, tvMilkBasePrice, tv_Message;
+    private TextView tvTemperature, tvMilkBasePrice, tv_Message,tvRemainingVolume;
     private LottieAnimationView lvAnimation;
 
 
@@ -432,6 +434,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private void initializeDependencies() {
         preferencesManager = SharedPreferencesManager.getInstance(this);
         remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
+
+
+
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
 
         appDatabase = AppDatabase.getInstance(this);
@@ -494,6 +499,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         ivCompressor = findViewById(R.id.ivCompressor);
         tvMilkBasePrice = findViewById(R.id.tvMilkBasePrice);
         tvTemperature = findViewById(R.id.tvTemperature);
+        tvRemainingVolume= findViewById(R.id.tvRemainingVolume);
         tv_Message = findViewById(R.id.tv_Message);
         llCash = findViewById(R.id.llPayCash);
         llQr = findViewById(R.id.llPayQR);
@@ -505,6 +511,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         cvPayWithQr = findViewById(R.id.cvPayWithQR);
 
         tvProcessing = findViewById(R.id.tvProcessing);
+
 
         setupInitialVisibility();
         cv_error.bringToFront();
@@ -745,6 +752,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     protected void onResume() {
         super.onResume();
 
+        tvRemainingVolume.setText(String.valueOf(remainingVolume) + "L");
+
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
 
@@ -844,8 +853,10 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             if (getChargingState && isUsbPermissionGranted && !inMilkDispenseProcessLevel) {
                 if (remainingVolume <= 6) {
+                    isLowLevel = true;
                     handleLowLevel();
                 }else {
+                    isLowLevel = false;
                     handleNormalLevel();
                 }
 

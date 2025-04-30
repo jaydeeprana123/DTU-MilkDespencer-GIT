@@ -92,7 +92,6 @@ public class Constants {
 
     public static float remainingVolume = 0;
 
-
     private static final String PREFS_NAME = "usb_permission_prefs";
     public static final String PREF_PERMISSION_GRANTED = "permission_granted";
 
@@ -1359,6 +1358,7 @@ public class Constants {
         transaction.setTransactionTime(transactionTime);
         transaction.setAmount(amount);
         transaction.setVolume(volume);
+        transaction.setRemainingvolume(remainingVolume);
 
         /// Added new on 4-1-2025
         transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
@@ -1419,7 +1419,8 @@ public class Constants {
                 volume,                 // volume
                 preferencesManager.get(MilkBasePrice, "").toString(),              // milk price
                 milkTemperature,
-                transactionStatus// milk temperature
+                transactionStatus,// milk temperature,
+                remainingVolume
 
         );
 
@@ -1427,6 +1428,7 @@ public class Constants {
         transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
         transaction.setMilkTemperature(milkTemperature);
         transaction.setTransactionStatus(transactionStatus);
+        transaction.setRemainingvolume(remainingVolume);
 
         if (transactionId > 0 && isNetworkAvailable(activity)) {
 

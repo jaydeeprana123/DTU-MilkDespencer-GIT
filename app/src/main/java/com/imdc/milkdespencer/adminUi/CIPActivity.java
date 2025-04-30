@@ -13,6 +13,8 @@ import static com.imdc.milkdespencer.common.Constants.isNetworkAvailable;
 import static com.imdc.milkdespencer.common.Constants.remainingVolume;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
+import static com.imdc.milkdespencer.common.UsbSerialCommunication.isLowLevel;
+import static com.imdc.milkdespencer.common.UsbSerialCommunication.isSendDataStop;
 
 import android.content.Intent;
 import android.graphics.PorterDuff;
@@ -29,23 +31,13 @@ import android.widget.Button;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.imdc.milkdespencer.PayWithQrActivity;
 import com.imdc.milkdespencer.R;
-import com.imdc.milkdespencer.TransactionHistoryActivity;
-import com.imdc.milkdespencer.TransactionHistoryByDateActivity;
-import com.imdc.milkdespencer.adapter.UserAdapter;
 import com.imdc.milkdespencer.common.Constants;
-import com.imdc.milkdespencer.common.LottieDialog;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
-import com.imdc.milkdespencer.enums.UserTypeEnum;
-import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDevice;
 import com.imdc.milkdespencer.models.SendToDeviceForCIP;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
@@ -79,11 +71,10 @@ public class CIPActivity extends AppCompatActivity {
         setContentView(R.layout.activity_cip);
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
 
-        isCipOn = true;
-
         if (!usbSerialCommunication.connected) {
             usbSerialCommunication.connect();
             usbSerialCommunication.setBaudRate(115200);
+
         }
 
         preferencesManager = SharedPreferencesManager.getInstance(this);
@@ -136,6 +127,8 @@ public class CIPActivity extends AppCompatActivity {
         btnCompressorOff.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+
+                isSendDataStop = true;
 
                 btnCompressorOff.setEnabled(false);
                 btnAgitatorOff.setEnabled(true);
@@ -236,13 +229,14 @@ public class CIPActivity extends AppCompatActivity {
     }
 
 
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
 
         sendDataForCIP(false, false, false, true);
         isCipOn = false;
-
+        UsbSerialCommunication.isSendDataStop= false;
         remainingVolume = 0;
         preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
         new Thread(() -> {
@@ -293,4 +287,8 @@ public class CIPActivity extends AppCompatActivity {
 
 
     }
+
+
+
+
 }

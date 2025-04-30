@@ -55,6 +55,12 @@ public class UsbSerialCommunication {
 
     public static boolean isCipOn = false;
 
+    public static boolean isSendDataStop = false;
+
+
+    public static boolean isLowLevel = false;
+
+
     private boolean isUsbReceiverRegistered = false;
 
 
@@ -235,8 +241,6 @@ public class UsbSerialCommunication {
                 SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
                 String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, ""));
                 if (!temperatureResponse.isEmpty()) {
-
-
                     logError("temperatureResponse ", "not empty");
 
                     float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
@@ -277,18 +281,29 @@ public class UsbSerialCommunication {
 
             /// 31-12-2024 add isCIP
             sendToDevice.setCIP(isCipOn);
+            sendToDevice.setLowlevel(isLowLevel);
 
             if (isCipOn) {
                 sendToDevice.setWeight(100.0f);
-                sendToDevice.setStatus(true);
+                sendToDevice.setStatus(false);
+
+                if(!isSendDataStop){
+                    Log.d(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
+                    sendData(gson.toJson(sendToDevice));
+                }
+
+
             } else {
                 sendToDevice.setWeight(weight);
                 sendToDevice.setStatus(false);
+
+                Log.d(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
+                sendData(gson.toJson(sendToDevice));
+
             }
 
 
-            Log.d(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
-            sendData(gson.toJson(sendToDevice));
+
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -13,6 +13,24 @@ public class SendToDevice {
     /// Added new parameter on 31-12-2024
     private boolean cip = false;
 
+    private boolean lowlevel = false;
+
+    public boolean isCip() {
+        return cip;
+    }
+
+    public void setCip(boolean cip) {
+        this.cip = cip;
+    }
+
+    public boolean isLowlevel() {
+        return lowlevel;
+    }
+
+    public void setLowlevel(boolean lowlevel) {
+        this.lowlevel = lowlevel;
+    }
+
     public float getLowweight() {
         return lowweight;
     }

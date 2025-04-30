@@ -48,7 +48,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         holder.tvTransactionId.setText(transaction.getUniqueTransactionId());
         holder.tvTransactionType.setText(transaction.getTransactionType());
         holder.tvTransactionDateTime.setText(transaction.getTransactionDate() + " at " + transaction.getTransactionTime());
-
+        holder.tvRemainingVolume.setText("Remaining : " + transaction.getRemainingvolume() + "L");
 
         /// Add volume on 31-12-2024
 //        holder.tvVolume.setText("(" + transaction.get);
@@ -68,7 +68,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
 
     public class TransactionViewHolder extends RecyclerView.ViewHolder {
 
-        TextView tvTransactionAmount, tvTransactionDateTime, tvTransactionType, tvTransactionId, tvTransactionDateStatus,tvVolume;
+        TextView tvTransactionAmount, tvTransactionDateTime, tvTransactionType, tvTransactionId, tvTransactionDateStatus,tvVolume,tvRemainingVolume;
 
         public TransactionViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -78,6 +78,7 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             tvTransactionId = itemView.findViewById(R.id.tvTransactionId);
             tvTransactionDateStatus = itemView.findViewById(R.id.tvTransactionDateStatus);
             tvVolume= itemView.findViewById(R.id.tvVolume);
+            tvRemainingVolume =itemView.findViewById(R.id.tvRemainingVolume);
         }
     }
 }
