@@ -113,6 +113,8 @@ public class Constants {
 
     public static final String ScreenTimeOutPref = "ScreenTimeOut";
 
+    /* This is used for save remaining volume data */
+    public static final String RemainingVolumePref = "RemainingVolume";
     public static final String TemperatureOffSet = "TemperatureOffSet";
     public static final String TemperatureSet = "TemperatureSet";
     public static final String CurrentTemperature = "CurrentTemperature";
