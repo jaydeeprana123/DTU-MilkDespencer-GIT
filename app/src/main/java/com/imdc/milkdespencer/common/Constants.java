@@ -30,6 +30,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.AppCompatTextView;
 import androidx.core.content.FileProvider;
 
 
@@ -606,6 +607,96 @@ public class Constants {
         // Show the dialog
         dialog.show();
     }
+
+    /*
+     * Show Dialog for added volume
+     * */
+    public static void showAddedVolumeDialog(Activity context) {
+        // Create a layout inflater to inflate the custom dialog layout
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.added_volume_configuration_dialog, null);
+
+        preferencesManager = SharedPreferencesManager.getInstance(context);
+        // Create the AlertDialog builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setView(view);
+
+        // Create the AlertDialog
+        AlertDialog dialog = builder.create();
+
+        // Find views in the custom layout
+        MaterialButton okButton = view.findViewById(R.id.okButton);
+        MaterialButton cancelButton = view.findViewById(R.id.cancelButton);
+
+        TextInputEditText tieVolume = view.findViewById(R.id.tieVolume);
+        AppCompatTextView tvRemainingVolume = view.findViewById(R.id.tv_remaining_volume);
+
+        remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
+        tvRemainingVolume.setText("Remaining Volume : " + String.valueOf(remainingVolume));
+
+        // Set click listener for OK button
+        okButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Handle OK button click
+
+                if(tieVolume.getText().toString().isEmpty()){
+                    Toast.makeText(context, "Please enter volume", Toast.LENGTH_SHORT).show();
+                }else {
+                    remainingVolume += Float.parseFloat(tieVolume.getText().toString());
+
+                    preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
+
+
+                    new Thread(() -> {
+                        try {
+                            String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
+                            String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
+                            TransactionDao transactionDao = AppDatabase.getInstance(context).transactionDao();
+                            TransactionEntity transaction = new TransactionEntity();
+                            transaction.setRemainingVolume(remainingVolume);
+                            transaction.setTransactionDate(date);
+                            transaction.setTransactionTime(time);
+                            transaction.setAddedVolume(Float.parseFloat(tieVolume.getText().toString()));
+                            transaction.setTransactionStatus("REFILLED");
+
+                            /// Added on 1-1 2025
+                            transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+
+                            /// Insert into Sqlite database
+                            long transactionId = transactionDao.insert(transaction);
+
+                            if(isNetworkAvailable(context)){
+                                doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, context);
+                            }else {
+                                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }).start();
+
+                    dialog.dismiss();
+                }
+
+
+            }
+        });
+
+        // Set click listener for Cancel button
+        cancelButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Handle Cancel button click
+                // Dismiss the dialog
+                dialog.dismiss();
+            }
+        });
+
+        // Show the dialog
+        dialog.show();
+    }
+
 
     /*
      * if CIP is true = > Show this dialog
