@@ -1085,7 +1085,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         new Thread(() -> {
             try {
                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
-                Constants.updateTransaction(PayWithQrActivity.this, transactionDao, transaction.getId(), "FAILED", 0, transaction.getMilkTemperature(), transaction);
+                Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), "FAILED", 0, transaction.getMilkTemperature(), transaction);
 
                 logError(TAG + "Time is out", "After 5 minutes");
 
@@ -1270,7 +1270,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
 
                 Constants.updateTransaction(
-                        PayWithQrActivity.this,
+                        getApplicationContext(),
                         transactionDao,
                         transactionEntity.getId(),
                         "FAILED",
@@ -1297,7 +1297,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             try {
                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
                 Constants.updateTransaction(
-                        PayWithQrActivity.this,
+                        getApplicationContext(),
                         transactionDao,
                         transactionEntity.getId(),
                         "FAILED",
@@ -1452,7 +1452,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     /// Here I convert temperature of milk into string and set 3 digits after dot(.)
                     String strMilkTemperature = String.format("%.3f", milkTemperature);
 
-                    Constants.updateTransaction(PayWithQrActivity.this, transactionDao, transaction.getId(), "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
+                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
 
                     // Now show dialog on UI thread
                     runOnUiThread(() -> {

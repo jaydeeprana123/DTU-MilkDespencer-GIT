@@ -620,6 +620,7 @@ public class Constants {
         // Create the AlertDialog builder
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setView(view);
+        builder.setCancelable(false);
 
         // Create the AlertDialog
         AlertDialog dialog = builder.create();
@@ -642,54 +643,66 @@ public class Constants {
 
                 if (tieVolume.getText().toString().isEmpty()) {
                     Toast.makeText(context, "Please enter volume", Toast.LENGTH_SHORT).show();
-                } else {
-                    remainingVolume += Float.parseFloat(tieVolume.getText().toString());
+                }else if(Float.parseFloat(tieVolume.getText().toString()) > 200 || Float.parseFloat(tieVolume.getText().toString()) < 10){
+                    Toast.makeText(context, "Enter Valid Value", Toast.LENGTH_SHORT).show();
+                }else {
 
-                    preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
+                    float tempRemainVolume = remainingVolume + Float.parseFloat(tieVolume.getText().toString());
+                    if(tempRemainVolume > 200){
+                        Toast.makeText(context, "Enter Valid Value", Toast.LENGTH_SHORT).show();
+                    }else {
+                        remainingVolume += Float.parseFloat(tieVolume.getText().toString());
 
+                        preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
 
-                    new Thread(() -> {
-                        try {
-                            String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
-                            String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
-                            TransactionDao transactionDao = AppDatabase.getInstance(context).transactionDao();
-                            TransactionEntity transaction = new TransactionEntity();
-                            transaction.setUserName("");
-                            transaction.setPassword("");
-                            transaction.setTransactionType("");
-                            transaction.setBankTransactionNo("");
-                            transaction.setRemainingvolume(remainingVolume);
-                            transaction.setTransactionDate(date);
-                            transaction.setTransactionTime(time);
-                            transaction.setAmount(0);
-                            transaction.setUploadToServer(0);
-                            transaction.setVolume(Float.parseFloat(tieVolume.getText().toString()));
-                            transaction.setTransactionStatus("REFILLED");
-                            transaction.setUpiId("");
+                        new Thread(() -> {
+                            try {
+                                String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
+                                String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
+                                TransactionDao transactionDao = AppDatabase.getInstance(context).transactionDao();
+                                TransactionEntity transaction = new TransactionEntity();
+                                transaction.setUserName("");
+                                transaction.setPassword("");
+                                transaction.setTransactionType("");
+                                transaction.setBankTransactionNo("");
+                                transaction.setRemainingvolume(remainingVolume);
+                                transaction.setTransactionDate(date);
+                                transaction.setTransactionTime(time);
+                                transaction.setAmount(0);
+                                transaction.setUploadToServer(0);
+                                transaction.setVolume(Float.parseFloat(tieVolume.getText().toString()));
+                                transaction.setTransactionStatus("REFILLED");
+                                transaction.setUpiId("");
 
-                            /// Added new on 4-1-2025
-                            transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
-                            transaction.setMilkTemperature("222");
+                                String uniqueId = generateSafeUniqueTransactionId(transactionDao);
+                                transaction.setUniqueTransactionId(uniqueId);
 
-                            /// Added on 1-1 2025
-                            transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+                                /// Added new on 4-1-2025
+                                transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
+                                transaction.setMilkTemperature("222");
 
-                            /// Insert into Sqlite database
-                            long transactionId = transactionDao.insert(transaction);
-                            transaction.setId(transactionId);
+                                /// Added on 1-1 2025
+                                transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
 
-                            if (isNetworkAvailable(context)) {
-                                doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
-                            } else {
-                                Constants.saveLogs(context, "Internet Connection Error");
-                                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+                                /// Insert into Sqlite database
+                                long transactionId = transactionDao.insert(transaction);
+                                transaction.setId(transactionId);
+
+                                if (isNetworkAvailable(context)) {
+                                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
+                                } else {
+                                    Constants.saveLogs(context, "Internet Connection Error");
+                                    //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                    }).start();
+                        }).start();
 
-                    dialog.dismiss();
+                        dialog.dismiss();
+                    }
+
+
                 }
 
 
@@ -1394,7 +1407,7 @@ public class Constants {
 
 
     /// Update the transactions
-    public static void updateTransaction(Activity activity, TransactionDao transactionDao, long transactionId, String transactionStatus, float volume, String milkTemperature, TransactionEntity transaction) {
+    public static void updateTransaction(Context activity, TransactionDao transactionDao, long transactionId, String transactionStatus, float volume, String milkTemperature, TransactionEntity transaction) {
         preferencesManager = SharedPreferencesManager.getInstance(activity);
 
         remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());

@@ -2,8 +2,15 @@ package com.imdc.milkdespencer.adminUi;
 
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.GetConfigurationUrl;
+import static com.imdc.milkdespencer.common.Constants.MachineId;
+import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
+import static com.imdc.milkdespencer.common.Constants.RemainingVolumePref;
 import static com.imdc.milkdespencer.common.Constants.doPostConfigurationData;
+import static com.imdc.milkdespencer.common.Constants.doPostTransaction;
 import static com.imdc.milkdespencer.common.Constants.exportTransactionsToCSVAndShare;
+import static com.imdc.milkdespencer.common.Constants.generateSafeUniqueTransactionId;
+import static com.imdc.milkdespencer.common.Constants.isNetworkAvailable;
+import static com.imdc.milkdespencer.common.Constants.remainingVolume;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
 
@@ -44,9 +51,12 @@ import com.imdc.milkdespencer.models.SendToDeviceForCIP;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.entities.User;
+import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 import com.razorpay.Payment;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Locale;
 
 public class CIPActivity extends AppCompatActivity {
     //    private FirebaseAnalytics mFirebaseAnalytics;
@@ -229,9 +239,58 @@ public class CIPActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Constants.saveLogs(CIPActivity.this, "CIP Done");
+
         sendDataForCIP(false, false, false, true);
         isCipOn = false;
+
+        remainingVolume = 0;
+        preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
+        new Thread(() -> {
+            try {
+                String date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(System.currentTimeMillis());
+                String time = new SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(System.currentTimeMillis());
+                TransactionDao transactionDao = AppDatabase.getInstance(getApplicationContext()).transactionDao();
+                TransactionEntity transaction = new TransactionEntity();
+                transaction.setUserName("");
+                transaction.setPassword("");
+                transaction.setTransactionType("");
+                transaction.setBankTransactionNo("");
+                transaction.setRemainingvolume(0);
+                transaction.setTransactionDate(date);
+                transaction.setTransactionTime(time);
+                transaction.setAmount(0);
+                transaction.setUploadToServer(0);
+                transaction.setVolume(0);
+                transaction.setTransactionStatus("CIP");
+                transaction.setUpiId("");
+
+                String uniqueId = generateSafeUniqueTransactionId(transactionDao);
+                transaction.setUniqueTransactionId(uniqueId);
+
+                /// Added new on 4-1-2025
+                transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
+                transaction.setMilkTemperature("222");
+
+                /// Added on 1-1 2025
+                transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+
+                /// Insert into Sqlite database
+                long transactionId = transactionDao.insert(transaction);
+                transaction.setId(transactionId);
+
+                if (isNetworkAvailable(getApplicationContext())) {
+                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
+                    Constants.saveLogs(getApplicationContext(), "CIP Done");
+
+                } else {
+                    Constants.saveLogs(getApplicationContext(), "Internet Connection Error");
+                    //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+
 
     }
 }

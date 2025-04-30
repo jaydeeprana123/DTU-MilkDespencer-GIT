@@ -666,7 +666,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
 
                 Constants.updateTransaction(
-                        CashCollectorActivity.this,
+                        getApplicationContext(),
                         transactionDao,
                         transactionEntity.getId(),
                         "FAILED",
@@ -704,7 +704,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     float milkTemp = Float.parseFloat(transaction.getMilkTemperature());
                     String strMilkTemperature = String.format("%.3f", milkTemp);
 
-                    Constants.updateTransaction(CashCollectorActivity.this, transactionDao, transaction.getId(), "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
+                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
 
                     // Now show dialog on UI thread
                     runOnUiThread(() -> {
@@ -739,7 +739,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         new Thread(() -> {
             try {
                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
-                Constants.updateTransaction(CashCollectorActivity.this, transactionDao, transaction.getId(), "FAILED", 0, transaction.getMilkTemperature(), transaction);
+                Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), "FAILED", 0, transaction.getMilkTemperature(), transaction);
 
                 logError(TAG + "Time is out", "After 3 minutes");
 
@@ -993,14 +993,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                         if (!isMilkVendingStarted) {
                                             isMilkVendingStarted = true;
 
-                                            /// Here after 3 minute if status is not getting as a true.
-                                            // Dialog will be close and transaction will be add in the database as a TIME OUT
-                                            // Initialize the Handler and Runnable
-                                            timeoutHandler = new Handler(Looper.getMainLooper());
-                                            timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, ev.value, 0, transaction);
-
-                                            // Post the Runnable with a delay
-                                            timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
+//                                            /// Here after 3 minute if status is not getting as a true.
+//                                            // Dialog will be close and transaction will be add in the database as a TIME OUT
+//                                            // Initialize the Handler and Runnable
+//                                            timeoutHandler = new Handler(Looper.getMainLooper());
+//                                            timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, ev.value, 0, transaction);
+//
+//                                            // Post the Runnable with a delay
+//                                            timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
 
                                             sendForMilkVending(ev, transaction);
                                             dialog.dismiss();

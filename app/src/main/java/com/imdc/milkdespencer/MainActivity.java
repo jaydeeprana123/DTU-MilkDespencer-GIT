@@ -4,6 +4,7 @@ import static com.imdc.milkdespencer.DatabaseExporter.copyDatabase;
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
+import static com.imdc.milkdespencer.common.Constants.RemainingVolumePref;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
 import static com.imdc.milkdespencer.common.Constants.doPostAsyncLogs;
 import static com.imdc.milkdespencer.common.Constants.doPostAsyncTransactions;
@@ -430,6 +431,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     Alert Dialog of Electricity*/
     private void initializeDependencies() {
         preferencesManager = SharedPreferencesManager.getInstance(this);
+        remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
 
         appDatabase = AppDatabase.getInstance(this);
