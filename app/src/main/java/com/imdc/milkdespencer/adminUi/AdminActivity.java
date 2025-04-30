@@ -5,6 +5,7 @@ import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.GetConfigurationUrl;
 import static com.imdc.milkdespencer.common.Constants.doPostConfigurationData;
 import static com.imdc.milkdespencer.common.Constants.exportTransactionsToCSVAndShare;
+import static com.imdc.milkdespencer.common.Constants.showAddedVolumeDialog;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
 
@@ -50,7 +51,7 @@ public class AdminActivity extends AppCompatActivity {
     SharedPreferencesManager preferencesManager;
     Button btnSetConfigurations, btnApiConfiguration, btnCIP,
             btnCustomerAdmin, btnLogs, btnCalibration, btnCashButtonOnOff,
-            btnAddEndUser, btnHistoryByDate, btnExportTransactions;
+            btnAddEndUser, btnHistoryByDate, btnExportTransactions,btnAddedVolume;
     AppDatabase appDatabase;
     User user;
     private RecyclerView recyclerView;
@@ -102,6 +103,7 @@ public class AdminActivity extends AppCompatActivity {
         btnLogs = findViewById(R.id.btnLogs);
         btnHistoryByDate = findViewById(R.id.btnHistoryByDate);
         btnExportTransactions = findViewById(R.id.btnExportTransactions);
+        btnAddedVolume = findViewById(R.id.btnAddedVolume);
         btnCalibration = findViewById(R.id.btnCalibration);
         btnCashButtonOnOff = findViewById(R.id.btnCashButtonOnOff);
 
@@ -123,6 +125,7 @@ public class AdminActivity extends AppCompatActivity {
             btnCIP.setVisibility(View.GONE);
             btnHistoryByDate.setVisibility(View.GONE);
             btnExportTransactions.setVisibility(View.GONE);
+            btnAddedVolume.setVisibility(View.GONE);
         } else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
 
             btnLogs.setText("Show Logs");
@@ -134,8 +137,10 @@ public class AdminActivity extends AppCompatActivity {
             btnCIP.setVisibility(View.GONE);
             btnHistoryByDate.setVisibility(View.GONE);
             btnExportTransactions.setVisibility(View.GONE);
+            btnAddedVolume.setVisibility(View.GONE);
         } else if (user.getUserType() == UserTypeEnum.END_USER.value()) {
             btnCIP.setVisibility(View.VISIBLE);
+            btnAddedVolume.setVisibility(View.VISIBLE);
             btnSetConfigurations.setText("View Configurations");
             btnLogs.setText("Show Transactions");
             btnHistoryByDate.setVisibility(View.VISIBLE);
@@ -146,6 +151,16 @@ public class AdminActivity extends AppCompatActivity {
             btnApiConfiguration.setVisibility(View.GONE);
             btnExportTransactions.setVisibility(View.VISIBLE);
         }
+
+
+        btnAddedVolume.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                showAddedVolumeDialog(AdminActivity.this);
+
+            }
+        });
 
         btnCIP.setOnClickListener(new View.OnClickListener() {
             @Override

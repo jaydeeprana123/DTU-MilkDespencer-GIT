@@ -93,11 +93,11 @@ public class CIPActivity extends AppCompatActivity {
                 btnCIP.setEnabled(false);
                 Log.e("btn CIP", " is pressed");
 
-                sendDataForCIP(false, false, true);
+                sendDataForCIP(false, false, true, false);
 
 //                isCipOn = true;
                 showCIPRunningDialog(CIPActivity.this,(dialog, which) -> {
-                    sendDataForCIP(false, false, false);
+                    sendDataForCIP(false, false, false, false);
 
                     btnCompressorOff.setVisibility(View.GONE);
                     btnAgitatorOff.setVisibility(View.GONE);
@@ -115,9 +115,9 @@ public class CIPActivity extends AppCompatActivity {
                 btnRemoveMilk.setEnabled(false);
                 btnCIP.setEnabled(true);
                 Log.e("btn btnRemoveMilk", " is pressed");
-                sendDataForCIP(false, false, true);
+                sendDataForCIP(false, false, true, false);
                 showCIPRunningDialog(CIPActivity.this,(dialog, which) -> {
-                    sendDataForCIP(false, false, false);
+                    sendDataForCIP(false, false, false, false);
                 }, "REMOVING MILK");
             }
         });
@@ -135,7 +135,7 @@ public class CIPActivity extends AppCompatActivity {
                 }
 
 
-                sendDataForCIP(false, true, false);
+                sendDataForCIP(false, true, false, false);
 
             }
         });
@@ -151,13 +151,14 @@ public class CIPActivity extends AppCompatActivity {
                     btnRemoveMilk.setEnabled(true);
                 }
 
-                sendDataForCIP(false, false, false);
+                sendDataForCIP(false, false, false, false);
             }
         });
 
         btnBackToHome.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                sendDataForCIP(false, false, false, true);
                 isCipOn = false;
                 finish();
             }
@@ -200,14 +201,14 @@ public class CIPActivity extends AppCompatActivity {
 
     /*
      * When payment is done. Send for Vending the milk*/
-    public void sendDataForCIP(boolean compressorStatus,boolean agitatorStatus,boolean pumpStatus) {
+    public void sendDataForCIP(boolean compressorStatus,boolean agitatorStatus,boolean pumpStatus, boolean isCipDone) {
         try {
             // Prepare data to send to device
             SendToDeviceForCIP sendToDevice = new SendToDeviceForCIP();
             sendToDevice.setCompressor(compressorStatus);
             sendToDevice.setAgitator(agitatorStatus);
             sendToDevice.setPump(pumpStatus);
-
+            sendToDevice.setCipdone(isCipDone);
             Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
             //  logError(TAG, "QR_PAYMENT: SEND COMMAND " + gson.toJson(sendToDevice));
 
@@ -228,6 +229,8 @@ public class CIPActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Constants.saveLogs(CIPActivity.this, "CIP Done");
+        sendDataForCIP(false, false, false, true);
         isCipOn = false;
 
     }

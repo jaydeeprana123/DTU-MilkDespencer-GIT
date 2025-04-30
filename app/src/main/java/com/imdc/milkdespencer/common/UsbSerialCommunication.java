@@ -2,7 +2,6 @@ package com.imdc.milkdespencer.common;
 
 import static com.imdc.milkdespencer.MainActivity.getInstance;
 import static com.imdc.milkdespencer.common.Constants.PREF_PERMISSION_GRANTED;
-import static com.imdc.milkdespencer.common.Constants.cipDialog;
 
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
@@ -379,21 +378,21 @@ public class UsbSerialCommunication {
                                     ResponseMilkDispense milkDispense = new Gson().fromJson(completeData, ResponseMilkDispense.class);
 
                                     /// If status is true cip should be false and dialog will be close
-                                    if (milkDispense.getStatus() && isCipOn) {
-                                        logError("Status is truueeeee", milkDispense.getStatus().toString());
-
-                                        Constants.saveLogs(context, "CIP Done");
-
-                                        isCipOn = false;
-                                        if(cipDialog != null && cipDialog.isShowing()){
-                                            cipDialog.dismiss();
-                                        }
-
-
-                                    } else {
-
-                                        logError("Status is false", milkDispense.getStatus().toString());
-                                    }
+//                                    if (milkDispense.getStatus() && isCipOn) {
+//                                        logError("Status is truueeeee", milkDispense.getStatus().toString());
+//
+//                                        Constants.saveLogs(context, "CIP Done");
+//
+//                                        isCipOn = false;
+//                                        if(cipDialog != null && cipDialog.isShowing()){
+//                                            cipDialog.dismiss();
+//                                        }
+//
+//
+//                                    } else {
+//
+//                                        logError("Status is false", milkDispense.getStatus().toString());
+//                                    }
 
                                     ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
                                     float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());

@@ -120,6 +120,10 @@
     <string name="reset_password">Reset Password</string>
     <string name="done">Done</string>
     <string name="ok">OK</string>
+    <string name="volume">Volume</string>
+
+    <string name="added_volume">Added Volume</string>
+    <string name="remaining_volume">Remaining Volume : </string>
 
     <string name="milk_in_liters">Milk In Liters (Ml/L) </string>
     <string name="milk_in_price">Milk In Price (₹)</string>

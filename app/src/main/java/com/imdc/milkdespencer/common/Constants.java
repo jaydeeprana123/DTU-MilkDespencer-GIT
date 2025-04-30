@@ -87,9 +87,10 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class Constants {
 
-    public static AlertDialog cipDialog;
 
     public static final String CashTransactionMode = "CashTransactionMode";
+
+    public static float remainingVolume = 0;
 
 
     private static final String PREFS_NAME = "usb_permission_prefs";
@@ -371,7 +372,6 @@ public class Constants {
     }
 
 
-
     public static void showConfigDialog(Context context) {
         // Create a layout inflater to inflate the custom dialog layout
         LayoutInflater inflater = LayoutInflater.from(context);
@@ -640,9 +640,9 @@ public class Constants {
             public void onClick(View v) {
                 // Handle OK button click
 
-                if(tieVolume.getText().toString().isEmpty()){
+                if (tieVolume.getText().toString().isEmpty()) {
                     Toast.makeText(context, "Please enter volume", Toast.LENGTH_SHORT).show();
-                }else {
+                } else {
                     remainingVolume += Float.parseFloat(tieVolume.getText().toString());
 
                     preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
@@ -654,21 +654,34 @@ public class Constants {
                             String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
                             TransactionDao transactionDao = AppDatabase.getInstance(context).transactionDao();
                             TransactionEntity transaction = new TransactionEntity();
-                            transaction.setRemainingVolume(remainingVolume);
+                            transaction.setUserName("");
+                            transaction.setPassword("");
+                            transaction.setTransactionType("");
+                            transaction.setBankTransactionNo("");
+                            transaction.setRemainingvolume(remainingVolume);
                             transaction.setTransactionDate(date);
                             transaction.setTransactionTime(time);
-                            transaction.setAddedVolume(Float.parseFloat(tieVolume.getText().toString()));
+                            transaction.setAmount(0);
+                            transaction.setUploadToServer(0);
+                            transaction.setVolume(Float.parseFloat(tieVolume.getText().toString()));
                             transaction.setTransactionStatus("REFILLED");
+                            transaction.setUpiId("");
+
+                            /// Added new on 4-1-2025
+                            transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
+                            transaction.setMilkTemperature("222");
 
                             /// Added on 1-1 2025
                             transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
 
                             /// Insert into Sqlite database
                             long transactionId = transactionDao.insert(transaction);
+                            transaction.setId(transactionId);
 
-                            if(isNetworkAvailable(context)){
-                                doPostTransaction(preferencesManager,"/api/Transaction/PostTransaction", transaction, context);
-                            }else {
+                            if (isNetworkAvailable(context)) {
+                                doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
+                            } else {
+                                Constants.saveLogs(context, "Internet Connection Error");
                                 //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
                             }
                         } catch (Exception e) {
@@ -705,7 +718,7 @@ public class Constants {
         // Create a layout inflater to inflate the custom dialog layout
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.dialog_cip_running, null);
-
+        AlertDialog cipDialog;
         // Create the AlertDialog builder
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         builder.setView(view);
@@ -1273,15 +1286,14 @@ public class Constants {
                 AppDatabase database = AppDatabase.getInstance(context);
                 LogDao logDao = database.logDao();
                 LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "000000A31122024").toString(), "", "", 0);
-                long logId =  logDao.insert(logEntity);
+                long logId = logDao.insert(logEntity);
                 logEntity.setId((int) logId);
 
                 Log.e(TAG, "run: saveLogs " + logDao.getAllLogs());
 
-                if(logId > 0 && isNetworkAvailable(context)){
-                    doPostLog(preferencesManager, "/api/Log/PostLog",logEntity,logDao);
+                if (logId > 0 && isNetworkAvailable(context)) {
+                    doPostLog(preferencesManager, "/api/Log/PostLog", logEntity, logDao);
                 }
-
 
 
             }
@@ -1319,7 +1331,11 @@ public class Constants {
     }
 
     public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, double amount, String transactionStatus, String upiId, float volume, String milkTemperature) {
-         preferencesManager = SharedPreferencesManager.getInstance(activity);
+        preferencesManager = SharedPreferencesManager.getInstance(activity);
+
+        remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
+        remainingVolume = remainingVolume - volume;
+        preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
 
         TransactionEntity transaction = new TransactionEntity();
         transaction.setUserName("");
@@ -1359,7 +1375,7 @@ public class Constants {
                 Executors.newSingleThreadExecutor().execute(() -> {
                     doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
                 });
-               // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
+                // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
             } else {
 
                 Constants.saveLogs(activity, "Internet Connection Error");
@@ -1379,13 +1395,17 @@ public class Constants {
 
     /// Update the transactions
     public static void updateTransaction(Activity activity, TransactionDao transactionDao, long transactionId, String transactionStatus, float volume, String milkTemperature, TransactionEntity transaction) {
-         preferencesManager = SharedPreferencesManager.getInstance(activity);
+        preferencesManager = SharedPreferencesManager.getInstance(activity);
+
+        remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
+        remainingVolume = remainingVolume - volume;
+        preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
 
         transactionDao.updateTransactionDetails(
                 String.valueOf(transactionId),           // Unique Transaction ID
                 volume,                 // volume
                 preferencesManager.get(MilkBasePrice, "").toString(),              // milk price
-                milkTemperature ,
+                milkTemperature,
                 transactionStatus// milk temperature
 
         );
@@ -1421,7 +1441,6 @@ public class Constants {
     }
 
 
-
     public static String generateSafeUniqueTransactionId(TransactionDao transactionDao) {
         long lastId = transactionDao.getLastTransactionId(); // Returns 0 if table is empty
         long nextId = lastId + 1;
@@ -1443,7 +1462,6 @@ public class Constants {
 
         return uniqueId;
     }
-
 
 
     public static void doPostTransactionAfterUpdate(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction, Runnable onComplete) {
@@ -1502,7 +1520,7 @@ public class Constants {
     }
 
 
-    public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction,TransactionDao transactionDao) {
+    public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction, TransactionDao transactionDao) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
         Log.e("Base URL", baseUrl);
 
@@ -1554,7 +1572,7 @@ public class Constants {
                     }
 
 
-                    if(preferencesManager != null){
+                    if (preferencesManager != null) {
                         /// Delete the saved transactions
                         preferencesManager.delete(Constants.PaymentReceived);
                         preferencesManager.delete(Constants.PaidAmt);
@@ -1581,7 +1599,7 @@ public class Constants {
         apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
     }
 
-    public static void doPostAsyncTransactions(SharedPreferencesManager preferencesManager, String url, ArrayList<TransactionEntity> transactionList,TransactionDao transactionDao) {
+    public static void doPostAsyncTransactions(SharedPreferencesManager preferencesManager, String url, ArrayList<TransactionEntity> transactionList, TransactionDao transactionDao) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
         Log.e("Base URL", baseUrl);
 
@@ -1623,7 +1641,7 @@ public class Constants {
                     Log.e(TAG, "onNext list: " + json);
 
                     ArrayList idList = new ArrayList();
-                    for (int i=0; i<transactionList.size(); i++){
+                    for (int i = 0; i < transactionList.size(); i++) {
                         idList.add(String.valueOf(transactionList.get(i).getId()));
                     }
 
@@ -1655,7 +1673,7 @@ public class Constants {
     }
 
 
-    public static void doPostLog(SharedPreferencesManager preferencesManager, String url, LogEntity log,LogDao logDao) {
+    public static void doPostLog(SharedPreferencesManager preferencesManager, String url, LogEntity log, LogDao logDao) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
         Log.e("Base URL", baseUrl);
 
@@ -1727,7 +1745,7 @@ public class Constants {
     }
 
 
-    public static void doPostAsyncLogs(SharedPreferencesManager preferencesManager, String url, ArrayList<LogEntity> logList,LogDao logDao) {
+    public static void doPostAsyncLogs(SharedPreferencesManager preferencesManager, String url, ArrayList<LogEntity> logList, LogDao logDao) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
         Log.e("Base URL", baseUrl);
 
@@ -1769,7 +1787,7 @@ public class Constants {
                     Log.e(TAG, "onNext: " + json);
 
                     ArrayList idList = new ArrayList();
-                    for (int i=0; i<logList.size(); i++){
+                    for (int i = 0; i < logList.size(); i++) {
                         idList.add(String.valueOf(logList.get(i).getId()));
                     }
 
@@ -1899,7 +1917,7 @@ public class Constants {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/api/").toString();
 
         Log.d(TAG + "Base URL  run: ==>", baseUrl);
-        Log.d(TAG + "Base URL  run: ==> GetConfigurationUrl",baseUrl +  GetConfigurationUrl);
+        Log.d(TAG + "Base URL  run: ==> GetConfigurationUrl", baseUrl + GetConfigurationUrl);
 
         ApiService apiService = retrofit.create(ApiService.class);
 
@@ -1987,7 +2005,6 @@ public class Constants {
     }
 
 
-
     public static void doPostConfigurationData(Activity activity, String url) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
         Log.e("Base URL", baseUrl + url);
@@ -2047,9 +2064,9 @@ public class Constants {
 //                        preferencesManager.save(RazorPayKey, "rzp_live_oTrQqk0HauuUWZ");
 //                        preferencesManager.save(RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F");
 
-                      //  preferencesManager.save(RazorPayKey, "rzp_live_oTrQqk0HauuUWZ");
+                        //  preferencesManager.save(RazorPayKey, "rzp_live_oTrQqk0HauuUWZ");
                         preferencesManager.save(RazorPayKey, configurationResponse.getData().get(0).getRazorPayKey());
-                      //  preferencesManager.save(RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F");
+                        //  preferencesManager.save(RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F");
                         preferencesManager.save(RazorPaySecretKey, configurationResponse.getData().get(0).getRazorPaySecretKey());
 
 
@@ -2137,7 +2154,6 @@ public class Constants {
 
         return csvFile != null ? csvFile.getAbsolutePath() : null;
     }
-
 
 
     public static void sendEmailWithAttachment(Context context, String filePath) {
