@@ -250,7 +250,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
         sspDevice = dev;
 
-
         fab.setVisibility(View.INVISIBLE);
         fab.setVisibility(View.INVISIBLE);
         prgConnect.setVisibility(View.INVISIBLE);
@@ -551,7 +550,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 float volumeOfMilk = (float) (milkDispense.getCurrentWeight() / milkDensity);
                 logError("VOLUME OF MILK", String.valueOf(volumeOfMilk));
 
-                timeoutHandler.removeCallbacks(timeoutRunnable);
+                if (timeoutHandler != null && timeoutRunnable != null) {
+                    timeoutHandler.removeCallbacks(timeoutRunnable);
+                }
+
                 milkDispensingDialog.dismiss();
 
                 tempIndex++;
@@ -836,12 +838,12 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 eventValues[0] = "Bill Escrow";
                 eventValues[1] = ev.currency + " " + String.format("%.2f", ev.value);
 
-                LayoutInflater inflater = LayoutInflater.from(getInstance());
+                LayoutInflater inflater = LayoutInflater.from(CashCollectorActivity.this);
                 View view = inflater.inflate(R.layout.dialog_note_detected, null);
 
-                preferencesManager = SharedPreferencesManager.getInstance(getInstance());
+                preferencesManager = SharedPreferencesManager.getInstance(CashCollectorActivity.this);
 
-                AlertDialog.Builder builder = new AlertDialog.Builder(getInstance());
+                AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity.this);
                 builder.setView(view);
 
                 AlertDialog dialog = builder.create();
@@ -903,6 +905,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
                     dialog.dismiss();
 
+                    Log.e(TAG + "dialog dismiss", "cancelBtn dialog dismiss");
+
                     grdCurrencyView.setVisibility(View.VISIBLE);
                     btnBackToHome.setVisibility(View.VISIBLE);
                     tvProcessing.setVisibility(View.GONE);
@@ -920,6 +924,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                         // If door is open then close the cash machine and send to the home page
                         deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
                         dialog.dismiss();
+                        Log.e(TAG + "dialog dismiss", "volumeToDisplay dialog dismiss");
                         showAlertExceedLimit();
                     } else {
 
@@ -996,11 +1001,11 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 //                                            /// Here after 3 minute if status is not getting as a true.
 //                                            // Dialog will be close and transaction will be add in the database as a TIME OUT
 //                                            // Initialize the Handler and Runnable
-//                                            timeoutHandler = new Handler(Looper.getMainLooper());
-//                                            timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, ev.value, 0, transaction);
-//
-//                                            // Post the Runnable with a delay
-//                                            timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
+                                            timeoutHandler = new Handler(Looper.getMainLooper());
+                                            timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, ev.value, 0, transaction);
+
+                                            // Post the Runnable with a delay
+                                            timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
 
                                             sendForMilkVending(ev, transaction);
                                             dialog.dismiss();
@@ -1014,7 +1019,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
                         } else {
-
+                            Log.e(TAG + "dialog dismiss", "CONNECTIVITY dialog dismiss");
                             // If door is open then close the cash machine and send to the home page
                             deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
                             dialog.dismiss();
