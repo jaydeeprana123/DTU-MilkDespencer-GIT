@@ -8,6 +8,7 @@ import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
 import static com.imdc.milkdespencer.common.Constants.doPostAsyncLogs;
 import static com.imdc.milkdespencer.common.Constants.doPostAsyncTransactions;
 import static com.imdc.milkdespencer.common.Constants.isNetworkAvailable;
+import static com.imdc.milkdespencer.common.Constants.remainingVolume;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
@@ -840,11 +841,17 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             updateIndicator(ivCompressor, responseTempStatus.getCompressor());
 
             if (getChargingState && isUsbPermissionGranted && !inMilkDispenseProcessLevel) {
-                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
+                if (remainingVolume <= 6) {
                     handleLowLevel();
-                } else {
+                }else {
                     handleNormalLevel();
                 }
+
+//                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
+//                    handleLowLevel();
+//                } else {
+//                    handleNormalLevel();
+//                }
             } else if (!getChargingState) {
                 logError(TAG, "Device is not charging");
                 cv_error.setVisibility(View.VISIBLE);
