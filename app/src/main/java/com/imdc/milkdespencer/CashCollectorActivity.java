@@ -1031,6 +1031,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     lottieAddCashDialog.dismiss();
                     dialog.show();
 
+
+                    Log.e(TAG, "DisplayEvents: dialog.show()" );
+
                 } else {
                     Constants.showAlertDialog(cashCollectorActivity, "Please Select the Amount", "Please select the amount before inserting the currency!");
                     deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
@@ -1106,6 +1109,171 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         logError("TAG", "DisplayEvents: " + ev.event);
         adapterEvents.notifyDataSetChanged();
     }
+
+
+//    public void DisplayEvents1(DeviceEvent ev) {
+//
+//        switch (ev.event) {
+//            case CommunicationsFailure:
+//                break;
+//            case Ready:
+//                eventValues[0] = "Ready";
+//                eventValues[1] = "";
+//                break;
+//            case BillRead:
+//                eventValues[0] = "Reading";
+//                eventValues[1] = "";
+//                break;
+//            case BillEscrow:
+//                eventValues[0] = "Bill Escrow";
+//                eventValues[1] = ev.currency + " " + String.format("%.2f", ev.value);
+//
+//                LayoutInflater inflater = LayoutInflater.from(getInstance());
+//                View view = inflater.inflate(R.layout.dialog_note_detected, null);
+//
+//                preferencesManager = SharedPreferencesManager.getInstance(getInstance());
+//
+//                AlertDialog.Builder builder = new AlertDialog.Builder(getInstance());
+//                builder.setView(view);
+//
+//                AlertDialog dialog = builder.create();
+//
+//                MaterialButton submitBtn = view.findViewById(R.id.btnSubmitToDevice);
+//                MaterialButton cancelBtn = view.findViewById(R.id.btnCancel);
+//                TextView tvCurrencyAmt = view.findViewById(R.id.tvCurrencyDetectedAmt);
+//                ImageView ivCurrency = view.findViewById(R.id.ivLogo);
+//                TextView tvMessage = view.findViewById(R.id.tvCurrencyMessage);
+//
+//                Log.e(TAG, "DisplayEvents: " + ev.value);
+//                if (eventValues != null) {
+//                    String msg = "";
+//                    if (eventValues[1] != null) {
+//                        float milkSellingPrice = Float.parseFloat(String.valueOf(milkBasePrice));
+//                        float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, "0.0").toString());
+//                        float milkDensity = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
+//                        float weight = Float.parseFloat(String.valueOf((ev.value / milkSellingPrice))) * milkDensity; //TODO : multiply with Den.
+//                        Log.e(TAG, "DisplayEvents: milkDensity " + milkDensity);
+//                        switch ((int) ev.value) {
+//                            case 10:
+//                                ivCurrency.setImageResource(R.drawable.ic_ten);
+//                                break;
+//                            case 20:
+//                                ivCurrency.setImageResource(R.drawable.ic_twenty);
+//                                break;
+//                            case 50:
+//                                ivCurrency.setImageResource(R.drawable.ic_fifty);
+//                                break;
+//                            case 100:
+//                                ivCurrency.setImageResource(R.drawable.ic_hundred);
+//                                break;
+//                            case 200:
+//                                ivCurrency.setImageResource(R.drawable.ic_two_hundred);
+//                                break;
+//                            case 500:
+//                                ivCurrency.setImageResource(R.drawable.ic_five_hundred);
+//                                break;
+//                            default:
+//                                ivCurrency.setImageResource(R.drawable.pay_with_cash);
+//                        }
+//
+//                        msg = eventValues[1] + " is detected you will get " + weight + " liters of Milk.\n Please ensure the door is closed starting the dispensation!! Press Start to Confirm!!!";
+//                        tvMessage.setText(msg);
+//                        tvCurrencyAmt.setText(eventValues[1]);
+//                    }
+//
+//                }
+//
+//
+//                cancelBtn.setOnClickListener(v -> {
+//                    deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
+//                    dialog.dismiss();
+//                });
+//                submitBtn.setOnClickListener(v -> {
+//                    sendToMilkDevice(ev);
+//                    dialog.dismiss();
+//                });
+//                // Show the dialog
+//
+//                if (selectedCurrency != null && !selectedCurrency.isEmpty()) {
+//                    lottieAddCashDialog.isShowing();
+//                    lottieAddCashDialog.dismiss();
+//                    dialog.show();
+//
+//                } else {
+//                    Constants.showAlertDialog(cashCollectorActivity, "Please Select the Amount", "Please select the amount before inserting the currency!");
+//                    deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
+//                }
+//                break;
+//            case BillStacked:
+//
+//                break;
+//            case BillReject:
+//                eventValues[0] = "Bill Reject";
+//                eventValues[1] = "";
+//                if (swEscrow.isChecked()) {
+//                    bttnAccept.setVisibility(View.INVISIBLE);
+//                    bttnReject.setVisibility(View.INVISIBLE);
+//                }
+//                break;
+//            case BillJammed:
+//                eventValues[0] = "Bill jammed";
+//                eventValues[1] = "";
+//                break;
+//            case BillFraud:
+//                eventValues[0] = "Bill Fraud";
+//                eventValues[1] = ev.currency + " " + String.format("%.2f", ev.value);
+//                break;
+//            case BillCredit:
+//                eventValues[0] = "Bill Credit";
+//                eventValues[1] = ev.currency + " " + String.format("%.2f", ev.value);
+//                break;
+//            case Full:
+//                eventValues[0] = "Bill Cashbox full";
+//                eventValues[1] = "";
+//                break;
+//            case Initialising:
+//
+//                break;
+//            case Disabled:
+//                eventValues[0] = "Disabled";
+//                eventValues[1] = "";
+//                break;
+//            case SoftwareError:
+//                eventValues[0] = "Software error";
+//                eventValues[1] = "";
+//                break;
+//            case AllDisabled:
+//                eventValues[0] = "All channels disabled";
+//                eventValues[1] = "";
+//                break;
+//            case CashboxRemoved:
+//                eventValues[0] = "Cashbox removed";
+//                eventValues[1] = "";
+//                break;
+//            case CashboxReplaced:
+//                eventValues[0] = "Cashbox replaced";
+//                eventValues[1] = "";
+//                break;
+//            case NotePathOpen:
+//                eventValues[0] = "Note path open";
+//                eventValues[1] = "";
+//                break;
+//            case BarCodeTicketEscrow:
+//                eventValues[0] = "Barcode ticket escrow:";
+//                eventValues[1] = ev.currency;
+//                if (swEscrow.isChecked()) {
+//                    bttnAccept.setVisibility(View.VISIBLE);
+//                    bttnReject.setVisibility(View.VISIBLE);
+//                }
+//                break;
+//            case BarCodeTicketStacked:
+//                eventValues[0] = "Barcode ticket stacked";
+//                eventValues[1] = "";
+//                break;
+//        }
+//        Log.e("TAG", "DisplayEvents: " + ev.event);
+//        adapterEvents.notifyDataSetChanged();
+//    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
