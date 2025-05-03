@@ -18,6 +18,18 @@ public class ResponseMilkDispense {
     @Expose
     private Boolean status;
 
+    @SerializedName("doorstatus")
+    @Expose
+    private Boolean doorstatus;
+
+    public Boolean getDoorstatus() {
+        return doorstatus;
+    }
+
+    public void setDoorstatus(Boolean doorstatus) {
+        this.doorstatus = doorstatus;
+    }
+
     public Double getCurrentWeight() {
         return currentWeight;
     }

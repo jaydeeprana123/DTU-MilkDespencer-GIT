@@ -567,7 +567,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 // So api will not call again and again
                 if (!isDatabaseOperationStarted) {
                     isDatabaseOperationStarted = true;
-                    updateDataInDatabaseWhenProcessDone(volumeOfMilk, transaction);
+                    updateDataInDatabaseWhenProcessDone(volumeOfMilk, transaction, milkDispense.getDoorstatus());
                 }
 
 
@@ -691,7 +691,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     /// When process is completed. Data will be updated into database
-    void updateDataInDatabaseWhenProcessDone(float volumeOfMilk, TransactionEntity transaction) {
+    void updateDataInDatabaseWhenProcessDone(float volumeOfMilk, TransactionEntity transaction, Boolean doorStatus) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -706,7 +706,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     float milkTemp = Float.parseFloat(transaction.getMilkTemperature());
                     String strMilkTemperature = String.format("%.3f", milkTemp);
 
-                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
+                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), doorStatus?"DOOR OPEN":"SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
 
                     // Now show dialog on UI thread
                     runOnUiThread(() -> {
@@ -1862,7 +1862,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     private void logError(String tag, String message) {
-        Log.e(tag, message);
+       // Log.e(tag, message);
     }
 
 

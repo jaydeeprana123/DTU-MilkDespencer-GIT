@@ -107,7 +107,8 @@
             android:layout_height="wrap_content"
             android:text=""
             android:layout_weight="0.2"
-            tools:ignore="MissingConstraints" />
+            tools:ignore="MissingConstraints"
+            android:textStyle="bold"/>
 
 
     </LinearLayout>

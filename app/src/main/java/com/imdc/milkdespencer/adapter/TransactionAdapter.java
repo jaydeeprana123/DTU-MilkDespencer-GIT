@@ -15,6 +15,7 @@ import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.TransactionHistoryActivity;
 import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 
+import java.text.DecimalFormat;
 import java.util.List;
 
 public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.TransactionViewHolder> {
@@ -48,12 +49,18 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
         holder.tvTransactionId.setText(transaction.getUniqueTransactionId());
         holder.tvTransactionType.setText(transaction.getTransactionType());
         holder.tvTransactionDateTime.setText(transaction.getTransactionDate() + " at " + transaction.getTransactionTime());
-        holder.tvRemainingVolume.setText("Remaining : " + transaction.getRemainingvolume() + "L");
+
+        DecimalFormat df = new DecimalFormat("0.00");
+        String formattedRemainingVolume = df.format(transaction.getRemainingvolume());
+
+        holder.tvRemainingVolume.setText("Remaining : " + formattedRemainingVolume + "L");
 
         /// Add volume on 31-12-2024
 //        holder.tvVolume.setText("(" + transaction.get);
         if (transaction.getTransactionStatus().equalsIgnoreCase("Failed") || transaction.getTransactionStatus().equalsIgnoreCase("Time Out")) {
             holder.tvTransactionDateStatus.setTextColor(ContextCompat.getColor(activity, R.color.md_theme_dark_errorContainer));
+        }else if (transaction.getTransactionStatus().equalsIgnoreCase("Door Open")) {
+            holder.tvTransactionDateStatus.setTextColor(ContextCompat.getColor(activity, R.color.orange_color));
         } else {
             holder.tvTransactionDateStatus.setTextColor(ContextCompat.getColor(activity, R.color.md_theme_dark_success));
         }

@@ -66,6 +66,7 @@ import com.imdc.milkdespencer.roomdb.interfaces.LogDao;
 import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
 import java.io.File;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -752,7 +753,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     protected void onResume() {
         super.onResume();
 
-        tvRemainingVolume.setText(String.valueOf(remainingVolume) + "L");
+
+        DecimalFormat df = new DecimalFormat("0.00");
+        String formattedRemainingVolume = df.format(remainingVolume);
+
+        tvRemainingVolume.setText(formattedRemainingVolume + "L");
 
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
@@ -1019,7 +1024,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-        // Log.e(tag, message);
+       //  Log.e(tag, message);
     }
 
 

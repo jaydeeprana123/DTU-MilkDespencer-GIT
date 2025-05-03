@@ -1140,7 +1140,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 // So api will not call again and again
                 if (!isDatabaseOperationStarted) {
                     isDatabaseOperationStarted = true;
-                   updateDataInDatabaseWhenProcessDone(amt, payCodeId, payment, volumeOfMilk, milkTemperature, transaction);
+                   updateDataInDatabaseWhenProcessDone(amt, payCodeId, payment, volumeOfMilk, milkTemperature, transaction, milkDispense.getDoorstatus());
                 }
 
             }
@@ -1438,7 +1438,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
     /// When process is completed. Data will be updated into database
-    void updateDataInDatabaseWhenProcessDone(double amt, String payCodeId, Payment payment, float volumeOfMilk, float milkTemperature, TransactionEntity transaction) {
+    void updateDataInDatabaseWhenProcessDone(double amt, String payCodeId, Payment payment, float volumeOfMilk, float milkTemperature, TransactionEntity transaction, Boolean doorStatus) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1452,7 +1452,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     /// Here I convert temperature of milk into string and set 3 digits after dot(.)
                     String strMilkTemperature = String.format("%.3f", milkTemperature);
 
-                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
+                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), doorStatus?"DOOR OPEN":"SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
 
                     // Now show dialog on UI thread
                     runOnUiThread(() -> {
