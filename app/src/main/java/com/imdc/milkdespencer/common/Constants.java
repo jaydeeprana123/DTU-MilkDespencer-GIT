@@ -98,6 +98,11 @@ public class Constants {
 
     public static final String TAG = "MilkDespencer";
     public static final String MachineId = "MachineId";
+
+    public static final String MaxVolumeLimit = "MaxVolumeLimit";
+
+    public static final String MinimumVolumeLimit = "MinimumVolumeLimit";
+
     public static final String RazorPayCustomerID = "RazorPayCustomerID";
 
     public static final String RegisterEndUser = "RegisterUser";
@@ -499,6 +504,8 @@ public class Constants {
         MaterialButton okButton = view.findViewById(R.id.okButton);
         MaterialButton cancelButton = view.findViewById(R.id.cancelButton);
 
+        TextInputLayout tilMaxVolumeLimit = view.findViewById(R.id.tilMaxVolumeLimit);
+        TextInputLayout tilMinimumVolume = view.findViewById(R.id.tilMinimumVolume);
         TextInputLayout tilMachineId = view.findViewById(R.id.tilMachineId);
         TextInputLayout tilTemperatureOffset = view.findViewById(R.id.tilTemperatureOffset);
         TextInputLayout tilTemperatureSet = view.findViewById(R.id.tilSetTemperature);
@@ -508,6 +515,8 @@ public class Constants {
         TextInputLayout tilMilkDensity = view.findViewById(R.id.tilMilkDensity);
         TextInputLayout tilTimeOut = view.findViewById(R.id.tilTimeOut);
 
+        TextInputEditText tieMaxVolumeLimit = view.findViewById(R.id.tieMaxVolumeLimit);
+        TextInputEditText tieMinimumVolume = view.findViewById(R.id.tieMinimumVolume);
         TextInputEditText tieTemperatureOffset = view.findViewById(R.id.tieTemperatureOffset);
         TextInputEditText tieTemperatureSet = view.findViewById(R.id.tieSetTemperature);
         TextInputEditText tieOwnerNameId = view.findViewById(R.id.tieOwnerNameId);
@@ -526,6 +535,8 @@ public class Constants {
         } else if (userType == UserTypeEnum.CUSTOMER_ADMIN.value()) {
             tieMachineId.setEnabled(false);
         } else if (userType == UserTypeEnum.END_USER.value()) {
+            tieMaxVolumeLimit.setEnabled(false);
+            tieMinimumVolume.setEnabled(false);
             tieMachineId.setEnabled(false);
             tilTemperatureOffset.setEnabled(false);
             tilTemperatureSet.setEnabled(false);
@@ -536,6 +547,8 @@ public class Constants {
 
         }
 
+        tilMaxVolumeLimit.setErrorEnabled(true);
+        tilMinimumVolume.setErrorEnabled(true);
         tilMachineId.setErrorEnabled(true);
         tilTemperatureOffset.setErrorEnabled(true);
         tilTemperatureSet.setErrorEnabled(true);
@@ -547,6 +560,8 @@ public class Constants {
 
         //  tilMachineId.setEnabled(machineId.isEmpty() || machineId.equalsIgnoreCase("MachineId"));
         tieMachineId.setText(machineId);
+        tieMaxVolumeLimit.setText(preferencesManager.get(MaxVolumeLimit, "200.0").toString());
+        tieMinimumVolume.setText(preferencesManager.get(MinimumVolumeLimit, "6.0").toString());
         tieOwnerNameId.setText(preferencesManager.get(OwnerName, "0.0").toString());
         tieTemperatureOffset.setText(preferencesManager.get(TemperatureOffSet, "2.26").toString());
         tieTemperatureSet.setText(preferencesManager.get(TemperatureSet, "8.0").toString());
@@ -568,6 +583,8 @@ public class Constants {
                         return;
                     }
 
+                    String maxVolumeLimit = tieMaxVolumeLimit.getText().toString();
+                    String minVolume = tieMinimumVolume.getText().toString();
                     String machineID = tieMachineId.getText().toString();
                     String ownerName = tieOwnerNameId.getText().toString();
                     String setTemperature = tieTemperatureSet.getText().toString();
@@ -578,6 +595,9 @@ public class Constants {
 
                     Log.e("offSetTemperature", offSetTemperature);
 
+
+                    preferencesManager.save(MaxVolumeLimit, maxVolumeLimit);
+                    preferencesManager.save(MinimumVolumeLimit, minVolume);
                     preferencesManager.save(MachineId, machineID);
                     preferencesManager.save(OwnerName, ownerName);
                     preferencesManager.save(TemperatureSet, setTemperature);
@@ -605,6 +625,18 @@ public class Constants {
 
         // Show the dialog
         dialog.show();
+
+
+        // Make dialog larger — for example, 90% of screen width and height
+        Window window = dialog.getWindow();
+        if (window != null) {
+            WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+            layoutParams.copyFrom(window.getAttributes());
+            layoutParams.width = (int) (context.getResources().getDisplayMetrics().widthPixels * 0.9);
+            layoutParams.height = (int) (context.getResources().getDisplayMetrics().heightPixels * 0.8);
+            window.setAttributes(layoutParams);
+        }
+
     }
 
     /*
@@ -632,7 +664,11 @@ public class Constants {
         AppCompatTextView tvRemainingVolume = view.findViewById(R.id.tv_remaining_volume);
 
         remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
-        tvRemainingVolume.setText("Remaining Volume : " + String.valueOf(remainingVolume));
+        DecimalFormat df = new DecimalFormat("0.00");
+        String formattedRemainingVolume = df.format(remainingVolume);
+        tvRemainingVolume.setText("Remaining Volume : " + formattedRemainingVolume);
+
+       double maximumVolumeLimit = Double.parseDouble(preferencesManager.get(MaxVolumeLimit, "200").toString());
 
         // Set click listener for OK button
         okButton.setOnClickListener(new View.OnClickListener() {
@@ -642,12 +678,12 @@ public class Constants {
 
                 if (tieVolume.getText().toString().isEmpty()) {
                     Toast.makeText(context, "Please enter volume", Toast.LENGTH_SHORT).show();
-                }else if(Float.parseFloat(tieVolume.getText().toString()) > 200 || Float.parseFloat(tieVolume.getText().toString()) < 10){
+                }else if(Float.parseFloat(tieVolume.getText().toString()) > maximumVolumeLimit || Float.parseFloat(tieVolume.getText().toString()) < 10){
                     Toast.makeText(context, "Enter Valid Value", Toast.LENGTH_SHORT).show();
                 }else {
 
                     float tempRemainVolume = remainingVolume + Float.parseFloat(tieVolume.getText().toString());
-                    if(tempRemainVolume > 200){
+                    if(tempRemainVolume > maximumVolumeLimit){
                         Toast.makeText(context, "Enter Valid Value", Toast.LENGTH_SHORT).show();
                     }else {
                         remainingVolume += Float.parseFloat(tieVolume.getText().toString());

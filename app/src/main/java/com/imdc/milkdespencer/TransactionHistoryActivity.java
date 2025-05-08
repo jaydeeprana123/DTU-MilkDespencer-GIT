@@ -84,7 +84,7 @@ public class TransactionHistoryActivity extends AppCompatActivity {
                 String todayDate = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
 
                 double totalAmount = appDatabase.transactionDao().getTodayTotalAmount(todayDate);
-                float totalVolume = appDatabase.transactionDao().getTodayVolumeSum(todayDate, "SUCCESS");
+                float totalVolume = appDatabase.transactionDao().getTodayVolumeSum(todayDate);
 
                 totalAmount = Double.parseDouble(String.format("%.2f", totalAmount));
                 totalVolume = Float.parseFloat(String.format("%.2f", totalVolume));

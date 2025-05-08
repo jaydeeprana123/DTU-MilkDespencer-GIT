@@ -23,7 +23,6 @@ public class TransactionEntity {
     private float remainingvolume;
 
     private String milkPrice;
-
     private String milkTemperature;
 
     private String machineId;

@@ -91,7 +91,8 @@ public class CIPActivity extends AppCompatActivity {
         btnCIP.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                btnCIP.setEnabled(false);
+                btnRemoveMilk.setEnabled(true);
+                btnCIP.setEnabled(true);
                 Log.e("btn CIP", " is pressed");
 
                 sendDataForCIP(false, false, true, false);
@@ -100,12 +101,9 @@ public class CIPActivity extends AppCompatActivity {
                 showCIPRunningDialog(CIPActivity.this,(dialog, which) -> {
                     sendDataForCIP(false, false, false, false);
 
-                    btnCompressorOff.setVisibility(View.GONE);
-                    btnAgitatorOff.setVisibility(View.GONE);
-                    btnRemoveMilk.setVisibility(View.GONE);
-                    btnCIP.setVisibility(View.GONE);
-                    btnBackToHome.setVisibility(View.VISIBLE);
-                }, "CIP IS RUNNING");
+                    addCIPDataINtoDatabase("CIP");
+
+                    }, "CIP IS RUNNING");
 
             }
         });
@@ -113,12 +111,15 @@ public class CIPActivity extends AppCompatActivity {
         btnRemoveMilk.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                btnRemoveMilk.setEnabled(false);
+                btnRemoveMilk.setEnabled(true);
                 btnCIP.setEnabled(true);
                 Log.e("btn btnRemoveMilk", " is pressed");
                 sendDataForCIP(false, false, true, false);
                 showCIPRunningDialog(CIPActivity.this,(dialog, which) -> {
                     sendDataForCIP(false, false, false, false);
+
+                    addCIPDataINtoDatabase("REMOVE MILK");
+
                 }, "REMOVING MILK");
             }
         });
@@ -148,11 +149,9 @@ public class CIPActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 btnAgitatorOff.setEnabled(false);
+                btnCIP.setEnabled(true);
+                btnRemoveMilk.setEnabled(true);
                 isAgitatorOff = true;
-                if(isCompressorOff){
-
-                    btnRemoveMilk.setEnabled(true);
-                }
 
                 sendDataForCIP(false, false, false, false);
             }
@@ -219,6 +218,7 @@ public class CIPActivity extends AppCompatActivity {
             if (usbSerialCommunication != null) {
                 usbSerialCommunication.sendData(gson.toJson(sendToDevice));
 
+
             } else {
 
             }
@@ -237,6 +237,15 @@ public class CIPActivity extends AppCompatActivity {
         sendDataForCIP(false, false, false, true);
         isCipOn = false;
         UsbSerialCommunication.isSendDataStop= false;
+
+
+
+    }
+
+
+
+
+   private void addCIPDataINtoDatabase(String transactionStatus){
         remainingVolume = 0;
         preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
         new Thread(() -> {
@@ -255,7 +264,7 @@ public class CIPActivity extends AppCompatActivity {
                 transaction.setAmount(0);
                 transaction.setUploadToServer(0);
                 transaction.setVolume(0);
-                transaction.setTransactionStatus("CIP");
+                transaction.setTransactionStatus(transactionStatus);
                 transaction.setUpiId("");
 
                 String uniqueId = generateSafeUniqueTransactionId(transactionDao);
@@ -284,11 +293,7 @@ public class CIPActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }).start();
-
-
     }
-
-
 
 
 }

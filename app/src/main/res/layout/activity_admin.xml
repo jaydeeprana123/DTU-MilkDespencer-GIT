@@ -29,7 +29,18 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-
+    <Button
+        android:id="@+id/btnAddedVolume"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginRight="@dimen/_10sdp"
+        android:text="@string/added_volume"
+        app:layout_constraintBottom_toTopOf="@id/btnExportTransactions"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginTop="@dimen/_10ssp"
+        android:layout_marginLeft="@dimen/_10sdp"
+        android:layout_marginBottom="@dimen/_10sdp"/>
     <Button
         android:id="@+id/btnExportTransactions"
         android:layout_width="wrap_content"
@@ -140,15 +151,6 @@
         app:layout_constraintTop_toBottomOf="@id/btnCalibration"
         />
 
-    <Button
-        android:id="@+id/btnAddedVolume"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginRight="@dimen/_10sdp"
-        android:text="@string/added_volume"
-        app:layout_constraintTop_toBottomOf="@id/btnCashButtonOnOff"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="@dimen/_10ssp"/>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

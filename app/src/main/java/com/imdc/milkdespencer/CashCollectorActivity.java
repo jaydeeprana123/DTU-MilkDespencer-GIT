@@ -536,6 +536,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     /// Read serial data from USB
     private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity, float milkSellingPrice, TransactionEntity transaction) {
+        logError("TAG", "onReadData: " + data);
         Log.d(TAG, "DisplayEvents:onReadData: " + data + "\n status " + data.contains("status"));
 
         if (!data.contains("status")) return;
@@ -609,7 +610,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 long transactionId = Constants.insertTransaction(
                         CashCollectorActivity.this,
                         transactionDao,
-                        "ONLINE",
+                        "CASH",
                         "",
                         date,
                         time,
@@ -965,7 +966,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                     TransactionEntity transaction = new TransactionEntity();
                                     transaction.setUserName("");
                                     transaction.setPassword(""); // base64 for 'Admin'
-                                    transaction.setTransactionType("ONLINE");
+                                    transaction.setTransactionType("CASH");
                                     transaction.setBankTransactionNo("");
                                     transaction.setTransactionDate(date);
                                     transaction.setTransactionTime(time);
@@ -1862,7 +1863,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     private void logError(String tag, String message) {
-       // Log.e(tag, message);
+        Log.e(tag, message);
     }
 
 

@@ -55,13 +55,14 @@
     <string name="temperature">Temperature</string>
     <string name="temperature_set">Set Temperature </string>
     <string name="milk_base_price">Milk Base Price</string>
+    <string name="max_volume_limit">Maximum Volume Limit (Ltr)</string>
     <string name="user_added_successfully">User Added Successfully!!!</string>
     <string name="no_electricity">No Electricity please try after some time.</string>
 
 
 
     <string name="api_base_url">API Base Url</string>
-
+    <string name="minimum_volume">Minimum Volume (Ltr)</string>
     <string name="milk_density">Milk Density (Kg/Ltr)</string>
     <string name="screen_time_out">Screen Time Out</string>
     <string name="machineId">Machine Id</string>

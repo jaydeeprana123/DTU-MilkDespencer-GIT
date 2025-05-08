@@ -1,6 +1,7 @@
 package com.imdc.milkdespencer;
 
 import static com.imdc.milkdespencer.DatabaseExporter.copyDatabase;
+import static com.imdc.milkdespencer.common.Constants.MinimumVolumeLimit;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isLowLevel;
 
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
@@ -159,6 +160,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private AppDatabase appDatabase;
     private TextView tvTemperature, tvMilkBasePrice, tv_Message,tvRemainingVolume;
     private LottieAnimationView lvAnimation;
+
+    private double minimumVolumeLimit = 0.0;
 
 
     /*
@@ -753,11 +756,10 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     protected void onResume() {
         super.onResume();
 
-
         DecimalFormat df = new DecimalFormat("0.00");
         String formattedRemainingVolume = df.format(remainingVolume);
-
         tvRemainingVolume.setText(formattedRemainingVolume + "L");
+        minimumVolumeLimit = Double.parseDouble(preferencesManager.get(MinimumVolumeLimit, "6.0").toString());
 
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
@@ -857,7 +859,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             updateIndicator(ivCompressor, responseTempStatus.getCompressor());
 
             if (getChargingState && isUsbPermissionGranted && !inMilkDispenseProcessLevel) {
-                if (remainingVolume <= 6) {
+                if (remainingVolume <= minimumVolumeLimit) {
                     isLowLevel = true;
                     handleLowLevel();
                 }else {
@@ -1000,7 +1002,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         if ((requestCode == ScreenEnum.CASH_COLLECTOR.ordinal() || requestCode == ScreenEnum.PAY_WITH_QR.ordinal()) && resultCode == RESULT_OK) {
             // Retrieve the data from the intent
 
-
             logError(TAG + " Here I come", "in Main Activity");
             btnStart.setVisibility(View.VISIBLE);
 //            llCash.setVisibility(View.GONE);
@@ -1024,7 +1025,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-       //  Log.e(tag, message);
+         Log.e(tag, message);
     }
 
 

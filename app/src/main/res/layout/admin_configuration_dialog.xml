@@ -24,7 +24,8 @@
         android:layout_width="0dp"
         android:weightSum="1"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/_10sdp"
+        android:layout_marginRight="@dimen/_10sdp"
+        android:layout_marginLeft="@dimen/_10sdp"
         android:layout_marginVertical="@dimen/_10sdp"
         android:hint="@string/machineId"
         app:layout_constraintEnd_toStartOf="@id/tilMilkBasePrice"
@@ -51,10 +52,10 @@
         android:layout_width="0dp"
         android:weightSum="1"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/_10sdp"
+        android:layout_marginRight="@dimen/_10sdp"
         android:layout_marginVertical="@dimen/_10sdp"
         android:hint="@string/milk_base_price"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tilMaxVolumeLimit"
         app:layout_constraintStart_toEndOf="@id/tilMachineId"
         app:layout_constraintTop_toBottomOf="@+id/tv_title">
 
@@ -64,6 +65,31 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/milk_base_price"
+            android:imeOptions="actionNext"
+            android:inputType="numberDecimal" />
+
+    </com.google.android.material.textfield.TextInputLayout>
+
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilMaxVolumeLimit"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:weightSum="1"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="@dimen/_10sdp"
+        android:layout_marginVertical="@dimen/_10sdp"
+        android:hint="@string/max_volume_limit"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/tilMilkBasePrice"
+        app:layout_constraintTop_toBottomOf="@+id/tv_title">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/tieMaxVolumeLimit"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/max_volume_limit"
             android:imeOptions="actionNext"
             android:inputType="numberDecimal" />
 
@@ -131,10 +157,10 @@
         android:layout_width="0dp"
         android:weightSum="1"
         android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/_10sdp"
+        android:layout_marginRight="@dimen/_10sdp"
         android:layout_marginVertical="@dimen/_10sdp"
         android:hint="@string/milk_density"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/tilMinimumVolume"
         app:layout_constraintStart_toEndOf="@id/tilTemperatureOffset"
         app:layout_constraintTop_toBottomOf="@+id/tilMilkBasePrice">
 
@@ -151,6 +177,35 @@
 
 
     </com.google.android.material.textfield.TextInputLayout>
+
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilMinimumVolume"
+        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        android:layout_width="0dp"
+        android:weightSum="1"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="@dimen/_10sdp"
+        android:layout_marginVertical="@dimen/_10sdp"
+        android:hint="@string/minimum_volume"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/tilMilkDensity"
+        app:layout_constraintTop_toBottomOf="@+id/tilMilkBasePrice">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/tieMinimumVolume"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/minimum_volume"
+            android:imeOptions="actionNext"
+            android:inputType="numberDecimal" />
+
+
+
+
+    </com.google.android.material.textfield.TextInputLayout>
+
 
 
     <com.google.android.material.textfield.TextInputLayout

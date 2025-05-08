@@ -75,8 +75,8 @@ public interface TransactionDao {
 
 
     // Get the sum of the 'volume' column for today's data
-    @Query("SELECT SUM(volume) FROM transactions WHERE transactionDate = :todayDate AND transactionStatus = :transactionStatus")
-    float getTodayVolumeSum(String todayDate, String transactionStatus);
+    @Query("SELECT SUM(volume) FROM transactions WHERE transactionDate = :todayDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED' OR transactionStatus = 'DOOR OPEN')")
+    float getTodayVolumeSum(String todayDate);
 
 
     // Get the sum of the 'volume' column for today's data
@@ -84,15 +84,15 @@ public interface TransactionDao {
 //    Double getTodayTotalAmount(String todayDate);
 
 
-    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate = :todayDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED')")
+    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate = :todayDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED' OR transactionStatus = 'DOOR OPEN')")
     double getTodayTotalAmount(String todayDate);
 
 
-    @Query("SELECT IFNULL(SUM(volume), 0) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus = 'SUCCESS'")
+    @Query("SELECT IFNULL(SUM(volume), 0) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED' OR transactionStatus = 'DOOR OPEN')")
     float getTotalSuccessVolumeBetweenDates(String startDate, String endDate);
 
 
-    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus IN ('SUCCESS', 'FAILED')")
+    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus IN ('SUCCESS', 'FAILED', 'DOOR OPEN')")
     double getTotalAmountBetweenDates(String startDate, String endDate);
 
 

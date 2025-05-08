@@ -61,7 +61,11 @@ public class TransactionAdapter extends RecyclerView.Adapter<TransactionAdapter.
             holder.tvTransactionDateStatus.setTextColor(ContextCompat.getColor(activity, R.color.md_theme_dark_errorContainer));
         }else if (transaction.getTransactionStatus().equalsIgnoreCase("Door Open")) {
             holder.tvTransactionDateStatus.setTextColor(ContextCompat.getColor(activity, R.color.orange_color));
-        } else {
+        }else if(transaction.getTransactionStatus().equalsIgnoreCase("Remove Milk") || transaction.getTransactionStatus().equalsIgnoreCase("CIP")){
+            holder.tvTransactionDateStatus.setTextColor(ContextCompat.getColor(activity, R.color.md_theme_dark_onPrimary));
+
+
+        }else {
             holder.tvTransactionDateStatus.setTextColor(ContextCompat.getColor(activity, R.color.md_theme_dark_success));
         }
         holder.tvTransactionDateStatus.setText(transaction.getTransactionStatus());
