@@ -1025,7 +1025,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-         Log.e(tag, message);
+        // Log.e(tag, message);
     }
 
 

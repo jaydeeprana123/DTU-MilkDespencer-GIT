@@ -1863,7 +1863,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     private void logError(String tag, String message) {
-        Log.e(tag, message);
+       // Log.e(tag, message);
     }
 
 
