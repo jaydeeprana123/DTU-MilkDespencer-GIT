@@ -29,6 +29,7 @@ import com.imdc.milkdespencer.models.SendToDevice;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 public class UsbSerialCommunication {
 
@@ -38,7 +39,7 @@ public class UsbSerialCommunication {
     private final Context context;
     private final UsbManager usbManager;
     private final Handler handler;
-    private final ExecutorService executorService;
+    private ExecutorService executorService;
     public boolean connected = false;
     public boolean fromCalibration = false;
     public boolean readingDataThreadRunning = false;
@@ -216,6 +217,7 @@ public class UsbSerialCommunication {
 
     }
 
+
     public void openConnection(UsbDevice device) {
         usbDevice = device;
         usbInterface = device.getInterface(0);
@@ -230,44 +232,119 @@ public class UsbSerialCommunication {
         logError("openConnection", "method");
 
         if (usbConnection != null) {
-
             logError("usbConnection", "not null");
 
             if (usbConnection.claimInterface(usbInterface, true)) {
-                logError("usbConnection", " claimInterface");
+                logError("usbConnection", "claimInterface");
                 setBaudRateInternal();
                 connected = true;
                 checkAndStartReadingData();
+
                 SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
                 String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, ""));
-                if (!temperatureResponse.isEmpty()) {
-                    logError("temperatureResponse ", "not empty");
 
-                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
-                    ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
-                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
-                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
-                    fireOnStart(currentTemperature);
+                if (temperatureResponse != null && !temperatureResponse.isEmpty() && !temperatureResponse.equals("null")) {
+                    logError("temperatureResponse", "not empty");
+
+                    Object offsetObj = preferencesManager.get(Constants.TemperatureOffSet, 0.0);
+                    float offSet = 0.0f;
+
+                    if (offsetObj != null) {
+                        try {
+                            offSet = Float.parseFloat(offsetObj.toString());
+                        } catch (NumberFormatException e) {
+                            logError("TemperatureOffSet", "Invalid format, using default 0.0");
+                        }
+                    } else {
+                        logError("TemperatureOffSet", "was null, using default 0.0");
+                    }
+
+                    try {
+                        ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
+                        if (responseTempStatus != null) {
+                            double currentSavedTemp = responseTempStatus.getTemperature() / 10.0;
+                            float currentTemperature = (float) (currentSavedTemp + offSet);
+                            fireOnStart(currentTemperature);
+                        } else {
+                            logError("responseTempStatus", "Parsed object was null");
+                            fireOnStart(0);
+                        }
+                    } catch (Exception e) {
+                        logError("temperatureResponse", "Failed to parse: " + e.getMessage());
+                        fireOnStart(0);
+                    }
+
                 } else {
-
-                    logError("temperatureResponse ", "empty");
+                    logError("temperatureResponse", "empty or null string");
                     fireOnStart(0);
-
                 }
-//                fireOnStart(0);
+
             } else {
                 logError("usbConnection", "Failed claimInterface");
-
                 logError(TAG, "Failed to claim interface.");
                 disconnect();
             }
         } else {
-
-            logError("Failed to open", " USB connection.");
+            logError("Failed to open", "USB connection.");
             logError(TAG, "Failed to open USB connection.");
             requestPermission(device);
         }
     }
+
+
+
+//    public void openConnection(UsbDevice device) {
+//        usbDevice = device;
+//        usbInterface = device.getInterface(0);
+//        inEndpoint = usbInterface.getEndpoint(0);
+//        outEndpoint = usbInterface.getEndpoint(1);
+//
+//        logError(TAG + "getVendorId", String.valueOf(device.getVendorId()));
+//        logError(TAG + "getProductId", String.valueOf(device.getProductId()));
+//
+//        usbConnection = usbManager.openDevice(device);
+//
+//        logError("openConnection", "method");
+//
+//        if (usbConnection != null) {
+//
+//            logError("usbConnection", "not null");
+//
+//            if (usbConnection.claimInterface(usbInterface, true)) {
+//                logError("usbConnection", " claimInterface");
+//                setBaudRateInternal();
+//                connected = true;
+//                checkAndStartReadingData();
+//                SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
+//                String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, ""));
+//                if (!temperatureResponse.isEmpty()) {
+//                    logError("temperatureResponse ", "not empty");
+//
+//                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+//                    ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
+//                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+//                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+//                    fireOnStart(currentTemperature);
+//                } else {
+//
+//                    logError("temperatureResponse ", "empty");
+//                    fireOnStart(0);
+//
+//                }
+////                fireOnStart(0);
+//            } else {
+//                logError("usbConnection", "Failed claimInterface");
+//
+//                logError(TAG, "Failed to claim interface.");
+//                disconnect();
+//            }
+//        } else {
+//
+//            logError("Failed to open", " USB connection.");
+//            logError(TAG, "Failed to open USB connection.");
+//            requestPermission(device);
+//        }
+//    }
 
     public void fireOnStart(float temperature) {
         try {
@@ -326,136 +403,259 @@ public class UsbSerialCommunication {
         logError("TAG", "setBaudRate: " + (result >= 0));
     }
 
+
     private void startReadingData() {
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                readingDataThreadRunning = true;
+        if (executorService == null || executorService.isShutdown() || executorService.isTerminated()) {
+            executorService = Executors.newSingleThreadExecutor();
+        }
 
-                StringBuilder accumulatedData = new StringBuilder();
+        try {
+            executorService.submit(new Runnable() {
+                @Override
+                public void run() {
+                    readingDataThreadRunning = true;
+                    StringBuilder accumulatedData = new StringBuilder();
 
-                while (connected) {
-                    byte[] buffer = new byte[1024];
-                    int bytesRead = usbConnection.bulkTransfer(inEndpoint, buffer, buffer.length, 0);
+                    while (connected) {
+                        byte[] buffer = new byte[1024];
+                        int bytesRead = usbConnection.bulkTransfer(inEndpoint, buffer, buffer.length, 0);
 
-                    if (bytesRead > 0) {
-                        String receivedData = new String(buffer, 0, bytesRead);
-//                        Log.i(TAG, "run: ==> receivedData " + receivedData);
-                        boolean icCalibResponse = receivedData.equalsIgnoreCase("1") || receivedData.equalsIgnoreCase("2") || receivedData.equalsIgnoreCase("3") || receivedData.equalsIgnoreCase("4") || receivedData.equalsIgnoreCase("0");
-                        accumulatedData.append(receivedData);
+                        if (bytesRead > 0) {
+                            String receivedData = new String(buffer, 0, bytesRead);
+                            boolean icCalibResponse = receivedData.equalsIgnoreCase("1") ||
+                                    receivedData.equalsIgnoreCase("2") ||
+                                    receivedData.equalsIgnoreCase("3") ||
+                                    receivedData.equalsIgnoreCase("4") ||
+                                    receivedData.equalsIgnoreCase("0");
 
-                        if (accumulatedData.toString().contains("}") && !icCalibResponse) {
-                            String acdStr = accumulatedData.toString();
-                            int startIndex = acdStr.indexOf("{");
-                            int endIndex = acdStr.indexOf("}", startIndex) + 1;
-                            // Process the complete JSON string
-                            String completeData = acdStr.substring(startIndex, endIndex);
-                            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
-                          //  Log.d(TAG, " run: ==>< completeData " + completeData);
+                            accumulatedData.append(receivedData);
 
-                            if (fromCalibration) {
-                                if (sendToDevice != null) {
-//                                    Log.i(TAG, " run: Calibration Send " + gson.toJson(sendToDevice));
+                            if (accumulatedData.toString().contains("}") && !icCalibResponse) {
+                                String acdStr = accumulatedData.toString();
+                                int startIndex = acdStr.indexOf("{");
+                                int endIndex = acdStr.indexOf("}", startIndex) + 1;
 
-                                    sendData(gson.toJson(sendToDevice));
-                                    return;
-                                }
-                            }
-                            if (!completeData.matches("^[A-Za-z].*")) {
-//                                logError(TAG, inEndpoint.getMaxPacketSize() + " run:>><< completeData: receivedData " + completeData);
-//                                Log.i(TAG, "run: ==> BOOL " + " CR " + (currencyReceived && !completeData.contains("currentweight") && !completeData.contains("status") && !completeData.contains("setweight")) + " <^^> " + new Gson().toJson(sendToDevice));
+                                if (startIndex != -1 && endIndex > startIndex) {
+                                    String completeData = acdStr.substring(startIndex, endIndex);
+                                    SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
 
-                                if (currencyReceived && !completeData.contains("currentweight") && !completeData.contains("status") && !completeData.contains("setweight")) {
-                                    if (sendToDevice != null) {
-                                        Log.i(TAG, "run: ==> BOOL Resend" + icCalibResponse + " CR " + currencyReceived);
-
-                                        Log.i(TAG, " run: ==> Resend " + gson.toJson(sendToDevice));
-
+                                    if (fromCalibration && sendToDevice != null) {
                                         sendData(gson.toJson(sendToDevice));
-                                    }
-                                }
-                                if (completeData.contains("lowlevel") && !currencyReceived) {
-//                                    Log.d(TAG, " run:>> Condition One: Start " + completeData);
-
-                                    ResponseTempStatus responseTempStatus = new Gson().fromJson(completeData, ResponseTempStatus.class);
-                                    preferencesManager.save(Constants.ResponseTempStatus, completeData);
-                                    preferencesManager.save(Constants.CurrentTemperature, responseTempStatus.getTemperature().toString());
-                                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
-                                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
-                                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
-
-                                    fireOnStart(currentTemperature);
-                                }
-                                if (completeData.contains("status")) {
-
-                                    Log.d(TAG, "run: ==> Condition TWO: receivedData " + completeData);
-
-                                    ResponseMilkDispense milkDispense = new Gson().fromJson(completeData, ResponseMilkDispense.class);
-
-                                    /// If status is true cip should be false and dialog will be close
-//                                    if (milkDispense.getStatus() && isCipOn) {
-//                                        logError("Status is truueeeee", milkDispense.getStatus().toString());
-//
-//                                        Constants.saveLogs(context, "CIP Done");
-//
-//                                        isCipOn = false;
-//                                        if(cipDialog != null && cipDialog.isShowing()){
-//                                            cipDialog.dismiss();
-//                                        }
-//
-//
-//                                    } else {
-//
-//                                        logError("Status is false", milkDispense.getStatus().toString());
-//                                    }
-
-                                    ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
-                                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
-                                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
-                                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
-                                    preferencesManager.save(Constants.ResponseMilkDispense, completeData);
-                                    if (milkDispense.getStatus()) {
-                                        fireOnStart(currentTemperature);
+                                        return;
                                     }
 
-                                }
-                                if (readDataListener != null) {
+                                    if (!completeData.matches("^[A-Za-z].*")) {
+                                        if (currencyReceived && !completeData.contains("currentweight") &&
+                                                !completeData.contains("status") &&
+                                                !completeData.contains("setweight")) {
 
-                                    readDataListener.onReadData(completeData);
+                                            if (sendToDevice != null) {
+                                                sendData(gson.toJson(sendToDevice));
+                                            }
+                                        }
+
+                                        if (completeData.contains("lowlevel") && !currencyReceived) {
+                                            ResponseTempStatus responseTempStatus = new Gson().fromJson(completeData, ResponseTempStatus.class);
+                                            preferencesManager.save(Constants.ResponseTempStatus, completeData);
+                                            preferencesManager.save(Constants.CurrentTemperature, responseTempStatus.getTemperature().toString());
+
+                                            float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+                                            double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+                                            float currentTemperature = (float) (currentSavedTemp + offSet);
+
+                                            fireOnStart(currentTemperature);
+                                        }
+
+                                        if (completeData.contains("status")) {
+                                            ResponseMilkDispense milkDispense = new Gson().fromJson(completeData, ResponseMilkDispense.class);
+
+//                                            if (milkDispense.getStatus() && isCipOn) {
+//                                                Constants.saveLogs(context, "CIP Done");
+//                                                isCipOn = false;
+//                                                if (cipDialog != null && cipDialog.isShowing()) {
+//                                                    cipDialog.dismiss();
+//                                                }
+//                                            }
+
+                                            ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+                                            float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+                                            double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+                                            float currentTemperature = (float) (currentSavedTemp + offSet);
+                                            preferencesManager.save(Constants.ResponseMilkDispense, completeData);
+
+                                            if (milkDispense.getStatus()) {
+                                                fireOnStart(currentTemperature);
+                                            }
+                                        }
+
+                                        if (readDataListener != null) {
+                                            readDataListener.onReadData(completeData);
+                                        }
+                                    }
+
+                                    accumulatedData.setLength(0); // Reset
                                 }
-                            }
-                            // Reset accumulatedData for the next iteration
-                            accumulatedData.setLength(0);
-                        } else {
-//                            Log.i(TAG, "run:ELSE  receivedData " + receivedData);
-                            if (icCalibResponse) {
-                                if (readDataListener != null) {
-//                                    logError(TAG, "run:>><< Calibration RESP " + receivedData);
+                            } else {
+                                if (icCalibResponse && readDataListener != null) {
                                     readDataListener.onReadData(receivedData);
                                     fromCalibration = false;
-                                }
-                            } else if (fromCalibration) {
-                                if (sendToDevice != null) {
-                                    Log.i(TAG, " run: Calibration Send " + gson.toJson(sendToDevice));
+                                } else if (fromCalibration && sendToDevice != null) {
                                     sendData(gson.toJson(sendToDevice));
                                 }
                             }
+                        } else {
+                            currencyReceived = false;
                         }
-                    } else {
-                        currencyReceived = false;
+
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
-                    try {
-                        Thread.sleep(1000); // Adjust the delay as needed
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+
+                    readingDataThreadRunning = false;
                 }
-
-                readingDataThreadRunning = false;
-
-            }
-        });
+            });
+        } catch (RejectedExecutionException e) {
+            Log.e(TAG, "startReadingData: Executor was shut down, restarting...", e);
+            executorService = Executors.newSingleThreadExecutor(); // Reinitialize and retry
+            startReadingData(); // Retry once
+        }
     }
+
+
+
+//    private void startReadingData() {
+//        executorService.submit(new Runnable() {
+//            @Override
+//            public void run() {
+//                readingDataThreadRunning = true;
+//
+//                StringBuilder accumulatedData = new StringBuilder();
+//
+//                while (connected) {
+//                    byte[] buffer = new byte[1024];
+//                    int bytesRead = usbConnection.bulkTransfer(inEndpoint, buffer, buffer.length, 0);
+//
+//                    if (bytesRead > 0) {
+//                        String receivedData = new String(buffer, 0, bytesRead);
+////                        Log.i(TAG, "run: ==> receivedData " + receivedData);
+//                        boolean icCalibResponse = receivedData.equalsIgnoreCase("1") || receivedData.equalsIgnoreCase("2") || receivedData.equalsIgnoreCase("3") || receivedData.equalsIgnoreCase("4") || receivedData.equalsIgnoreCase("0");
+//                        accumulatedData.append(receivedData);
+//
+//                        if (accumulatedData.toString().contains("}") && !icCalibResponse) {
+//                            String acdStr = accumulatedData.toString();
+//                            int startIndex = acdStr.indexOf("{");
+//                            int endIndex = acdStr.indexOf("}", startIndex) + 1;
+//                            // Process the complete JSON string
+//                            String completeData = acdStr.substring(startIndex, endIndex);
+//                            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
+//                          //  Log.d(TAG, " run: ==>< completeData " + completeData);
+//
+//                            if (fromCalibration) {
+//                                if (sendToDevice != null) {
+////                                    Log.i(TAG, " run: Calibration Send " + gson.toJson(sendToDevice));
+//
+//                                    sendData(gson.toJson(sendToDevice));
+//                                    return;
+//                                }
+//                            }
+//                            if (!completeData.matches("^[A-Za-z].*")) {
+////                                logError(TAG, inEndpoint.getMaxPacketSize() + " run:>><< completeData: receivedData " + completeData);
+////                                Log.i(TAG, "run: ==> BOOL " + " CR " + (currencyReceived && !completeData.contains("currentweight") && !completeData.contains("status") && !completeData.contains("setweight")) + " <^^> " + new Gson().toJson(sendToDevice));
+//
+//                                if (currencyReceived && !completeData.contains("currentweight") && !completeData.contains("status") && !completeData.contains("setweight")) {
+//                                    if (sendToDevice != null) {
+//                                        Log.i(TAG, "run: ==> BOOL Resend" + icCalibResponse + " CR " + currencyReceived);
+//
+//                                        Log.i(TAG, " run: ==> Resend " + gson.toJson(sendToDevice));
+//
+//                                        sendData(gson.toJson(sendToDevice));
+//                                    }
+//                                }
+//                                if (completeData.contains("lowlevel") && !currencyReceived) {
+////                                    Log.d(TAG, " run:>> Condition One: Start " + completeData);
+//
+//                                    ResponseTempStatus responseTempStatus = new Gson().fromJson(completeData, ResponseTempStatus.class);
+//                                    preferencesManager.save(Constants.ResponseTempStatus, completeData);
+//                                    preferencesManager.save(Constants.CurrentTemperature, responseTempStatus.getTemperature().toString());
+//                                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+//                                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+//                                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+//
+//                                    fireOnStart(currentTemperature);
+//                                }
+//                                if (completeData.contains("status")) {
+//
+//                                    Log.d(TAG, "run: ==> Condition TWO: receivedData " + completeData);
+//
+//                                    ResponseMilkDispense milkDispense = new Gson().fromJson(completeData, ResponseMilkDispense.class);
+//
+//                                    /// If status is true cip should be false and dialog will be close
+////                                    if (milkDispense.getStatus() && isCipOn) {
+////                                        logError("Status is truueeeee", milkDispense.getStatus().toString());
+////
+////                                        Constants.saveLogs(context, "CIP Done");
+////
+////                                        isCipOn = false;
+////                                        if(cipDialog != null && cipDialog.isShowing()){
+////                                            cipDialog.dismiss();
+////                                        }
+////
+////
+////                                    } else {
+////
+////                                        logError("Status is false", milkDispense.getStatus().toString());
+////                                    }
+//
+//                                    ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+//                                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+//                                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+//                                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+//                                    preferencesManager.save(Constants.ResponseMilkDispense, completeData);
+//                                    if (milkDispense.getStatus()) {
+//                                        fireOnStart(currentTemperature);
+//                                    }
+//
+//                                }
+//                                if (readDataListener != null) {
+//
+//                                    readDataListener.onReadData(completeData);
+//                                }
+//                            }
+//                            // Reset accumulatedData for the next iteration
+//                            accumulatedData.setLength(0);
+//                        } else {
+////                            Log.i(TAG, "run:ELSE  receivedData " + receivedData);
+//                            if (icCalibResponse) {
+//                                if (readDataListener != null) {
+////                                    logError(TAG, "run:>><< Calibration RESP " + receivedData);
+//                                    readDataListener.onReadData(receivedData);
+//                                    fromCalibration = false;
+//                                }
+//                            } else if (fromCalibration) {
+//                                if (sendToDevice != null) {
+//                                    Log.i(TAG, " run: Calibration Send " + gson.toJson(sendToDevice));
+//                                    sendData(gson.toJson(sendToDevice));
+//                                }
+//                            }
+//                        }
+//                    } else {
+//                        currencyReceived = false;
+//                    }
+//                    try {
+//                        Thread.sleep(1000); // Adjust the delay as needed
+//                    } catch (InterruptedException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//
+//                readingDataThreadRunning = false;
+//
+//            }
+//        });
+//    }
 
 
     public void checkAndStartReadingData() {

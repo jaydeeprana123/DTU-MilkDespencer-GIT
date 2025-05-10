@@ -902,15 +902,53 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     }
 
 
+
+    /// Check that temperature value should not null
     private void updateTemperatureAndPrice(ResponseTempStatus responseTempStatus) {
+        // Get the base price for milk
         String milkBasePrice = "₹ " + preferencesManager.get(MilkBasePrice, "0.0").toString() + "/Ltr";
+
+        // Get the temperature offset from preferences
         String offsetTemp = preferencesManager.get(TemperatureOffSet, "0.0").toString();
-        double cTemp = Double.parseDouble(responseTempStatus.getTemperature().toString()) / 10 + Double.parseDouble(offsetTemp);
+
+        // Get the temperature value as a String
+        String temperatureStr = responseTempStatus.getTemperature() != null ? responseTempStatus.getTemperature().toString() : null;
+
+        // Check if the temperature string is valid and parse it
+        double temperature = 0.0; // Default value if invalid or null
+        if (temperatureStr != null) {
+            try {
+                temperature = Double.parseDouble(temperatureStr); // Attempt to parse it as a Double
+            } catch (NumberFormatException e) {
+                logError(TAG, "Invalid temperature format: " + temperatureStr + ", setting to default 0.0");
+                // Handle invalid temperature format
+                temperature = 0.0; // Fallback value
+            }
+        } else {
+            logError(TAG, "Temperature is null, setting to default 0.0");
+        }
+
+        // Calculate the final temperature after applying the offset
+        double cTemp = temperature / 10 + Double.parseDouble(offsetTemp);
+
+        // Format the temperature to a string with the required format
         String currentTemp = Constants.df.format(cTemp) + " °C";
 
+        // Update the UI with the temperature and milk base price
         tvTemperature.setText(currentTemp);
         tvMilkBasePrice.setText(milkBasePrice);
     }
+
+
+//    private void updateTemperatureAndPrice(ResponseTempStatus responseTempStatus) {
+//        String milkBasePrice = "₹ " + preferencesManager.get(MilkBasePrice, "0.0").toString() + "/Ltr";
+//        String offsetTemp = preferencesManager.get(TemperatureOffSet, "0.0").toString();
+//        double cTemp = Double.parseDouble(responseTempStatus.getTemperature().toString()) / 10 + Double.parseDouble(offsetTemp);
+//        String currentTemp = Constants.df.format(cTemp) + " °C";
+//
+//        tvTemperature.setText(currentTemp);
+//        tvMilkBasePrice.setText(milkBasePrice);
+//    }
 
     private void updateIndicator(ImageView imageView, Boolean status) {
         if (status != null) {
