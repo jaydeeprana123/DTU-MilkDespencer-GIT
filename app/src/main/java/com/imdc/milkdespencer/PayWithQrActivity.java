@@ -1040,7 +1040,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     handleSerialReadingResponse(
                             data, milkDispensingDialog, amt, payCodeId,
                             payment, timeoutHandler, timeoutRunnable,
-                            milkDensity, currentTemperature, transaction
+                            milkDensity, currentTemperature, transaction,
+                            weight
                     );
                 });
             } else {
@@ -1100,7 +1101,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     /*Read Listener Response*/
-    private void handleSerialReadingResponse(String data, LottieDialog lottieDialog, double amt, String payCodeId, Payment payment, Handler timeoutHandler, Runnable timeoutRunnable, double milkDensity, float milkTemperature, TransactionEntity transaction) {
+    private void handleSerialReadingResponse(String data, LottieDialog lottieDialog, double amt, String payCodeId, Payment payment, Handler timeoutHandler, Runnable timeoutRunnable, double milkDensity, float milkTemperature, TransactionEntity transaction, float setWeight) {
         logError("TAG", "onReadData: " + data);
 
         /// If it contains status key
@@ -1124,12 +1125,18 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 logError(TAG + " volumeOfMilk", String.valueOf(volumeOfMilk));
 
+                /// Here check that if volume is negative then, get weight as a set weight
+                if(volumeOfMilk < 0){
+
+                    logError("VOLUME OF MILK" , "IS MINUS");
+
+                    volumeOfMilk = (float) (setWeight / milkDensity);
+                }
+
                 /// when status get as a true, timeOutHandler removed here
                 if (timeoutHandler != null && timeoutRunnable != null) {
                     timeoutHandler.removeCallbacks(timeoutRunnable);
                 }
-
-
 
                 isCommandSent = false;
 

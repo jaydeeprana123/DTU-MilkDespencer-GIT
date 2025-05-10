@@ -106,8 +106,8 @@ public class UsbSerialCommunication {
         }
     }
 
-    public void connect() {
 
+    public void connect() {
         logError("connect ", "method");
 
         if (usbManager == null) {
@@ -118,58 +118,112 @@ public class UsbSerialCommunication {
         // Find the first available USB device
         UsbDevice device = findAnyUsbDevice();
         if (device == null) {
-          //  Toast.makeText(context, "No USB device found. Please connect the device", Toast.LENGTH_SHORT).show();
             logError(TAG, "No USB device found.");
             return;
         } else {
             Log.d(TAG, "Connected: " + device.getProductId() + " <---> " + device.getVendorId() + "\n " + device);
-//            String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, null));
-//            Toast.makeText(context, "TEMPERATURE STATUS " + preferencesManager.hasValue(Constants.ResponseTempStatus), Toast.LENGTH_SHORT).show();
-
 
             SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(getInstance());
+
             if (preferencesManager.hasValue(Constants.ResponseTempStatus)) {
-                ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+                try {
+                    String savedJson = preferencesManager.get(Constants.ResponseTempStatus, "").toString();
+                    ResponseTempStatus responseTempStatus = new Gson().fromJson(savedJson, ResponseTempStatus.class);
 
+                    if (responseTempStatus != null && responseTempStatus.getTemperature() != null) {
+                        double currentSavedTemp = responseTempStatus.getTemperature() / 10;
 
-                if(responseTempStatus != null){
-                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
-                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
-                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
-                    fireOnStart(currentTemperature);
-                }else {
+                        float offset = 0.0f;
+                        try {
+                            offset = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+                        } catch (Exception offsetException) {
+                            logError(TAG, "Invalid offset value: " + offsetException.getMessage());
+                        }
+
+                        float currentTemperature = (float) (currentSavedTemp + offset);
+                        fireOnStart(currentTemperature);
+                    } else {
+                        logError(TAG, "Temperature is null or responseTempStatus is null.");
+                        fireOnStart(0);
+                    }
+                } catch (Exception e) {
+                    logError(TAG, "Error parsing ResponseTempStatus: " + e.getMessage());
                     fireOnStart(0);
                 }
-
-            }else {
+            } else {
                 fireOnStart(0);
             }
-
-
-
-//            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
-//            if (preferencesManager.hasValue(Constants.ResponseTempStatus)) {
-//                String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, null));
-//                logError(TAG, "connect: " + temperatureResponse);
-//                if (!temperatureResponse.isEmpty()) {
-//                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
-//                    ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
-//                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
-//                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
-//                    fireOnStart(currentTemperature);
-//                } else {
-//                    fireOnStart(0);
-//                }
-//            } else {
-//            }
-
-//            fireOnStart(0);
-
         }
 
         // Request permission
         requestPermission(device);
     }
+
+
+//    public void connect() {
+//
+//        logError("connect ", "method");
+//
+//        if (usbManager == null) {
+//            logError(TAG, "UsbManager is null. Make sure USB is supported on this device.");
+//            return;
+//        }
+//
+//        // Find the first available USB device
+//        UsbDevice device = findAnyUsbDevice();
+//        if (device == null) {
+//          //  Toast.makeText(context, "No USB device found. Please connect the device", Toast.LENGTH_SHORT).show();
+//            logError(TAG, "No USB device found.");
+//            return;
+//        } else {
+//            Log.d(TAG, "Connected: " + device.getProductId() + " <---> " + device.getVendorId() + "\n " + device);
+////            String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, null));
+////            Toast.makeText(context, "TEMPERATURE STATUS " + preferencesManager.hasValue(Constants.ResponseTempStatus), Toast.LENGTH_SHORT).show();
+//
+//
+//            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(getInstance());
+//            if (preferencesManager.hasValue(Constants.ResponseTempStatus)) {
+//                ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+//
+//
+//                if(responseTempStatus != null){
+//                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+//                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+//                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+//                    fireOnStart(currentTemperature);
+//                }else {
+//                    fireOnStart(0);
+//                }
+//
+//            }else {
+//                fireOnStart(0);
+//            }
+//
+//
+//
+////            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
+////            if (preferencesManager.hasValue(Constants.ResponseTempStatus)) {
+////                String temperatureResponse = String.valueOf(preferencesManager.get(Constants.ResponseTempStatus, null));
+////                logError(TAG, "connect: " + temperatureResponse);
+////                if (!temperatureResponse.isEmpty()) {
+////                    float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, 0.0).toString());
+////                    ResponseTempStatus responseTempStatus = new Gson().fromJson(temperatureResponse, ResponseTempStatus.class);
+////                    double currentSavedTemp = responseTempStatus.getTemperature() / 10;
+////                    float currentTemperature = Float.parseFloat(String.valueOf((currentSavedTemp + offSet)));
+////                    fireOnStart(currentTemperature);
+////                } else {
+////                    fireOnStart(0);
+////                }
+////            } else {
+////            }
+//
+////            fireOnStart(0);
+//
+//        }
+//
+//        // Request permission
+//        requestPermission(device);
+//    }
 
     private UsbDevice findAnyUsbDevice() {
         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();

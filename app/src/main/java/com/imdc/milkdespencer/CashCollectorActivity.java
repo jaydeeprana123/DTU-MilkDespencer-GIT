@@ -505,7 +505,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                 // Set the listener and handle in a different method
                 usbSerialCommunication.setReadDataListener(data ->
-                        handleSerialReadingResponse(data, currentSavedTemp, milkDensity, milkSellingPrice, transaction)
+                        handleSerialReadingResponse(data, currentSavedTemp, milkDensity, milkSellingPrice, transaction, weight)
                 );
             } else {
                 logError(TAG + "UsbSerialCommunication", "usbSerialCommunication is null");
@@ -535,7 +535,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     /// Read serial data from USB
-    private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity, float milkSellingPrice, TransactionEntity transaction) {
+    private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity, float milkSellingPrice, TransactionEntity transaction, float setWeight ) {
         logError("TAG", "onReadData: " + data);
         Log.d(TAG, "DisplayEvents:onReadData: " + data + "\n status " + data.contains("status"));
 
@@ -550,6 +550,13 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             if (milkDispense.getStatus() && milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
                 float volumeOfMilk = (float) (milkDispense.getCurrentWeight() / milkDensity);
                 logError("VOLUME OF MILK", String.valueOf(volumeOfMilk));
+
+                /// Here check that if volume is negative then, get weight as a set weight
+                if(volumeOfMilk < 0){
+
+                    logError("VOLUME OF MILK" , "IS MINUS");
+                    volumeOfMilk = (float) (setWeight / milkDensity);
+                }
 
                 if (timeoutHandler != null && timeoutRunnable != null) {
                     timeoutHandler.removeCallbacks(timeoutRunnable);

@@ -1,5 +1,7 @@
 package com.imdc.milkdespencer;
 
+import android.util.Log;
+
 import com.ftdi.j2xx.FT_Device;
 
 import device.itl.sspcoms.BarCodeReader;
@@ -17,7 +19,6 @@ import device.itl.sspcoms.SSPUpdate;
  */
 
 public class ITLDeviceCom extends Thread implements DeviceSetupListener, DeviceEventListener, DeviceFileUpdateListener {
-
 
     static final int READBUF_SIZE = 256;
     static final int WRITEBUF_SIZE = 4096;
@@ -63,63 +64,133 @@ public class ITLDeviceCom extends Thread implements DeviceSetupListener, DeviceE
 
     }
 
+
     @Override
     public void run() {
-
-        int readSize = 0;
-        ssp.Run();
-
-        isrunning = true;
-        while (isrunning) {
-
-
-            // poll for transmit data
-            synchronized (ftDev) {
-                int newdatalen = ssp.GetNewData(wbuf);
-                if (newdatalen > 0) {
-                    if (ssp.GetDownloadState() != SSPSystem.DownloadSetupState.active) {
-                        ftDev.purge((byte) 1);
-                    }
-                    ftDev.write(wbuf, newdatalen);
-                    ssp.SetComsBufferWritten(true);
-                }
+        try {
+            if (ftDev == null || !ftDev.isOpen()) {
+                Log.e("ITLDeviceCom", "FT_Device is null or not open");
+                return;
             }
 
-            // poll for received
-            synchronized (ftDev) {
-                readSize = ftDev.getQueueStatus();
-                if (readSize > 0) {
-                    mReadSize = readSize;
-                    if (mReadSize > READBUF_SIZE) {
-                        mReadSize = READBUF_SIZE;
+            // Optional: Log manufacturer for debugging (e.g., Samsung-specific issues)
+            if (android.os.Build.MANUFACTURER.toLowerCase().contains("samsung")) {
+                Log.w("ITLDeviceCom", "Running on Samsung device - may require special handling");
+            }
+
+            int readSize = 0;
+            ssp.Run(); // Start the SSP system
+
+            isrunning = true;
+            while (isrunning) {
+
+                // Handle outgoing data
+                synchronized (ftDev) {
+                    int newdatalen = ssp.GetNewData(wbuf);
+                    if (newdatalen > 0) {
+                        if (ssp.GetDownloadState() != SSPSystem.DownloadSetupState.active) {
+                            ftDev.purge((byte) 1);
+                        }
+                        ftDev.write(wbuf, newdatalen);
+                        ssp.SetComsBufferWritten(true);
                     }
-                    readSize = ftDev.read(rbuf, mReadSize);
-                    ssp.ProcessResponse(rbuf, readSize);
                 }
-                //    } // end of if(readSize>0)
-            }  // end of synchronized
 
+                // Handle incoming data
+                synchronized (ftDev) {
+                    readSize = ftDev.getQueueStatus();
+                    if (readSize > 0) {
+                        mReadSize = Math.min(readSize, READBUF_SIZE);
+                        readSize = ftDev.read(rbuf, mReadSize);
 
-            // coms config changes
-            final SSPComsConfig cfg = ssp.GetComsConfig();
-            if (cfg.configUpdate == SSPComsConfig.ComsConfigChangeState.ccNewConfig) {
-                cfg.configUpdate = SSPComsConfig.ComsConfigChangeState.ccUpdating;
-                CashCollectorActivity.cashCollectorActivity.runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
+                        if (readSize > 0) {
+                            try {
+                                ssp.ProcessResponse(rbuf, readSize);
+                            } catch (NullPointerException npe) {
+                                Log.e("ITLDeviceCom", "NPE in ProcessResponse (likely UsbRequest.getClientData)", npe);
+                            } catch (Exception e) {
+                                Log.e("ITLDeviceCom", "Unexpected exception in ProcessResponse", e);
+                            }
+                        }
+                    }
+                }
+
+                // Handle serial config updates
+                final SSPComsConfig cfg = ssp.GetComsConfig();
+                if (cfg.configUpdate == SSPComsConfig.ComsConfigChangeState.ccNewConfig) {
+                    cfg.configUpdate = SSPComsConfig.ComsConfigChangeState.ccUpdating;
+                    CashCollectorActivity.cashCollectorActivity.runOnUiThread(() -> {
                         CashCollectorActivity.SetConfig(cfg.baud, cfg.dataBits, cfg.stopBits, cfg.parity, cfg.flowControl);
-                    }
-                });
-                cfg.configUpdate = SSPComsConfig.ComsConfigChangeState.ccUpdated;
-            }
-            try {
-                sleep(300);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
+                    });
+                    cfg.configUpdate = SSPComsConfig.ComsConfigChangeState.ccUpdated;
+                }
 
+                Thread.sleep(300);
+            }
+        } catch (Exception e) {
+            Log.e("ITLDeviceCom", "Fatal error in run()", e);
+        }
     }
+
+
+
+//    @Override
+//    public void run() {
+//
+//        int readSize = 0;
+//        ssp.Run();
+//
+//        isrunning = true;
+//        while (isrunning) {
+//
+//
+//            // poll for transmit data
+//            synchronized (ftDev) {
+//                int newdatalen = ssp.GetNewData(wbuf);
+//                if (newdatalen > 0) {
+//                    if (ssp.GetDownloadState() != SSPSystem.DownloadSetupState.active) {
+//                        ftDev.purge((byte) 1);
+//                    }
+//                    ftDev.write(wbuf, newdatalen);
+//                    ssp.SetComsBufferWritten(true);
+//                }
+//            }
+//
+//            // poll for received
+//            synchronized (ftDev) {
+//                readSize = ftDev.getQueueStatus();
+//                if (readSize > 0) {
+//                    mReadSize = readSize;
+//                    if (mReadSize > READBUF_SIZE) {
+//                        mReadSize = READBUF_SIZE;
+//                    }
+//                    readSize = ftDev.read(rbuf, mReadSize);
+//                    ssp.ProcessResponse(rbuf, readSize);
+//                }
+//                //    } // end of if(readSize>0)
+//            }  // end of synchronized
+//
+//
+//            // coms config changes
+//            final SSPComsConfig cfg = ssp.GetComsConfig();
+//            if (cfg.configUpdate == SSPComsConfig.ComsConfigChangeState.ccNewConfig) {
+//                cfg.configUpdate = SSPComsConfig.ComsConfigChangeState.ccUpdating;
+//                CashCollectorActivity.cashCollectorActivity.runOnUiThread(new Runnable() {
+//                    @Override
+//                    public void run() {
+//                        CashCollectorActivity.SetConfig(cfg.baud, cfg.dataBits, cfg.stopBits, cfg.parity, cfg.flowControl);
+//                    }
+//                });
+//                cfg.configUpdate = SSPComsConfig.ComsConfigChangeState.ccUpdated;
+//            }
+//            try {
+//                sleep(300);
+//            } catch (InterruptedException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//
+//    }
 
 
     @Override

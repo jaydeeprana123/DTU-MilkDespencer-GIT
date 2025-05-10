@@ -84,7 +84,14 @@ public interface TransactionDao {
 //    Double getTodayTotalAmount(String todayDate);
 
 
-    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate = :todayDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED' OR transactionStatus = 'DOOR OPEN')")
+//    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate = :todayDate AND (transactionStatus = 'SUCCESS' OR transactionStatus = 'FAILED' OR transactionStatus = 'DOOR OPEN')")
+//    double getTodayTotalAmount(String todayDate);
+
+
+    // Do not take fail status for cash. Only count fail status if type is online
+    @Query("SELECT IFNULL(SUM(CASE WHEN transactionStatus = 'FAILED' AND transactionType = 'ONLINE' THEN amount ELSE 0 END), 0) + " +
+            "IFNULL(SUM(CASE WHEN transactionStatus IN ('SUCCESS', 'DOOR OPEN') THEN amount ELSE 0 END), 0) " +
+            "FROM transactions WHERE transactionDate = :todayDate")
     double getTodayTotalAmount(String todayDate);
 
 
@@ -92,8 +99,14 @@ public interface TransactionDao {
     float getTotalSuccessVolumeBetweenDates(String startDate, String endDate);
 
 
-    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus IN ('SUCCESS', 'FAILED', 'DOOR OPEN')")
+    @Query("SELECT IFNULL(SUM(CASE WHEN transactionStatus = 'FAILED' AND transactionType = 'ONLINE' THEN amount ELSE 0 END), 0) + " +
+            "IFNULL(SUM(CASE WHEN transactionStatus IN ('SUCCESS', 'DOOR OPEN') THEN amount ELSE 0 END), 0) " +
+            "FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate")
     double getTotalAmountBetweenDates(String startDate, String endDate);
+
+
+//    @Query("SELECT IFNULL(SUM(amount), 0) FROM transactions WHERE transactionDate BETWEEN :startDate AND :endDate AND transactionStatus IN ('SUCCESS', 'FAILED', 'DOOR OPEN')")
+//    double getTotalAmountBetweenDates(String startDate, String endDate);
 
 
 
