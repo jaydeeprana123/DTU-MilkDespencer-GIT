@@ -144,7 +144,8 @@
             android:gravity="center"
             android:orientation="horizontal"
             android:layout_marginTop="@dimen/_3sdp"
-            android:layout_marginLeft="@dimen/_2sdp">
+            android:layout_marginLeft="@dimen/_2sdp"
+            android:visibility="gone">
 
             <TextView
                 style="@style/MaterialAlertDialog.MaterialComponents.Title.Text"
@@ -163,7 +164,8 @@
                 android:layout_weight="1"
                 android:text="0.00"
                 android:textSize="@dimen/_10ssp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+               />
 
         </LinearLayout>
 

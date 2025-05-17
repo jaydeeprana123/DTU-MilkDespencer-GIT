@@ -141,7 +141,7 @@ public class AdminActivity extends AppCompatActivity {
             btnAddedVolume.setVisibility(View.GONE);
         } else if (user.getUserType() == UserTypeEnum.END_USER.value()) {
             btnCIP.setVisibility(View.VISIBLE);
-            btnAddedVolume.setVisibility(View.VISIBLE);
+            btnAddedVolume.setVisibility(View.GONE);
             btnSetConfigurations.setText("View Configurations");
             btnLogs.setText("Show Transactions");
             btnHistoryByDate.setVisibility(View.VISIBLE);

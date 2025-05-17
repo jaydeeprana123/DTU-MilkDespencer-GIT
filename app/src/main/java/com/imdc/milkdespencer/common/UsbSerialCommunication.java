@@ -433,8 +433,6 @@ public class UsbSerialCommunication {
 
             }
 
-
-
         } catch (Exception e) {
             e.printStackTrace();
         }

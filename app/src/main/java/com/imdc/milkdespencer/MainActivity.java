@@ -1039,19 +1039,21 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             updateIndicator(ivCompressor, responseTempStatus.getCompressor());
 
             if (getChargingState && isUsbPermissionGranted && !inMilkDispenseProcessLevel) {
-                if (remainingVolume <= minimumVolumeLimit) {
-                    isLowLevel = true;
-                    handleLowLevel();
-                }else {
-                    isLowLevel = false;
-                    handleNormalLevel();
-                }
 
-//                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
+                /// Low level will be handle by minimum volume limit
+//                if (remainingVolume <= minimumVolumeLimit) {
+//                    isLowLevel = true;
 //                    handleLowLevel();
-//                } else {
+//                }else {
+//                    isLowLevel = false;
 //                    handleNormalLevel();
 //                }
+
+                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
+                    handleLowLevel();
+                } else {
+                    handleNormalLevel();
+                }
             } else if (!getChargingState) {
                 logError(TAG, "Device is not charging");
                 cv_error.setVisibility(View.VISIBLE);
@@ -1245,7 +1247,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-        // Log.e(tag, message);
+       //  Log.e(tag, message);
     }
 
     private void toastMessage(String message){

@@ -108,7 +108,8 @@
             android:text=""
             android:layout_weight="0.2"
             tools:ignore="MissingConstraints"
-            android:textStyle="bold"/>
+            android:textStyle="bold"
+            android:visibility="gone"/>
 
 
     </LinearLayout>
