@@ -14,6 +14,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.BatteryManager;
 import android.os.Bundle;
@@ -157,65 +158,131 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     private UsbSerialCommunication usbSerialCommunication;
 
 
-    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            // Get the current battery status
-            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+            String action = intent.getAction();
 
-            // Check if the device is charging
-            boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
+            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (device != null) {
+                    logError("USB", "USB disconnected (Electricity GONE)");
+                    // Stop communication, update UI
 
-            if (isCharging) {
-                if (isElectricityLost) {
-                    isElectricityLost = false;
-                }
+                    if (!isElectricityLost) {
+                        isElectricityLost = true;
 
-            } else {
-
-                if (!isElectricityLost) {
-                    isElectricityLost = true;
-
-                    if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
-                        milkDispensingDialog.dismiss();
-                    }
-
-                    Constants.saveLogs(CashCollectorActivity.this, "Lost Electricity");
-                    tvProcessing.setText("Sorry. No Electricity, please try after some time!");
-
-                    String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
-                    String paymentJson = (preferencesManager.get(Constants.PaymentCashReceived, "")).toString();
-
-                    if (!transactionJson.isEmpty()) {
-                        TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
-
-                        Log.e("ElectricityLost transactionJson ", transactionJson);
-
-                        updateTransactionIfElectricityLost(transactionEntity);
-                    } else if (!paymentJson.isEmpty()) {
-
-                        try {
-                            JSONObject paymentObject = new JSONObject(paymentJson);
-
-                            if (paymentObject.has("amount")) {
-                                // Safely parse the amount as a float
-                                double amount = paymentObject.optDouble("amount", 0.0);
-
-                                insertTransactionIfElectricityLost(amount);
-                            }
-
-
-                        } catch (JSONException e) {
-                            throw new RuntimeException(e);
+                        if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
+                            milkDispensingDialog.dismiss();
                         }
 
+                        Constants.saveLogs(CashCollectorActivity.this, "Lost Electricity");
+                        tvProcessing.setText("Sorry. No Electricity, please try after some time!");
+
+                        String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
+                        String paymentJson = (preferencesManager.get(Constants.PaymentCashReceived, "")).toString();
+
+                        if (!transactionJson.isEmpty()) {
+                            TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
+
+                            Log.e("ElectricityLost transactionJson ", transactionJson);
+
+                            updateTransactionIfElectricityLost(transactionEntity);
+                        } else if (!paymentJson.isEmpty()) {
+
+                            try {
+                                JSONObject paymentObject = new JSONObject(paymentJson);
+
+                                if (paymentObject.has("amount")) {
+                                    // Safely parse the amount as a float
+                                    double amount = paymentObject.optDouble("amount", 0.0);
+
+                                    insertTransactionIfElectricityLost(amount);
+                                }
+
+
+                            } catch (JSONException e) {
+                                throw new RuntimeException(e);
+                            }
+
+                        }else {
+                            goToHomeScreen();
+                        }
                     }
+
+
+
                 }
+            } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (device != null) {
+                    logError("USB", "USB connected (Electricity BACK)");
 
-
+                }
             }
         }
     };
+
+
+
+//    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            // Get the current battery status
+//            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+//
+//            // Check if the device is charging
+//            boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
+//
+//            if (isCharging) {
+//                if (isElectricityLost) {
+//                    isElectricityLost = false;
+//                }
+//
+//            } else {
+//
+//                if (!isElectricityLost) {
+//                    isElectricityLost = true;
+//
+//                    if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
+//                        milkDispensingDialog.dismiss();
+//                    }
+//
+//                    Constants.saveLogs(CashCollectorActivity.this, "Lost Electricity");
+//                    tvProcessing.setText("Sorry. No Electricity, please try after some time!");
+//
+//                    String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
+//                    String paymentJson = (preferencesManager.get(Constants.PaymentCashReceived, "")).toString();
+//
+//                    if (!transactionJson.isEmpty()) {
+//                        TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
+//
+//                        Log.e("ElectricityLost transactionJson ", transactionJson);
+//
+//                        updateTransactionIfElectricityLost(transactionEntity);
+//                    } else if (!paymentJson.isEmpty()) {
+//
+//                        try {
+//                            JSONObject paymentObject = new JSONObject(paymentJson);
+//
+//                            if (paymentObject.has("amount")) {
+//                                // Safely parse the amount as a float
+//                                double amount = paymentObject.optDouble("amount", 0.0);
+//
+//                                insertTransactionIfElectricityLost(amount);
+//                            }
+//
+//
+//                        } catch (JSONException e) {
+//                            throw new RuntimeException(e);
+//                        }
+//                    }
+//                }
+//
+//
+//            }
+//        }
+//    };
     LottieAddCashDialog lottieAddCashDialog;
     AlertDialog loadingDialog;
 
@@ -1318,8 +1385,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
 
-        IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        registerReceiver(batteryReceiver, battertyFilter);
+//        IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+//        registerReceiver(batteryReceiver, battertyFilter);
 
         progress = new ProgressDialog(CashCollectorActivity.this);
         /* ask for permission to storeage read  */
@@ -1526,6 +1593,12 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     @Override
     protected void onStart() {
         super.onStart();
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        registerReceiver(usbReceiver, filter);
+
     }
 
     @Override
@@ -1547,14 +1620,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             logError(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
         }
 
-        try {
-            if (batteryReceiver != null) {
-                logError("unregisterReceiver", "batteryReceiver");
-                unregisterReceiver(batteryReceiver);
-            }
-        } catch (IllegalArgumentException e) {
-            logError(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
-        }
+//        try {
+//            if (batteryReceiver != null) {
+//                logError("unregisterReceiver", "batteryReceiver");
+//                unregisterReceiver(batteryReceiver);
+//            }
+//        } catch (IllegalArgumentException e) {
+//            logError(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
+//        }
 
 
 //        unregisterReceiver(mUsbReceiver);
@@ -1716,15 +1789,23 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         }
     }
 
+
+
+
+
     private void openDevice() {
 
         if (ftDev != null) {
-            if (ftDev.isOpen()) {
-                // if open and run thread is stopped, start thread
-                SetConfig(9600, (byte) 8, (byte) 2, (byte) 0, (byte) 0);
-                ftDev.purge((byte) (D2xxManager.FT_PURGE_TX | D2xxManager.FT_PURGE_RX));
-                ftDev.restartInTask();
-                return;
+            try {
+                if (ftDev.isOpen()) {
+                    SetConfig(9600, (byte) 8, (byte) 2, (byte) 0, (byte) 0);
+                    ftDev.purge((byte) (D2xxManager.FT_PURGE_TX | D2xxManager.FT_PURGE_RX));
+                    ftDev.restartInTask();
+                    return;
+                }
+            } catch (NullPointerException e) {
+                Log.e("FTDI", "ftDev.isOpen() threw NullPointerException");
+                ftDev = null; // reset and reinitialize later
             }
         }
 
@@ -1870,7 +1951,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     private void logError(String tag, String message) {
-       // Log.e(tag, message);
+        Log.e(tag, message);
     }
 
 

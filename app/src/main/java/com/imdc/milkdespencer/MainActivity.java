@@ -79,7 +79,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private boolean inMilkDispenseProcessLevel = false;
 
     private boolean isUsbPermissionGranted = false; // Flag for USB permission
-    private boolean getChargingState = false;
+    private boolean getChargingState = true;
     private boolean getUsbShowState = false;
 
     private boolean isDischargeState = false;
@@ -152,6 +152,167 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         }
     };
 
+
+    private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String action = intent.getAction();
+
+            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (device != null) {
+                    logError("USB", "USB disconnected (Electricity GONE)");
+                    // Stop communication, update UI
+                    getChargingState = false;
+
+                    /// Here only once save log as a lost electricity
+                    if (!isDischargeState) {
+                        isDischargeState = true;
+                        Constants.saveLogs(MainActivity.this, "Lost Electricity");
+                    }
+
+
+                    inMilkDispenseProcessLevel = false;
+                    getUsbShowState = false;
+                    isUsbPermissionGranted = false;
+
+
+                }
+            } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (device != null) {
+                    logError("USB", "USB connected (Electricity BACK)");
+                    checkAndRequestUsbPermission(); // see below
+                }
+            }
+        }
+    };
+
+
+
+    private void checkAndRequestUsbPermission() {
+
+
+        logError("checkAndRequestUsbPermission", "Method");
+
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+        if (usbManager == null) {
+            logError(TAG, "USB Manager is not available.");
+            return;
+        }
+
+        // Get connected USB devices
+        HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+
+        if (deviceList.isEmpty()) {
+            Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+
+        boolean permissionGrantedForTargetDevice = true;
+
+        for (UsbDevice device : deviceList.values()) {
+
+            logError("device Namee", device.getDeviceName());
+            logError("getManufacturerName", device.getManufacturerName());
+            logError("getProductName", device.getProductName());
+
+
+            // FT232R USB UART
+            if (!usbManager.hasPermission(device)) {
+                getChargingState = false;
+                // Register receiver before requesting permission
+                IntentFilter filter = new IntentFilter("com.imdc.milkdespencer.USB_PERMISSION");
+                try {
+                    registerReceiver(usbPermissionReceiver, filter);
+                } catch (IllegalArgumentException e) {
+                    Log.w("USB", "Receiver was already registered.");
+                }
+
+
+                permissionGrantedForTargetDevice = false;
+                showPermissionRequestUI(usbManager, device);
+                break; // Stop checking further as one permission is not granted
+            }
+        }
+
+
+        if (permissionGrantedForTargetDevice) {
+            logError("permissionGrantedForTargetDevice", "true");
+            toastMessage("permissionGrantedForTargetDevice");
+            isUsbPermissionGranted = true;
+            if(!getChargingState){
+                handleNotChargingState();
+            }
+
+
+        }
+    }
+
+
+    private void handleNotChargingState() {
+
+        logError(TAG + "Battery Status", "Device is not charging.");
+
+        runOnUiThread(() -> {
+            updateUIForNotChargingState();
+                logError(TAG + "visiblity Visible", "cv_error");
+
+                cv_error.setVisibility(View.VISIBLE);
+                btnDone.setVisibility(View.GONE);
+//                    btnPayWithCash.setEnabled(false);
+//                    btnPayWithQr.setEnabled(false);
+                tv_Message.setText("No Electricity please try after some time.");
+                lvAnimation.setAnimation(R.raw.no_electricity);
+                btnStart.setVisibility(View.GONE);
+
+
+        });
+    }
+
+
+    /*
+     * Buttons visibility should be gone when not in charging*/
+    private void updateUIForNotChargingState() {
+//            llCash.setVisibility(View.GONE);
+//            llQr.setVisibility(View.GONE);
+        cvPayWithQr.setVisibility(View.GONE);
+        cvPayWithCash.setVisibility(View.GONE);
+        btnStart.setVisibility(View.GONE);
+    }
+
+
+    private void showPermissionRequestUI(UsbManager usbManager, UsbDevice device) {
+        getUsbShowState = false;
+
+        cv_error.setVisibility(View.VISIBLE);
+        btnStart.setVisibility(View.GONE);
+        btnDone.setVisibility(View.VISIBLE);
+        btnDone.setText("GRANT PERMISSION");
+        tv_Message.setText("USB permission is not granted");
+        lvAnimation.setAnimation(R.raw.no_usb);
+
+        btnDone.setOnClickListener(v -> checkAndRequestUsbPermission());
+
+        // Request USB permission
+        PendingIntent permissionIntent = PendingIntent.getBroadcast(
+                MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
+        );
+        usbManager.requestPermission(device, permissionIntent);
+    }
+
+    private void handlePermissionGranted() {
+        logError(TAG, "run:>> ! handlePermissionGranted: Please wait");
+        tv_Message.setText("Please wait...");
+        btnDone.setVisibility(View.GONE);
+        lvAnimation.setAnimation(R.raw.please_wait);
+        logError(TAG, "run:>> ! Permission is granted for all devices.");
+        //   handleChargingState();
+    }
+
+
     private Button btnPayWithCash, btnPayWithQr, btnStart, btnDone;
     private CardView cvPayWithCash, cvPayWithQr, cv_error;
 
@@ -166,233 +327,235 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
     /*
      * Battery Charging Broad Cast Receiver*/
-    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            if (intent == null) return;
-
-            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
-            boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
-            logError(TAG, "Battery Status " + " Charging: " + isCharging);
-            if (isCharging) {
-
-                if (!getChargingState) {
-                    getChargingState = true;
-
-                }
-                checkAndRequestUsbPermission();
-                if (isDischargeState) {
-                    isDischargeState = false;
-                }
-
-
-            } else {
-
-                /// Here only once save log as a lost electricity
-                if (!isDischargeState) {
-                    isDischargeState = true;
-                    Constants.saveLogs(MainActivity.this, "Lost Electricity");
-                }
-
-
-                inMilkDispenseProcessLevel = false;
-                getChargingState = false;
-                getUsbShowState = false;
-                isUsbPermissionGranted = false;
-                handleNotChargingState();
-            }
-        }
-
-
-        private void checkAndRequestUsbPermission() {
-            UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
-
-            if (usbManager == null) {
-                logError(TAG, "USB Manager is not available.");
-                return;
-            }
-
-            // Get connected USB devices
-            HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
-
-            if (deviceList.isEmpty()) {
-                Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-
-            boolean permissionGrantedForTargetDevice = true;
-
-
-            for (UsbDevice device : deviceList.values()) {
-                if (!usbManager.hasPermission(device)) {
-
-                    // Register receiver before requesting permission
-                    IntentFilter filter = new IntentFilter("com.imdc.milkdespencer.USB_PERMISSION");
-                    try {
-                        registerReceiver(usbPermissionReceiver, filter);
-                    } catch (IllegalArgumentException e) {
-                        Log.w("USB", "Receiver was already registered.");
-                    }
-
-
-                    permissionGrantedForTargetDevice = false;
-                    showPermissionRequestUI(usbManager, device);
-                    break; // Stop checking further as one permission is not granted
-                }
-            }
-
-
-            if (permissionGrantedForTargetDevice) {
-
-                if (getChargingState && !isUsbPermissionGranted) {
-                    isUsbPermissionGranted = true;
-                    handlePermissionGranted();
-                }
-            }
-        }
-
-        private void showPermissionRequestUI(UsbManager usbManager, UsbDevice device) {
-            getUsbShowState = false;
-
-            cv_error.setVisibility(View.VISIBLE);
-            btnStart.setVisibility(View.GONE);
-            btnDone.setVisibility(View.VISIBLE);
-            btnDone.setText("GRANT PERMISSION");
-            tv_Message.setText("USB permission is not granted");
-            lvAnimation.setAnimation(R.raw.no_usb);
-
-            btnDone.setOnClickListener(v -> checkAndRequestUsbPermission());
-
-            // Request USB permission
-            PendingIntent permissionIntent = PendingIntent.getBroadcast(
-                    MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
-            );
-            usbManager.requestPermission(device, permissionIntent);
-        }
-
-        private void handlePermissionGranted() {
-            logError(TAG, "run:>> ! handlePermissionGranted: Please wait");
-            tv_Message.setText("Please wait...");
-            btnDone.setVisibility(View.GONE);
-            lvAnimation.setAnimation(R.raw.please_wait);
-            logError(TAG, "run:>> ! Permission is granted for all devices.");
-            //   handleChargingState();
-        }
-
-
-//        private void checkAndRequestUsbPermission() {
+//    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            if (intent == null) return;
 //
+//            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+//            boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL);
+//            logError(TAG, "Battery Status " + " Charging: " + isCharging);
+//            if (isCharging) {
+//
+//                if (!getChargingState) {
+//                    getChargingState = true;
+//
+//                }
+//                checkAndRequestUsbPermission();
+//                if (isDischargeState) {
+//                    isDischargeState = false;
+//                }
+//
+//
+//            } else {
+//
+//                /// Here only once save log as a lost electricity
+//                if (!isDischargeState) {
+//                    isDischargeState = true;
+//                    Constants.saveLogs(MainActivity.this, "Lost Electricity");
+//                }
+//
+//
+//                inMilkDispenseProcessLevel = false;
+//                getChargingState = false;
+//                getUsbShowState = false;
+//                isUsbPermissionGranted = false;
+//                handleNotChargingState();
+//            }
+//        }
+//
+//
+//        private void checkAndRequestUsbPermission() {
 //            UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+//
 //            if (usbManager == null) {
-//                Log.e("USB", "USB Manager is not available.");
+//                logError(TAG, "USB Manager is not available.");
 //                return;
 //            }
 //
 //            // Get connected USB devices
 //            HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+//
 //            if (deviceList.isEmpty()) {
 //                Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
 //                return;
 //            }
 //
-//            boolean isPermissionGive = true;
+//
+//            boolean permissionGrantedForTargetDevice = true;
+//
 //
 //            for (UsbDevice device : deviceList.values()) {
-//                // Check if permission is already granted
-//                if (usbManager.hasPermission(device)) {
-//                    Log.d("USB", "Permission already granted for device: " + device.getDeviceName());
-//                  //  Toast.makeText(MainActivity.this, "Permission already granted.", Toast.LENGTH_SHORT).show();
+//                if (!usbManager.hasPermission(device)) {
+//
+//                    // Register receiver before requesting permission
+//                    IntentFilter filter = new IntentFilter("com.imdc.milkdespencer.USB_PERMISSION");
+//                    try {
+//                        registerReceiver(usbPermissionReceiver, filter);
+//                    } catch (IllegalArgumentException e) {
+//                        Log.w("USB", "Receiver was already registered.");
+//                    }
 //
 //
-//                } else {
-//
-//                    getUsbShowState = false;
-//
-//                    isPermissionGive = false;
-//                    cv_error.setVisibility(View.VISIBLE);
-//                    btnDone.setVisibility(View.VISIBLE);
-//                    btnDone.setText("GRANT PERMISSION");
-//                    tv_Message.setText("USB permission is not granted");
-//                    lvAnimation.setAnimation(R.raw.no_electricity);
-//
-//                    btnDone.setOnClickListener(v -> {
-//                        checkAndRequestUsbPermission();
-//                    });
-//
-//                    // Request permission
-//                    PendingIntent permissionIntent = PendingIntent.getBroadcast(
-//                            MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
-//                    );
-//                    usbManager.requestPermission(device, permissionIntent);
+//                    permissionGrantedForTargetDevice = false;
+//                    showPermissionRequestUI(usbManager, device);
+//                    break; // Stop checking further as one permission is not granted
 //                }
+//            }
 //
-//                /// If permission is granted
-//                if(isPermissionGive){
-//                    tv_Message.setText("Please wait");
-//                    btnDone.setVisibility(View.GONE);
+//
+//            if (permissionGrantedForTargetDevice) {
+//
+//                logError("permissionGrantedForTargetDevice", "true22");
+//
+//                if (!isUsbPermissionGranted) {
 //                    isUsbPermissionGranted = true;
-//                    Log.e("Here usb permission", " is granted fully");
-//                    handleChargingState();
+//                    handleNotChargingState();
 //                }
-//
 //            }
 //        }
-
-
-        /*
-         * If Battery is not in Charging State*/
-        private void handleNotChargingState() {
-            logError(TAG + "Battery Status", "Device is not charging.");
-
-            runOnUiThread(() -> {
-                updateUIForNotChargingState();
-
-                if (cv_error.getVisibility() != View.VISIBLE) {
-
-                    logError(TAG + "visiblity Visible", "cv_error");
-
-                    cv_error.setVisibility(View.VISIBLE);
-                    btnDone.setVisibility(View.GONE);
-//                    btnPayWithCash.setEnabled(false);
-//                    btnPayWithQr.setEnabled(false);
-                    tv_Message.setText("No Electricity please try after some time.");
-                    lvAnimation.setAnimation(R.raw.no_electricity);
-                    btnStart.setVisibility(View.GONE);
-
-                }
-            });
-        }
-
-        /*Update the UI when Device is in charging state*/
-//        private void updateUIForChargingState() {
 //
-//           Log.e("updateUIForChargingState", "btnStart") ;
+//        private void showPermissionRequestUI(UsbManager usbManager, UsbDevice device) {
+//            getUsbShowState = false;
 //
-//           if(!inMilkDispenseProcessLevel){
-//               btnStart.setVisibility(View.VISIBLE);
-//           }else {
-//               btnStart.setVisibility(View.GONE);
-//           }
+//            cv_error.setVisibility(View.VISIBLE);
+//            btnStart.setVisibility(View.GONE);
+//            btnDone.setVisibility(View.VISIBLE);
+//            btnDone.setText("GRANT PERMISSION");
+//            tv_Message.setText("USB permission is not granted");
+//            lvAnimation.setAnimation(R.raw.no_usb);
 //
-//            llCash.setVisibility(View.GONE);
-//            llQr.setVisibility(View.GONE);
+//            btnDone.setOnClickListener(v -> checkAndRequestUsbPermission());
+//
+//            // Request USB permission
+//            PendingIntent permissionIntent = PendingIntent.getBroadcast(
+//                    MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
+//            );
+//            usbManager.requestPermission(device, permissionIntent);
+//        }
+//
+//        private void handlePermissionGranted() {
+//            logError(TAG, "run:>> ! handlePermissionGranted: Please wait");
+//            tv_Message.setText("Please wait...");
+//            btnDone.setVisibility(View.GONE);
+//            lvAnimation.setAnimation(R.raw.please_wait);
+//            logError(TAG, "run:>> ! Permission is granted for all devices.");
+//            //   handleChargingState();
+//        }
+//
+//
+////        private void checkAndRequestUsbPermission() {
+////
+////            UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+////            if (usbManager == null) {
+////                Log.e("USB", "USB Manager is not available.");
+////                return;
+////            }
+////
+////            // Get connected USB devices
+////            HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+////            if (deviceList.isEmpty()) {
+////                Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
+////                return;
+////            }
+////
+////            boolean isPermissionGive = true;
+////
+////            for (UsbDevice device : deviceList.values()) {
+////                // Check if permission is already granted
+////                if (usbManager.hasPermission(device)) {
+////                    Log.d("USB", "Permission already granted for device: " + device.getDeviceName());
+////                  //  Toast.makeText(MainActivity.this, "Permission already granted.", Toast.LENGTH_SHORT).show();
+////
+////
+////                } else {
+////
+////                    getUsbShowState = false;
+////
+////                    isPermissionGive = false;
+////                    cv_error.setVisibility(View.VISIBLE);
+////                    btnDone.setVisibility(View.VISIBLE);
+////                    btnDone.setText("GRANT PERMISSION");
+////                    tv_Message.setText("USB permission is not granted");
+////                    lvAnimation.setAnimation(R.raw.no_electricity);
+////
+////                    btnDone.setOnClickListener(v -> {
+////                        checkAndRequestUsbPermission();
+////                    });
+////
+////                    // Request permission
+////                    PendingIntent permissionIntent = PendingIntent.getBroadcast(
+////                            MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
+////                    );
+////                    usbManager.requestPermission(device, permissionIntent);
+////                }
+////
+////                /// If permission is granted
+////                if(isPermissionGive){
+////                    tv_Message.setText("Please wait");
+////                    btnDone.setVisibility(View.GONE);
+////                    isUsbPermissionGranted = true;
+////                    Log.e("Here usb permission", " is granted fully");
+////                    handleChargingState();
+////                }
+////
+////            }
+////        }
+//
+//
+//        /*
+//         * If Battery is not in Charging State*/
+//        private void handleNotChargingState() {
+//            logError(TAG + "Battery Status", "Device is not charging.");
+//
+//            runOnUiThread(() -> {
+//                updateUIForNotChargingState();
+//
+//                if (cv_error.getVisibility() != View.VISIBLE) {
+//
+//                    logError(TAG + "visiblity Visible", "cv_error");
+//
+//                    cv_error.setVisibility(View.VISIBLE);
+//                    btnDone.setVisibility(View.GONE);
+////                    btnPayWithCash.setEnabled(false);
+////                    btnPayWithQr.setEnabled(false);
+//                    tv_Message.setText("No Electricity please try after some time.");
+//                    lvAnimation.setAnimation(R.raw.no_electricity);
+//                    btnStart.setVisibility(View.GONE);
+//
+//                }
+//            });
+//        }
+//
+//        /*Update the UI when Device is in charging state*/
+////        private void updateUIForChargingState() {
+////
+////           Log.e("updateUIForChargingState", "btnStart") ;
+////
+////           if(!inMilkDispenseProcessLevel){
+////               btnStart.setVisibility(View.VISIBLE);
+////           }else {
+////               btnStart.setVisibility(View.GONE);
+////           }
+////
+////            llCash.setVisibility(View.GONE);
+////            llQr.setVisibility(View.GONE);
+////            cvPayWithQr.setVisibility(View.GONE);
+////            cvPayWithCash.setVisibility(View.GONE);
+////
+////        }
+//
+//
+//        /*
+//         * Buttons visibility should be gone when not in charging*/
+//        private void updateUIForNotChargingState() {
+////            llCash.setVisibility(View.GONE);
+////            llQr.setVisibility(View.GONE);
 //            cvPayWithQr.setVisibility(View.GONE);
 //            cvPayWithCash.setVisibility(View.GONE);
-//
+//            btnStart.setVisibility(View.GONE);
 //        }
-
-
-        /*
-         * Buttons visibility should be gone when not in charging*/
-        private void updateUIForNotChargingState() {
-//            llCash.setVisibility(View.GONE);
-//            llQr.setVisibility(View.GONE);
-            cvPayWithQr.setVisibility(View.GONE);
-            cvPayWithCash.setVisibility(View.GONE);
-            btnStart.setVisibility(View.GONE);
-        }
-    };
+//    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -730,7 +893,15 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         inMilkDispenseProcessLevel = false;
         tvProcessing.setVisibility(View.GONE);
         hideSystemUI();
-        registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+      //  registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
+        checkAndRequestUsbPermission();
+        // Register it in onCreate
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        registerReceiver(usbReceiver, filter);
+
+
 //        registerReceiver(usbPermissionReceiver, filter);
 //        registerReceiver(usbPermissionReceiver, filter);
 
@@ -808,14 +979,14 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             logError(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
         }
 
-        try {
-            if (batteryReceiver != null) {
-                logError("unregisterReceiver", "batteryReceiver");
-                unregisterReceiver(batteryReceiver);
-            }
-        } catch (IllegalArgumentException e) {
-            logError(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
-        }
+//        try {
+//            if (batteryReceiver != null) {
+//                logError("unregisterReceiver", "batteryReceiver");
+//                unregisterReceiver(batteryReceiver);
+//            }
+//        } catch (IllegalArgumentException e) {
+//            logError(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
+//        }
 
 
 //        unregisterReceiver(usbPermissionReceiver);
@@ -854,6 +1025,15 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         logError(TAG, "run: ==> isUsbPermissionGranted: " + isUsbPermissionGranted);
 
         runOnUiThread(() -> {
+
+            if(responseTempStatus.getElectricity()){
+                isDischargeState = false;
+                getChargingState = true;
+
+            }else {
+                getChargingState = false;
+            }
+
             updateTemperatureAndPrice(responseTempStatus);
             updateIndicator(ivAgitator, responseTempStatus.getAgitator());
             updateIndicator(ivCompressor, responseTempStatus.getCompressor());
@@ -887,6 +1067,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 btnDone.setText("GRANT PERMISSION");
                 tv_Message.setText("USB permission is not granted");
                 lvAnimation.setAnimation(R.raw.no_usb);
+            }else{
+                cv_error.setVisibility(View.GONE);
             }
 
             // Optional: if you want to handle "please wait" scenario
@@ -1063,7 +1245,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-        // Log.e(tag, message);
+         Log.e(tag, message);
+    }
+
+    private void toastMessage(String message){
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
 

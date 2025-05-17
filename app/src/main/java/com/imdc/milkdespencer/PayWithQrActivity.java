@@ -15,6 +15,8 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbManager;
 import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.os.Bundle;
@@ -101,62 +103,128 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     private Runnable qrCodeTimeoutRunnable;
 
 
-    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+    private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+            String action = intent.getAction();
 
-            boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING
-                    || status == BatteryManager.BATTERY_STATUS_FULL);
+            if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (device != null) {
+                    logError("USB", "USB disconnected (Electricity GONE)");
+                    // Stop communication, update UI
 
-            if (isCharging) {
-                if (isElectricityLost) {
-                    isElectricityLost = false;
-                }
-            } else {
-                if (!isElectricityLost) {
-                    isElectricityLost = true;
+                    if (!isElectricityLost) {
+                        isElectricityLost = true;
 
-                    /// If QR code dialog is showing or null.. Dismiss the dialog
-                    if (dialog.get() != null && dialog.get().isShowing()) {
-                        dialog.get().dismiss();
-                    }
-
-                    if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
-                        milkDispensingDialog.dismiss();
-                    }
-
-                    Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity");
-                    tvProcessing.setText("Sorry. No Electricity, please try after some time!");
-
-                    String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
-                    String paymentJson = (preferencesManager.get(Constants.PaymentReceived, "")).toString();
-
-                    if (!transactionJson.isEmpty()) {
-                        TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
-
-                        logError("ElectricityLost transactionJson ", transactionJson);
-
-                        updateTransactionIfElectricityLost(transactionEntity);
-                    } else if (!paymentJson.isEmpty()) {
-                        Payment payment = new Gson().fromJson(paymentJson, Payment.class);
-                        if (payment != null && payment.get("amount") != null) {
-                            try {
-                                float amount = Float.parseFloat(payment.get("amount").toString());
-                                float amt = amount / 100;
-                                insertTransactionIfElectricityLost(amt, payment, 0);
-                            } catch (NumberFormatException e) {
-                                e.printStackTrace();
-                                // Optional: log or handle parse error
-                            }
+                        /// If QR code dialog is showing or null.. Dismiss the dialog
+                        if (dialog.get() != null && dialog.get().isShowing()) {
+                            dialog.get().dismiss();
                         }
-                    } else {
-                        btnBackToHome.setVisibility(View.VISIBLE);
+
+                        if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
+                            milkDispensingDialog.dismiss();
+                        }
+
+                        Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity");
+                        tvProcessing.setText("Sorry. No Electricity, please try after some time!");
+
+                        String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
+                        String paymentJson = (preferencesManager.get(Constants.PaymentReceived, "")).toString();
+
+                        if (!transactionJson.isEmpty()) {
+                            TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
+
+                            logError("ElectricityLost transactionJson ", transactionJson);
+
+                            updateTransactionIfElectricityLost(transactionEntity);
+                        } else if (!paymentJson.isEmpty()) {
+                            Payment payment = new Gson().fromJson(paymentJson, Payment.class);
+                            if (payment != null && payment.get("amount") != null) {
+                                try {
+                                    float amount = Float.parseFloat(payment.get("amount").toString());
+                                    float amt = amount / 100;
+                                    insertTransactionIfElectricityLost(amt, payment, 0);
+                                } catch (NumberFormatException e) {
+                                    e.printStackTrace();
+                                    // Optional: log or handle parse error
+                                }
+                            }
+                        } else {
+                            goToHomeScreen();
+                        }
                     }
+
+
+
+                }
+            } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+                UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+                if (device != null) {
+                    logError("USB", "USB connected (Electricity BACK)");
+
                 }
             }
         }
     };
+
+
+//    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            int status = intent.getIntExtra(BatteryManager.EXTRA_STATUS, -1);
+//
+//            boolean isCharging = (status == BatteryManager.BATTERY_STATUS_CHARGING
+//                    || status == BatteryManager.BATTERY_STATUS_FULL);
+//
+//            if (isCharging) {
+//                if (isElectricityLost) {
+//                    isElectricityLost = false;
+//                }
+//            } else {
+//                if (!isElectricityLost) {
+//                    isElectricityLost = true;
+//
+//                    /// If QR code dialog is showing or null.. Dismiss the dialog
+//                    if (dialog.get() != null && dialog.get().isShowing()) {
+//                        dialog.get().dismiss();
+//                    }
+//
+//                    if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
+//                        milkDispensingDialog.dismiss();
+//                    }
+//
+//                    Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity");
+//                    tvProcessing.setText("Sorry. No Electricity, please try after some time!");
+//
+//                    String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
+//                    String paymentJson = (preferencesManager.get(Constants.PaymentReceived, "")).toString();
+//
+//                    if (!transactionJson.isEmpty()) {
+//                        TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
+//
+//                        logError("ElectricityLost transactionJson ", transactionJson);
+//
+//                        updateTransactionIfElectricityLost(transactionEntity);
+//                    } else if (!paymentJson.isEmpty()) {
+//                        Payment payment = new Gson().fromJson(paymentJson, Payment.class);
+//                        if (payment != null && payment.get("amount") != null) {
+//                            try {
+//                                float amount = Float.parseFloat(payment.get("amount").toString());
+//                                float amt = amount / 100;
+//                                insertTransactionIfElectricityLost(amt, payment, 0);
+//                            } catch (NumberFormatException e) {
+//                                e.printStackTrace();
+//                                // Optional: log or handle parse error
+//                            }
+//                        }
+//                    } else {
+//                        btnBackToHome.setVisibility(View.VISIBLE);
+//                    }
+//                }
+//            }
+//        }
+//    };
 
     JSONObject paymentObject = new JSONObject();
     boolean isCommandSent = false;
@@ -287,8 +355,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
 
-        IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
-        registerReceiver(batteryReceiver, battertyFilter);
+//        IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+//        registerReceiver(batteryReceiver, battertyFilter);
 
         screenTimeOut();
 
@@ -948,6 +1016,13 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     @Override
     protected void onStart() {
         super.onStart();
+
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        registerReceiver(usbReceiver, filter);
+
         /*Intent serviceIntent = new Intent(this, PaymentStatusService.class);
         startService(serviceIntent);*/
     }
@@ -966,14 +1041,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             logError(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
         }
 
-        try {
-            if (batteryReceiver != null) {
-                logError(TAG + "unregisterReceiver", "batteryReceiver");
-                unregisterReceiver(batteryReceiver);
-            }
-        } catch (IllegalArgumentException e) {
-            logError(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
-        }
+//        try {
+//            if (batteryReceiver != null) {
+//                logError(TAG + "unregisterReceiver", "batteryReceiver");
+//                unregisterReceiver(batteryReceiver);
+//            }
+//        } catch (IllegalArgumentException e) {
+//            logError(TAG, "batteryReceiver was already unregistered: " + e.getMessage());
+//        }
 
 
 //        unregisterReceiver(paymentStatusReceiver);
@@ -1541,7 +1616,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-         // Log.e(tag, message);
+          Log.e(tag, message);
     }
 
 

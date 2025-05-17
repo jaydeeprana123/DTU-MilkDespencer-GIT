@@ -21,6 +21,19 @@ public class ResponseTempStatus {
     @Expose
     private Boolean connectivity;
 
+
+    @SerializedName("electricity")
+    @Expose
+    private Boolean electricity;
+
+    public Boolean getElectricity() {
+        return electricity;
+    }
+
+    public void setElectricity(Boolean electricity) {
+        this.electricity = electricity;
+    }
+
     public Double getTemperature() {
         return temperature;
     }
