@@ -484,6 +484,42 @@ public class Constants {
     }
 
 
+    /**
+     * Cash Machine Not working Dialog
+     *
+     * @param context
+     */
+    public static void showCashMachineNotWorkingDialog(Activity context) {
+        // Create a layout inflater to inflate the custom dialog layout
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.dialog_cash_not_working, null);
+        final double[] density = new double[1];
+        preferencesManager = SharedPreferencesManager.getInstance(context);
+        // Create the AlertDialog builder
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setView(view);
+
+        // Create the AlertDialog
+        AlertDialog dialog = builder.create();
+        dialog.setCancelable(false);
+
+        // Find views in the custom layout
+        MaterialButton okButton = view.findViewById(R.id.btnOk);
+
+        okButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                context.finish();;
+
+            }
+        });
+
+        // Show the dialog
+        dialog.show();
+    }
+
+
+
     /*
     Show admin Config Dialog
      */

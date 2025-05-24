@@ -428,7 +428,7 @@ public class UsbSerialCommunication {
                 sendToDevice.setWeight(weight);
                 sendToDevice.setStatus(false);
 
-                Log.d(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
+                Log.e(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
                 sendData(gson.toJson(sendToDevice));
 
             }

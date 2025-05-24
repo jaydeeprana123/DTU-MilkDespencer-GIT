@@ -5,8 +5,11 @@ import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
 import static com.imdc.milkdespencer.common.Constants.generateSafeUniqueTransactionId;
+import static com.imdc.milkdespencer.common.Constants.showCashMachineNotWorkingDialog;
+import static com.imdc.milkdespencer.common.UsbSerialCommunication.isSendDataStop;
 
 import android.Manifest;
+import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -35,6 +38,7 @@ import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -75,6 +79,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 
@@ -102,6 +107,12 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     //  "lowlevel": true, if true close the system and show the dialog low on Milk.
     //}
 
+
+    private boolean shouldContinueSending = false;
+
+    private boolean isStopConditionMet = false;
+
+    private static final long SEND_INTERVAL_MS = 500; // Send every 500ms
 
     private boolean isDatabaseOperationStarted = false;
 
@@ -142,6 +153,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     LottieDialog milkDispensingDialog;
     private Handler handler = new Handler(); // Create a Handler instance
+
+    private Handler handlerForSendData = new Handler(); // Create a Handler instance
+
     private Runnable runnable; // Declare the Runnable
 
     private boolean isMilkVendingStarted = false;
@@ -568,7 +582,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
             /// Check that usb serial is not null
             if (usbSerialCommunication != null) {
-                usbSerialCommunication.sendData(commandJson);
+                shouldContinueSending = true;
+//                usbSerialCommunication.sendData(commandJson);
+
+                sendDataRepeatedly(commandJson);
 
                 // Set the listener and handle in a different method
                 usbSerialCommunication.setReadDataListener(data ->
@@ -601,6 +618,32 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
 
+    /// Send data continues..And get data from on read... It will stop
+    private void sendDataRepeatedly(String commandJson) {
+
+        Runnable sendCommandRunnable = new Runnable() {
+            @Override
+            public void run() {
+
+                logError("sendCommandRunnable", "sendCommandRunnable");
+
+                if (shouldContinueSending) {
+                    usbSerialCommunication.sendData(commandJson);
+
+                    if (isStopConditionMet) {
+                        shouldContinueSending = false;
+                        return;
+                    }
+
+                    handlerForSendData.postDelayed(this, SEND_INTERVAL_MS);
+                }
+            }
+        };
+
+        handlerForSendData.postDelayed(sendCommandRunnable, SEND_INTERVAL_MS);
+    }
+
+
     /// Read serial data from USB
     private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity, float milkSellingPrice, TransactionEntity transaction, float setWeight ) {
         logError("TAG", "onReadData: " + data);
@@ -613,6 +656,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             if (milkDispense == null) return;
 
             logError("Cashcollector status outside", String.valueOf(milkDispense.getStatus()));
+
+            if (data.contains("status")){
+                isStopConditionMet = true;
+            }
 
             if (milkDispense.getStatus() && milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
                 float volumeOfMilk = (float) (milkDispense.getCurrentWeight() / milkDensity);
@@ -642,6 +689,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 // So api will not call again and again
                 if (!isDatabaseOperationStarted) {
                     isDatabaseOperationStarted = true;
+
+
                     updateDataInDatabaseWhenProcessDone(volumeOfMilk, transaction, milkDispense.getDoorstatus());
                 }
 
@@ -803,6 +852,12 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volume, TransactionEntity transaction) {
         if (CashCollectorActivity.this.isFinishing() || CashCollectorActivity.this.isDestroyed()) {
             return; // Activity is no longer valid, skip dismiss
+        }
+
+        shouldContinueSending = false;
+
+        if (handlerForSendData != null) {
+            handlerForSendData.removeCallbacksAndMessages(null);
         }
 
         if (lottieDialog != null && lottieDialog.isShowing()) {
@@ -1612,6 +1667,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     @Override
     protected void onDestroy() {
 
+        isSendDataStop = false;
+        // Stop sending the command
+        shouldContinueSending = false;
+
         try {
             if (mUsbReceiver != null) {
                 unregisterReceiver(mUsbReceiver);
@@ -1637,6 +1696,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         /// Here if handler and runnable remove
         if (handler != null && runnable != null) {
             handler.removeCallbacks(runnable);
+        }
+
+        if (handlerForSendData != null) {
+            handlerForSendData.removeCallbacksAndMessages(null);
         }
 
         // Remove the Runnable from the Handler to avoid memory leaks
@@ -1812,9 +1875,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         int devCount = 0;
 
         if (ftD2xx != null) {
+
+            logError("ftD2xx", "not null");
+
             // Get the connected USB FTDI devoces
             devCount = ftD2xx.createDeviceInfoList(this);
         } else {
+
+            logError("ftD2xx", " null");
             return;
         }
 
@@ -1824,9 +1892,51 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         if (devCount <= 0) {
             return;
         }
+
+        logError("device count", String.valueOf(devCount));
+
         if (ftDev == null) {
 //            openDevice();
-            ftDev = ftD2xx.openByIndex(this, 0);
+
+            if(ftD2xx.getDeviceInfoListDetail(0).serialNumber == null){
+                logError("FTDI123", "Serial number is null. Reconnecting...");
+              //  resetAndReconnectUSB();
+                Toast.makeText(CashCollectorActivity.this, "Cash collector is not working", Toast.LENGTH_SHORT).show();
+                showCashMachineNotWorkingDialog(CashCollectorActivity.this);
+                return;
+            }else {
+                logError("serialNumber", ftD2xx.getDeviceInfoListDetail(0).serialNumber);
+                ftDev = ftD2xx.openByIndex(this, 0);
+            }
+
+
+//            if(ftD2xx.getDeviceInfoListDetail(0).serialNumber != null){
+//                logError("serialNumber", ftD2xx.getDeviceInfoListDetail(0).serialNumber);
+//                ftDev = ftD2xx.openByIndex(this, 0);
+//            }else {
+//
+//                logError("FTDI123", "Serial number is null. Reconnecting...");
+//
+//                // Disconnect/close device if needed
+//                if (ftDev != null && ftDev.isOpen()) {
+//                    ftDev.close();
+//                }
+//
+//                ftDev = null;
+//
+//                // Short delay before retry
+//                try {
+//                    Thread.sleep(500); // 500ms delay
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                }
+//
+//                // Retry device detection and connection
+//                openDevice(); // Recursive retry
+//                return;
+//            }
+
+
         } else {
             synchronized (ftDev) {
                 ftDev = ftD2xx.openByIndex(this, 0);
@@ -1844,6 +1954,57 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             deviceCom.SetEscrowMode(true);
         }
     }
+
+    private void resetAndReconnectUSB() {
+        UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+
+        HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+        if (deviceList.isEmpty()) {
+            logError("FTDI", "No USB device found");
+            return;
+        }
+
+        UsbDevice device = null;
+        for (UsbDevice d : deviceList.values()) {
+            // Optional: Filter by Vendor ID / Product ID if needed
+            device = d;
+            break;
+        }
+
+        if (device == null) {
+            logError("FTDI", "No FTDI device found");
+            return;
+        }
+
+        if (device.getSerialNumber() == null) {
+            logError("FTDI", "Serial number is null - trying to disconnect and reconnect");
+
+            // Step 1: Force close any existing connections (optional, driver-specific)
+            try {
+                if (ftDev != null && ftDev.isOpen()) {
+                    ftDev.close();
+                }
+            } catch (Exception e) {
+                logError("FTDI", "Error closing previous FTDI connection: " + e.getMessage());
+            }
+
+            // Step 2: Ask user to physically replug device
+            Toast.makeText(this, "Please unplug and reconnect the FTDI device.", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        if (!usbManager.hasPermission(device)) {
+            logError("FTDI", "Permission lost - re-requesting");
+            PendingIntent permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE);
+            usbManager.requestPermission(device, permissionIntent);
+            return;
+        }
+
+        // Step 3: If everything is good, open the device
+        openDevice();
+    }
+
+
 
     @Override
     public void OnDeviceEvent(DeviceEvent deviceEvent) {
@@ -1951,7 +2112,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     private void logError(String tag, String message) {
-       // Log.e(tag, message);
+        Log.e(tag, message);
     }
 
 

@@ -80,6 +80,7 @@
     <string name="calibration_Message">Calibration Message</string>
     <string name="Admin_title">Login</string>
     <string name="amtDetected">Amt: ₹ </string>
+    <string name="cash_not_Working">Cash machine is not working. Kindly restart the machine.</string>
     <string name="currencyMessage">Currency Message </string>
     <string name="username_login">PhoneNumber or UserName</string>
     <string name="litersOrAmount">Enter Value</string>

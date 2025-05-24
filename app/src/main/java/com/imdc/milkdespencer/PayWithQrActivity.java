@@ -90,6 +90,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     private final int previousSelectionLites = 0;
     boolean isCharging;
 
+    private Handler handlerForSendData = new Handler(); // Create a Handler instance
+
     private Handler handler = new Handler(); // Create a Handler instance
     private Runnable runnable; // Declare the Runnable
 
@@ -345,6 +347,12 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     private MaterialButton btnGenerateQr;
     private MaterialButton btnBackToHome;
+
+    private boolean shouldContinueSending = false;
+
+    private boolean isStopConditionMet = false;
+
+    private static final long SEND_INTERVAL_MS = 500; // Send every 500ms
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
@@ -1108,7 +1116,12 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
             /// Check that usb serial is not null
             if (usbSerialCommunication != null) {
-                usbSerialCommunication.sendData(gson.toJson(sendToDevice));
+
+                shouldContinueSending = true;
+//                usbSerialCommunication.sendData(commandJson);
+
+                sendDataRepeatedly(gson.toJson(sendToDevice));
+
                 isCommandSent = true;
 
                 usbSerialCommunication.setReadDataListener(data -> {
@@ -1143,12 +1156,46 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
+    /// Send data continues..And get data from on read... It will stop
+    private void sendDataRepeatedly(String commandJson) {
+
+        Runnable sendCommandRunnable = new Runnable() {
+            @Override
+            public void run() {
+
+                logError("sendCommandRunnable", "sendCommandRunnable");
+
+                if (shouldContinueSending) {
+                    usbSerialCommunication.sendData(commandJson);
+
+                    if (isStopConditionMet) {
+                        shouldContinueSending = false;
+                        return;
+                    }
+
+                    handlerForSendData.postDelayed(this, SEND_INTERVAL_MS);
+                }
+            }
+        };
+
+        handlerForSendData.postDelayed(sendCommandRunnable, SEND_INTERVAL_MS);
+    }
+
+
+
     /*If 5 minutes done and status is not getting as a true.
     Transaction will be added as a FAILED*/
     private void handleMilkSendingTimeout(LottieDialog lottieDialog, double amt, float volume, TransactionEntity transaction) {
         if (PayWithQrActivity.this.isFinishing() || PayWithQrActivity.this.isDestroyed()) {
             return; // Activity is no longer valid, skip dismiss
         }
+
+        shouldContinueSending = false;
+
+        if (handlerForSendData != null) {
+            handlerForSendData.removeCallbacksAndMessages(null);
+        }
+
 
         if (lottieDialog != null && lottieDialog.isShowing()) {
             try {
@@ -1182,6 +1229,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         /// If it contains status key
         //
         if (data.contains("status")) {
+            isStopConditionMet = true;
 
             logError("TAG", "onReadData: if status get" + data);
 
@@ -1462,6 +1510,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         });
     }
 
+
+
+
+
+
     /*
      * Here we are getting time out from shared preference
      * And after that screen automatically off
@@ -1560,12 +1613,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     @Override
     protected void onDestroy() {
+        shouldContinueSending = false;
 
         /// Here if handler and runnable remove
         if (handler != null && runnable != null) {
             handler.removeCallbacks(runnable);
         }
 
+        if (handlerForSendData != null) {
+            handlerForSendData.removeCallbacksAndMessages(null);
+        }
 
         // Remove the Runnable from the Handler to avoid memory leaks
         if (timeoutHandler != null && timeoutRunnable != null) {
@@ -1616,7 +1673,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-         // Log.e(tag, message);
+          Log.e(tag, message);
     }
 
 

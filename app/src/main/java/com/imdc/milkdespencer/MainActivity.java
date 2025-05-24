@@ -13,6 +13,7 @@ import static com.imdc.milkdespencer.common.Constants.doPostAsyncLogs;
 import static com.imdc.milkdespencer.common.Constants.doPostAsyncTransactions;
 import static com.imdc.milkdespencer.common.Constants.isNetworkAvailable;
 import static com.imdc.milkdespencer.common.Constants.remainingVolume;
+import static com.imdc.milkdespencer.common.UsbSerialCommunication.isSendDataStop;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
@@ -79,7 +80,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private boolean inMilkDispenseProcessLevel = false;
 
     private boolean isUsbPermissionGranted = false; // Flag for USB permission
-    private boolean getChargingState = true;
+    private boolean getChargingState = false;
     private boolean getUsbShowState = false;
 
     private boolean isDischargeState = false;
@@ -191,8 +192,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void checkAndRequestUsbPermission() {
-
-
         logError("checkAndRequestUsbPermission", "Method");
 
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
@@ -217,11 +216,18 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             logError("device Namee", device.getDeviceName());
             logError("getManufacturerName", device.getManufacturerName());
-            logError("getProductName", device.getProductName());
+            logError("getProductName", device.getProductName() + " " + usbManager.hasPermission(device));
 
+            if (!usbManager.hasPermission(device)) {
+                logError("permission", device.getProductName());
+            }
 
             // FT232R USB UART
+
             if (!usbManager.hasPermission(device)) {
+
+                btnStart.setVisibility(View.GONE);
+
                 getChargingState = false;
                 // Register receiver before requesting permission
                 IntentFilter filter = new IntentFilter("com.imdc.milkdespencer.USB_PERMISSION");
@@ -926,7 +932,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     @Override
     protected void onResume() {
         super.onResume();
-
+        isSendDataStop = false;
         DecimalFormat df = new DecimalFormat("0.00");
         String formattedRemainingVolume = df.format(remainingVolume);
         tvRemainingVolume.setText(formattedRemainingVolume + "L");
@@ -1247,7 +1253,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-       //  Log.e(tag, message);
+         Log.e(tag, message);
     }
 
     private void toastMessage(String message){
