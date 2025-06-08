@@ -12,11 +12,13 @@ import android.graphics.Typeface;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.InputFilter;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -45,9 +47,11 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.imdc.milkdespencer.CashCollectorActivity;
 import com.imdc.milkdespencer.R;
+import com.imdc.milkdespencer.callBacks.RazorpayResponseCallback;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adminUi.AdminActivity;
 import com.imdc.milkdespencer.models.Response.ConfigurationResponse;
+import com.imdc.milkdespencer.models.Response.RazorpayQrPaymentResponse;
 import com.imdc.milkdespencer.models.Response.ResponseOTP;
 import com.imdc.milkdespencer.network.ApiManager;
 import com.imdc.milkdespencer.network.ApiService;
@@ -251,6 +255,13 @@ public class Constants {
 
     public static void showAcceptDialog(Context context, String title, String message, DialogInterface.OnClickListener yesClickListener, DialogInterface.OnClickListener noClickListener) {
 
+        Activity activity = (Activity) context;
+
+        if (activity.isFinishing() || (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1 && activity.isDestroyed())) {
+            Log.w("Constants", "Activity is finishing or destroyed. Dialog not shown.");
+            return;
+        }
+
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         AlertDialog dialog = builder.create();
 // Prevent dismissing on outside touch
@@ -318,6 +329,64 @@ public class Constants {
 
 
     public static void showDispenseErrorMessageDialog(Context context, String title, String message, DialogInterface.OnClickListener okClickListener) {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        AlertDialog dialog = builder.create();
+// Prevent dismissing on outside touch
+        dialog.setCanceledOnTouchOutside(false);
+// Set custom title
+        TextView titleView = new TextView(context);
+        titleView.setText(title);
+        titleView.setTextSize(36); // Increase title font size
+        titleView.setTypeface(null, Typeface.BOLD); // Bold text
+        titleView.setTextColor(Color.parseColor("#000000"));
+        titleView.setPadding(20, 20, 20, 20);
+        titleView.setGravity(Gravity.CENTER);
+        dialog.setCustomTitle(titleView);
+
+// Set custom message
+        TextView messageView = new TextView(context);
+        messageView.setText(message);
+        messageView.setTextSize(32); // Increase message font size
+        messageView.setPadding(30, 20, 30, 20);
+        messageView.setTypeface(null, Typeface.BOLD); // Bold text
+        messageView.setTextColor(Color.parseColor("#000000"));
+        messageView.setGravity(Gravity.CENTER);
+
+        ScrollView scrollView = new ScrollView(context); // Optional for long messages
+        scrollView.addView(messageView);
+
+        dialog.setView(scrollView); // Set the custom view with increased text size
+
+// Add buttons
+        dialog.setButton(AlertDialog.BUTTON_POSITIVE, "Okay", okClickListener);
+
+        dialog.show();
+
+
+        // Set custom dialog width
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+        layoutParams.copyFrom(dialog.getWindow().getAttributes());
+        layoutParams.width = (int) (context.getResources().getDisplayMetrics().widthPixels * 0.9); // 90% of screen width
+        dialog.getWindow().setAttributes(layoutParams);
+
+
+// Customize buttons
+        Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+
+        if (positiveButton != null) {
+            positiveButton.setTextSize(26); // Increase button text size
+            positiveButton.setPadding(20, 20, 20, 20);
+            positiveButton.setTypeface(null, Typeface.BOLD); // Bold text
+            positiveButton.setTextColor(Color.parseColor("#000000"));
+        }
+
+
+//        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+//        builder.setTitle(title).setMessage(message).setPositiveButton("Yes", yesClickListener).setNegativeButton("No", noClickListener).show();
+    }
+
+    public static void showUSBConnectionErrorMessageDialog(Context context, String title, String message, DialogInterface.OnClickListener okClickListener) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context);
         AlertDialog dialog = builder.create();
@@ -629,9 +698,6 @@ public class Constants {
                     String milkDensity = tieMilkDensity.getText().toString();
                     String screenTimeOut = tieTimeOut.getText().toString();
 
-                    Log.e("offSetTemperature", offSetTemperature);
-
-
                     preferencesManager.save(MaxVolumeLimit, maxVolumeLimit);
                     preferencesManager.save(MinimumVolumeLimit, minVolume);
                     preferencesManager.save(MachineId, machineID);
@@ -888,16 +954,16 @@ public class Constants {
                     public void run() {
 
                         List<User> userLIst = appDatabase.userDao().getAllUsers();
-                        Log.e("length of user", String.valueOf(userLIst.size()));
+                      //  Log.e("length of user", String.valueOf(userLIst.size()));
                         for (int i = 0; i < userLIst.size(); i++) {
-                            Log.e("email", userLIst.get(i).getUsername());
-                            Log.e("email", userLIst.get(i).getPassword());
+//                            Log.e("email", userLIst.get(i).getUsername());
+//                            Log.e("email", userLIst.get(i).getPassword());
                         }
 
                         User login = appDatabase.userDao().login(username, password);
 
                         if (login != null) {
-                            Log.e(TAG, "onClick: " + new Gson().toJson(login));
+                           // Log.e(TAG, "onClick: " + new Gson().toJson(login));
                             preferencesManager.save(Constants.LoginUser, new Gson().toJson(login));
                             Intent intent = new Intent(context.getApplicationContext(), AdminActivity.class);
                             intent.putExtra(Constants.LoginUser, new Gson().toJson(login));
@@ -908,7 +974,7 @@ public class Constants {
                                 @Override
                                 public void run() {
 
-                                    Log.e(TAG, "onClick: " + new Gson().toJson(login));
+                                   // Log.e(TAG, "onClick: " + new Gson().toJson(login));
 
                                     Toast.makeText(context, "Please Enter Valid Username and Password!!", Toast.LENGTH_SHORT).show();
                                 }
@@ -947,7 +1013,7 @@ public class Constants {
                 .addConverterFactory(GsonConverterFactory.create()).build();
 
 
-        Log.e(TAG + " SMS URL ", preferencesManager.get(SMSApiUrl, "https://api.kaleyra.io/v1/").toString());
+     //   Log.e(TAG + " SMS URL ", preferencesManager.get(SMSApiUrl, "https://api.kaleyra.io/v1/").toString());
 
 
 //        Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.kaleyra.io/v1/") // Replace with your base URL
@@ -1030,7 +1096,7 @@ public class Constants {
                                     new Thread(() -> {
                                         String otp = "OTP for MVM password reset is " + generateOtp(6) + ". -IDMC";
                                         String content = "to=" + phoneNo + "&type=OTP&sender=" + preferencesManager.get(SMSSender, "IDMCCS").toString() + "&body=" + otp;
-                                        Log.e(TAG, "onClick: " + content);
+                                      //  Log.e(TAG, "onClick: " + content);
 
                                         HashMap<String, String> fields = new HashMap<>();
                                         fields.put("to", "+91" + phoneNo);
@@ -1046,13 +1112,13 @@ public class Constants {
                                         fields.put("api-key", preferencesManager.get(SMSApiKey, "Ae0de2903bdeb26110fd03ccab96e92a1").toString());
 //                                        fields.put("api-key", "Ae0de2903bdeb26110fd03ccab96e92a1");
 
-                                        Log.e("fields OF SMS ", fields.toString());
+                                      //  Log.e("fields OF SMS ", fields.toString());
 
 
                                         HashMap<String, String> headers = new HashMap<>();
                                         headers.put("Content-Type", "application/x-www-form-urlencoded");
                                         headers.put("api-key", preferencesManager.get(SMSApiKey, "Ae0de2903bdeb26110fd03ccab96e92a1").toString());
-                                        Log.e("headers OF sms ", headers.toString());
+                                     //   Log.e("headers OF sms ", headers.toString());
                                         /// Old API : A5b9c8ba406fbc9bf361ffeb8bf6cb120
 
                                         DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
@@ -1064,7 +1130,7 @@ public class Constants {
                                                         isOtpSend[0] = true;
                                                         ResponseOTP responseModel = new Gson().fromJson(response.charStream(), ResponseOTP.class);
                                                         if (responseModel != null) {
-                                                            Log.e(TAG, "onNext: " + new Gson().toJson(responseModel));
+                                                          //  Log.e(TAG, "onNext: " + new Gson().toJson(responseModel));
                                                             if (responseModel.getError() != null) {
                                                                 tilOtp.setVisibility(View.VISIBLE);
                                                                 tilNewPassword.setVisibility(View.VISIBLE);
@@ -1086,7 +1152,7 @@ public class Constants {
                                             public void onError(Throwable e) {
                                                 handler.post(() -> {
 
-                                                    Log.e("SMS onError", e.toString());
+                                                //    Log.e("SMS onError", e.toString());
 
                                                     pd.dismiss(); // Dismiss the ProgressDialog on the main thread
                                                     Utils.handleApiError(context, e, apiManager);
@@ -1103,14 +1169,14 @@ public class Constants {
                                         apiManager.makeOTPRequestCall("", fields, headers, disposableObserver);
 
 
-                                        Log.e("SMS URL ", (preferencesManager.get(SMSSid, "").toString()) + (preferencesManager.get(SMSSid, "").toString())
-                                                + "/messages/");
+//                                        Log.e("SMS URL ", (preferencesManager.get(SMSSid, "").toString()) + (preferencesManager.get(SMSSid, "").toString())
+//                                                + "/messages/");
 
                                         //  apiManager.makeOTPRequestCall("HXIN1764058706IN/messages/", fields, headers, disposableObserver);
                                     }).start();
                                 });
                             }
-                            Log.e(TAG, "onClick:mobileNoExists " + mobileNoExists);
+                          //  Log.e(TAG, "onClick:mobileNoExists " + mobileNoExists);
                         }
                     }).start();
 
@@ -1207,7 +1273,7 @@ public class Constants {
                 String otp = tieOtp.getText().toString();
 
                 String sentOTP = (String) preferencesManager.get(Constants.OTP, "");
-                Log.e(TAG, "onClick: " + sentOTP);
+               // Log.e(TAG, "onClick: " + sentOTP);
 
 
                 if (otp.isEmpty()) {
@@ -1243,8 +1309,8 @@ public class Constants {
 
                             // Optionally handle the UI on the main thread
                             new Handler(Looper.getMainLooper()).post(() -> {
-                                Log.e("first name", user.getFirst_name());
-                                Log.e("new password", user.getPassword());
+//                                Log.e("first name", user.getFirst_name());
+//                                Log.e("new password", user.getPassword());
                                 Toast.makeText(context, "Password updated successfully!", Toast.LENGTH_SHORT).show();
 
                                 dialog.cancel();
@@ -1334,7 +1400,7 @@ public class Constants {
 
         float DENSITY_OF_MILK = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
         double amountInLiters = milkBasePrice * literValue;
-        Log.e(TAG, "calculateMilkWeight: BP " + milkBasePrice + " <+++> " + amountInLiters);
+      //  Log.e(TAG, "calculateMilkWeight: BP " + milkBasePrice + " <+++> " + amountInLiters);
 
         return amountInLiters * DENSITY_OF_MILK;
     }
@@ -1345,7 +1411,7 @@ public class Constants {
         float milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
 
         double amountInLiters = milkBasePrice * literValue;
-        Log.e(TAG, "calculateMilkWeight: BP " + milkBasePrice + " <+++> " + amountInLiters);
+      //  Log.e(TAG, "calculateMilkWeight: BP " + milkBasePrice + " <+++> " + amountInLiters);
 
         return amountInLiters;
     }
@@ -1357,7 +1423,7 @@ public class Constants {
         float milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
         float DENSITY_OF_MILK = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
 
-        Log.e(TAG, "calculateMilkAmount: BasePrice " + milkBasePrice + " <+++> " + (cost / milkBasePrice));
+       // Log.e(TAG, "calculateMilkAmount: BasePrice " + milkBasePrice + " <+++> " + (cost / milkBasePrice));
         return (cost / milkBasePrice) * DENSITY_OF_MILK;
     }
 
@@ -1373,7 +1439,7 @@ public class Constants {
                 long logId = logDao.insert(logEntity);
                 logEntity.setId((int) logId);
 
-                Log.e(TAG, "run: saveLogs " + logDao.getAllLogs());
+              //  Log.e(TAG, "run: saveLogs " + logDao.getAllLogs());
 
                 if (logId > 0 && isNetworkAvailable(context)) {
                     doPostLog(preferencesManager, "/api/Log/PostLog", logEntity, logDao);
@@ -1470,7 +1536,7 @@ public class Constants {
 
             return transactionId;
         } catch (Exception e) {
-            Log.e("InsertTransaction", "Failed to insert transaction: " + e.getMessage(), e);
+          //  Log.e("InsertTransaction", "Failed to insert transaction: " + e.getMessage(), e);
             return -1;
         }
 
@@ -1565,7 +1631,7 @@ public class Constants {
         ApiManager apiManager = new ApiManager(apiService);
 
         String request = new Gson().toJson(transaction);
-        Log.e(TAG, "doPostTransaction: " + request);
+      //  Log.e(TAG, "doPostTransaction: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1578,7 +1644,7 @@ public class Constants {
                 try {
                     JsonElement jsonElement = JsonParser.parseReader(response.charStream());
                     String json = new Gson().toJson(jsonElement);
-                    Log.e(TAG, "onNext: " + json);
+                  //  Log.e(TAG, "onNext: " + json);
 
                     onComplete.run();
 
@@ -1589,7 +1655,7 @@ public class Constants {
 
             @Override
             public void onError(Throwable e) {
-                Log.e(TAG, "onError: ", e);
+              //  Log.e(TAG, "onError: ", e);
                 e.printStackTrace();
 
                 onComplete.run();
@@ -1609,7 +1675,7 @@ public class Constants {
 
     public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction, TransactionDao transactionDao) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-        Log.e("Base URL", baseUrl);
+     //   Log.e("Base URL", baseUrl);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -1636,7 +1702,7 @@ public class Constants {
         }
 
         String request = new Gson().toJson(jsonArray);
-        Log.e(TAG, "doPostTransaction: " + request);
+     //   Log.e(TAG, "doPostTransaction: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1649,7 +1715,7 @@ public class Constants {
                 try {
                     JsonElement jsonElement = JsonParser.parseReader(response.charStream());
                     String json = new Gson().toJson(jsonElement);
-                    Log.e(TAG, "onNext: " + json);
+                  //  Log.e(TAG, "onNext: " + json);
 
 
                     if (transactionDao != null) {
@@ -1688,7 +1754,7 @@ public class Constants {
 
     public static void doPostAsyncTransactions(SharedPreferencesManager preferencesManager, String url, ArrayList<TransactionEntity> transactionList, TransactionDao transactionDao) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-        Log.e("Base URL", baseUrl);
+      //  Log.e("Base URL", baseUrl);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -1712,7 +1778,7 @@ public class Constants {
         }
 
         String request = new Gson().toJson(jsonArray);
-        Log.e(TAG, "doPostTransactionList: " + request);
+      //  Log.e(TAG, "doPostTransactionList: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1725,7 +1791,7 @@ public class Constants {
                 try {
                     JsonElement jsonElement = JsonParser.parseReader(response.charStream());
                     String json = new Gson().toJson(jsonElement);
-                    Log.e(TAG, "onNext list: " + json);
+                  //  Log.e(TAG, "onNext list: " + json);
 
                     ArrayList idList = new ArrayList();
                     for (int i = 0; i < transactionList.size(); i++) {
@@ -1762,7 +1828,7 @@ public class Constants {
 
     public static void doPostLog(SharedPreferencesManager preferencesManager, String url, LogEntity log, LogDao logDao) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-        Log.e("Base URL", baseUrl);
+      //  Log.e("Base URL", baseUrl);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -1791,7 +1857,7 @@ public class Constants {
 
         String request = new Gson().toJson(jsonArray);
 
-        Log.e(TAG, "doPostLog: " + request);
+      //  Log.e(TAG, "doPostLog: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1804,7 +1870,7 @@ public class Constants {
                 try {
                     JsonElement jsonElement = JsonParser.parseReader(response.charStream());
                     String json = new Gson().toJson(jsonElement);
-                    Log.e(TAG, "onNext: " + json);
+                  //  Log.e(TAG, "onNext: " + json);
 
                     if (log != null && logDao != null) {
                         new Thread(() -> {
@@ -1834,7 +1900,7 @@ public class Constants {
 
     public static void doPostAsyncLogs(SharedPreferencesManager preferencesManager, String url, ArrayList<LogEntity> logList, LogDao logDao) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-        Log.e("Base URL", baseUrl);
+       // Log.e("Base URL", baseUrl);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -1858,7 +1924,7 @@ public class Constants {
         }
 
         String request = new Gson().toJson(jsonArray);
-        Log.e(TAG, "doPostLogList: " + request);
+      //  Log.e(TAG, "doPostLogList: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1871,7 +1937,7 @@ public class Constants {
                 try {
                     JsonElement jsonElement = JsonParser.parseReader(response.charStream());
                     String json = new Gson().toJson(jsonElement);
-                    Log.e(TAG, "onNext: " + json);
+                 //   Log.e(TAG, "onNext: " + json);
 
                     ArrayList idList = new ArrayList();
                     for (int i = 0; i < logList.size(); i++) {
@@ -2022,14 +2088,14 @@ public class Constants {
                     pd.dismiss();
                     if (!response.toString().isEmpty()) {
                         String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
-                        Log.e(TAG, "Configuration Data: " + json);
+                     //   Log.e(TAG, "Configuration Data: " + json);
 
                         preferencesManager = SharedPreferencesManager.getInstance(activity);
                         ConfigurationResponse configurationResponse = new Gson().fromJson(json, ConfigurationResponse.class);
 
 
                         /// Save in shared preference
-                        Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
+                     //   Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
                         preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL() + "/");
                         preferencesManager.save(SMSSid, configurationResponse.getData().get(0).getSmsSid());
                         preferencesManager.save(SMSApiKey, configurationResponse.getData().get(0).getSmsAPIKey());
@@ -2094,7 +2160,7 @@ public class Constants {
 
     public static void doPostConfigurationData(Activity activity, String url) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-        Log.e("Base URL", baseUrl + url);
+    //    Log.e("Base URL", baseUrl + url);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -2111,7 +2177,7 @@ public class Constants {
         jsonObject.addProperty("value", ValueForApi);
 
         String request = new Gson().toJson(jsonObject);
-        Log.e(TAG, "doPostLog: " + request);
+     //   Log.e(TAG, "doPostLog: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -2134,13 +2200,13 @@ public class Constants {
 
                     if (response != null && !response.toString().isEmpty()) {
                         String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
-                        Log.e(TAG, "Configuration Data: " + json);
+                       // Log.e(TAG, "Configuration Data: " + json);
 
                         preferencesManager = SharedPreferencesManager.getInstance(activity);
                         ConfigurationResponse configurationResponse = new Gson().fromJson(json, ConfigurationResponse.class);
 
                         // Save configuration data in SharedPreferences
-                        Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
+                     //   Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
                         preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL() + "/");
                         preferencesManager.save(SMSSid, configurationResponse.getData().get(0).getSmsSid());
                         preferencesManager.save(SMSApiKey, configurationResponse.getData().get(0).getSmsAPIKey());
@@ -2185,6 +2251,45 @@ public class Constants {
         // Make the API request with the provided URL, request body, and header
         apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
     }
+
+    // Get Razorpay response if qr code scan result is not get
+    public static void getRazorPayResponse(Activity activity, String qrCode, RazorpayResponseCallback callback) {
+
+        String baseUrl = "https://api.razorpay.com/";
+
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .addConverterFactory(GsonConverterFactory.create())
+                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
+                .build();
+
+        ApiService apiService = retrofit.create(ApiService.class);
+        ApiManager apiManager = new ApiManager(apiService);
+
+        String url = "https://api.razorpay.com/v1/payments/qr_codes/" + qrCode + "/payments?count=2";
+        preferencesManager = SharedPreferencesManager.getInstance(activity);
+        String credentials = preferencesManager.get(Constants.RazorPayKey, "rzp_live_oTrQqk0HauuUWZ") + ":" +
+                preferencesManager.get(Constants.RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F");
+        String authHeader = "Basic " + Base64.encodeToString(credentials.getBytes(), Base64.NO_WRAP);
+
+        apiManager.makeGetRequestForRazorPay(url, authHeader, new DisposableObserver<RazorpayQrPaymentResponse>() {
+            @Override
+            public void onNext(RazorpayQrPaymentResponse response) {
+                callback.onSuccess(response);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                callback.onError(e.getMessage());
+            }
+
+            @Override
+            public void onComplete() {
+                // Optionally handle completion
+            }
+        });
+    }
+
 
 
     /*Check that internet connection is available or not*/
@@ -2341,5 +2446,9 @@ public class Constants {
         return sdf.format(new Date(millis));
     }
 
+
+     void logError(String tag, String message){
+        // Log.e(tag, message);
+    }
 
 }

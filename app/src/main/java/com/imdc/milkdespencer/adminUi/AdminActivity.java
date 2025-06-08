@@ -3,8 +3,11 @@ package com.imdc.milkdespencer.adminUi;
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 
 import static com.imdc.milkdespencer.common.Constants.GetConfigurationUrl;
+import static com.imdc.milkdespencer.common.Constants.MachineId;
+import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.doPostConfigurationData;
 import static com.imdc.milkdespencer.common.Constants.exportTransactionsToCSVAndShare;
+import static com.imdc.milkdespencer.common.Constants.generateSafeUniqueTransactionId;
 import static com.imdc.milkdespencer.common.Constants.showAddedVolumeDialog;
 import static com.imdc.milkdespencer.common.Constants.showCIPRunningDialog;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
@@ -37,15 +40,21 @@ import com.imdc.milkdespencer.PayWithQrActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.TransactionHistoryActivity;
 import com.imdc.milkdespencer.TransactionHistoryByDateActivity;
+import com.imdc.milkdespencer.Workers.PaymentStatusService;
+import com.imdc.milkdespencer.callBacks.RazorpayResponseCallback;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.enums.UserTypeEnum;
 import com.imdc.milkdespencer.adapter.UserAdapter;
 import com.imdc.milkdespencer.common.Constants;
+import com.imdc.milkdespencer.models.Response.RazorpayQrPaymentResponse;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
 import com.imdc.milkdespencer.roomdb.entities.User;
+import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Locale;
 
 public class AdminActivity extends AppCompatActivity {
     //    private FirebaseAnalytics mFirebaseAnalytics;
@@ -62,6 +71,7 @@ public class AdminActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin);
+
 //        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 //        // Log screen view event
 //        Bundle bundle = new Bundle();
@@ -70,7 +80,7 @@ public class AdminActivity extends AppCompatActivity {
 //        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle);
 
         doPostConfigurationData(AdminActivity.this,GetConfigurationUrl);
-        preferencesManager = SharedPreferencesManager.getInstance(this);
+        preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
         // When user comes first time isCip should be false
         isCipOn = false;
 
@@ -340,4 +350,7 @@ public class AdminActivity extends AppCompatActivity {
         }
         return super.onOptionsItemSelected(item);
     }
+
+
+
 }

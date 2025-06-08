@@ -581,7 +581,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
             /// Check that usb serial is not null
-            if (usbSerialCommunication != null) {
+            if (usbSerialCommunication != null && usbSerialCommunication.connected) {
                 shouldContinueSending = true;
 //                usbSerialCommunication.sendData(commandJson);
 
@@ -647,7 +647,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     /// Read serial data from USB
     private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity, float milkSellingPrice, TransactionEntity transaction, float setWeight ) {
         logError("TAG", "onReadData: " + data);
-        Log.d(TAG, "DisplayEvents:onReadData: " + data + "\n status " + data.contains("status"));
+        logError(TAG, "DisplayEvents:onReadData: " + data + "\n status " + data.contains("status"));
 
         if (!data.contains("status")) return;
 
@@ -1117,7 +1117,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                     transaction.setId(transactionId);
 
 
-                                    Log.e("save karti ", new Gson().toJson(transaction));
+                                    logError("save karti ", new Gson().toJson(transaction));
 
                                     preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
 
@@ -1421,6 +1421,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
         screenTimeOut();
 
+
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         grdCurrencyView = findViewById(R.id.gridViewCurrency);
@@ -1439,6 +1441,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         grdCurrencyView.setAdapter(adapter);
 
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
+
 
 //        IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 //        registerReceiver(batteryReceiver, battertyFilter);
@@ -1546,7 +1549,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
 
-                openDevice();
 
 //                If User clicks on the grid item. Runnable should be close
                 // Cancel the delayed task
@@ -1557,6 +1559,16 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 grdCurrencyView.setVisibility(View.GONE);
                 btnBackToHome.setVisibility(View.GONE);
                 tvProcessing.setVisibility(View.VISIBLE);
+
+                if(!usbSerialCommunication.connected){
+                    Constants.showUSBConnectionErrorMessageDialog(CashCollectorActivity.this, "Alert", "Usb is not connected properly!",(dialog1, which) -> {
+                        goToHomeScreen();
+                    });
+                    return;
+                }
+
+
+                openDevice();
 
                 selectedCurrency = grdCurrencyView.getAdapter().getItem(i).toString();
                 milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
@@ -2112,7 +2124,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     private void logError(String tag, String message) {
-        Log.e(tag, message);
+       // Log.e(tag, message);
     }
 
 

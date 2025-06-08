@@ -121,7 +121,7 @@ public class UsbSerialCommunication {
             logError(TAG, "No USB device found.");
             return;
         } else {
-            Log.d(TAG, "Connected: " + device.getProductId() + " <---> " + device.getVendorId() + "\n " + device);
+            logError(TAG, "Connected: " + device.getProductId() + " <---> " + device.getVendorId() + "\n " + device);
 
             SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(getInstance());
 
@@ -419,7 +419,7 @@ public class UsbSerialCommunication {
                 sendToDevice.setStatus(false);
 
                 if(!isSendDataStop){
-                    Log.d(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
+                    logError(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
                     sendData(gson.toJson(sendToDevice));
                 }
 
@@ -428,7 +428,7 @@ public class UsbSerialCommunication {
                 sendToDevice.setWeight(weight);
                 sendToDevice.setStatus(false);
 
-                Log.e(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
+                logError(TAG, "Connected:fireOnStart  <---> " + gson.toJson(sendToDevice));
                 sendData(gson.toJson(sendToDevice));
 
             }
@@ -457,6 +457,7 @@ public class UsbSerialCommunication {
 
 
     private void startReadingData() {
+
         if (executorService == null || executorService.isShutdown() || executorService.isTerminated()) {
             executorService = Executors.newSingleThreadExecutor();
         }
@@ -811,7 +812,7 @@ public class UsbSerialCommunication {
 
 
     private void logError(String tag, String message){
-        Log.e(tag, message);
+       // Log.e(tag, message);
     }
 
 }

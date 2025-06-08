@@ -45,11 +45,13 @@ import com.google.gson.GsonBuilder;
 import com.imdc.milkdespencer.Workers.PaymentStatusService;
 import com.imdc.milkdespencer.adapter.SpnCurrencyAdapter;
 import com.imdc.milkdespencer.adapter.SpnLitersAdapter;
+import com.imdc.milkdespencer.callBacks.RazorpayResponseCallback;
 import com.imdc.milkdespencer.common.Constants;
 import com.imdc.milkdespencer.common.LottieDialog;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
 import com.imdc.milkdespencer.enums.ScreenEnum;
+import com.imdc.milkdespencer.models.Response.RazorpayQrPaymentResponse;
 import com.imdc.milkdespencer.models.ResponseMilkDispense;
 import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDevice;
@@ -230,6 +232,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     JSONObject paymentObject = new JSONObject();
     boolean isCommandSent = false;
+    boolean isDataSent = false;
+
     AtomicReference<Dialog> dialog = new AtomicReference<>();
     private final BroadcastReceiver paymentStatusReceiver = new BroadcastReceiver() {
         @Override
@@ -245,7 +249,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 String paymentStatusJson = intent.getStringExtra("payment_status");
                 logError(TAG, "onReceive: " + paymentStatusJson);
 
-                if (paymentStatusJson != null && !paymentStatusJson.isEmpty()) {
+                if (paymentStatusJson != null && !paymentStatusJson.isEmpty() && !isTransactionCompleted) {
+
+                    isTransactionCompleted = true;
+
                     Payment payment = new Gson().fromJson(paymentStatusJson, Payment.class);
                     logError(TAG, "onReceive:payment " + paymentStatusJson);
 
@@ -300,7 +307,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 long transactionId = transactionDao.insert(transaction);
                                 transaction.setId(transactionId);
 
-                                Log.e("save karti ", new Gson().toJson(transaction));
+                                logError("save karti ", new Gson().toJson(transaction));
 
                                 preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
 
@@ -319,7 +326,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                         // Post the Runnable with a delay
                                         timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
 
-                                        sendForMilkVending(amt, payment, payCodeId, transaction);
+                                        sendForMilkVending(amt, payCodeId, transaction);
                                     }
                                 });
 
@@ -354,6 +361,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     private static final long SEND_INTERVAL_MS = 500; // Send every 500ms
 
+    private  boolean isTransactionCompleted = false;
+
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -369,6 +378,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         screenTimeOut();
 
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
+
         if (!usbSerialCommunication.connected) {
             usbSerialCommunication.connect();
             usbSerialCommunication.setBaudRate(115200);
@@ -442,6 +452,17 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 if (handler != null && runnable != null) {
                     handler.removeCallbacks(runnable);
                 }
+
+
+                if(!usbSerialCommunication.connected){
+
+                    Constants.saveLogs(PayWithQrActivity.this, "USB Not Connected");
+                    Constants.showUSBConnectionErrorMessageDialog(PayWithQrActivity.this, "Alert", "Usb is not connected properly!",(dialog1, which) -> {
+                        goToHomeScreen();
+                    });
+                    return;
+                }
+
 
 
                 String customerId = preferencesManager.get(Constants.RazorPayCustomerID, "").toString();
@@ -560,7 +581,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                                 /// Here it will check that door is open or close
                                 // If door is close then allow to start milking
                                 if (!responseTempStatus.getConnectivity()) {
-
 
                                     if (isNetworkAvailable(PayWithQrActivity.this)) {
                                         executeGenerateQRCodeTask(paymentObject, customerId, machineId);
@@ -891,14 +911,15 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             serviceIntent.putExtra("qr_code_id", qrCodeId);
             startService(serviceIntent);
 
-            scheduleDialogDismissal(paymentObject);
+            scheduleDialogDismissal(paymentObject, qrCodeId);
         });
     }
 
 
+
     /*Here if QR code is generate and payment status is not get.
     Then transaction will be added as a TIME OUT and go to the home screen*/
-    private void scheduleDialogDismissal(JSONObject paymentObject) {
+    private void scheduleDialogDismissal(JSONObject paymentObject, String qrCodeId) {
         logError(TAG, "scheduleDialogDismissal : Method call ");
 
         qrCodeTimeoutRunnable = () -> {
@@ -907,13 +928,22 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 logError(TAG + "generateQRCode", "Dialog dismissed due to timeout");
                 currentDialog.dismiss();
 
-                saveTransactionAsATimeOUt(paymentObject);
-                goToHomeScreen();
+                try {
+                    if (paymentStatusReceiver != null) {
+                        unregisterReceiver(paymentStatusReceiver);
+                    }
+                } catch (IllegalArgumentException e) {
+                    logError(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
+                }
+
+                /// After 2 minute it will check from the razorpay that payment is deducted or not
+                getRazorPayResponseByQRCodeId(qrCodeId);
+
             }
         };
 
         // Start the timeout task
-        qrCodeTimeoutHandler.postDelayed(qrCodeTimeoutRunnable, 6 * 60 * 1000);
+        qrCodeTimeoutHandler.postDelayed(qrCodeTimeoutRunnable, 2 * 60 * 1000);
 
 
 //        new Handler(Looper.getMainLooper()).postDelayed(() -> {
@@ -928,6 +958,133 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 //        }, 15*1000);
     }
 
+
+    /// When there is no response from qr code scan and 6 minutes is done.
+    // Then get response from the qrcode
+    private void getRazorPayResponseByQRCodeId(String qrCodeId){
+
+
+        Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
+        stopService(serviceIntent);
+
+        Constants.getRazorPayResponse(this, qrCodeId, new RazorpayResponseCallback() {
+            @Override
+            public void onSuccess(RazorpayQrPaymentResponse response) {
+
+                if (isTransactionCompleted) return;
+
+                isTransactionCompleted = true;
+
+                logError(TAG,"RazorpayQrPaymentResponse " +  new Gson().toJson(response));
+
+                if(response.getItems().isEmpty()){
+                    saveTransactionAsATimeOUt(paymentObject);
+                    goToHomeScreen();
+                }else if(response.getItems().get(0).getId() != null && !response.getItems().get(0).getId().isEmpty()){
+
+                        // Cancel QR code timeout
+                        if (qrCodeTimeoutHandler != null && qrCodeTimeoutRunnable != null) {
+                            qrCodeTimeoutHandler.removeCallbacks(qrCodeTimeoutRunnable);
+                        }
+                            if (response.getItems().get(0).getAmount() != null) {
+
+                                if (dialog.get() != null && dialog.get().isShowing()) {
+                                    dialog.get().dismiss();
+                                }
+
+                                String payCodeId = response.getItems().get(0).getId();
+                                float amount = Float.parseFloat(response.getItems().get(0).getAmount().toString());
+                                double amt = amount / 100;
+
+                                preferencesManager.save(Constants.PaidAmt, amt);
+
+                                new Thread(() -> {
+                                    try {
+                                        SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                                        SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+
+                                        String date = dateFormatter.format(System.currentTimeMillis());
+                                        String time = timeFormatter.format(System.currentTimeMillis());
+
+                                        TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
+                                        SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(PayWithQrActivity.this);
+
+                                        TransactionEntity transaction = new TransactionEntity();
+                                        transaction.setUserName("");
+                                        transaction.setPassword(""); // base64 for 'Admin'
+                                        transaction.setTransactionType("ONLINE");
+                                        transaction.setBankTransactionNo(payCodeId);
+                                        transaction.setTransactionDate(date);
+                                        transaction.setTransactionTime(time);
+                                        transaction.setAmount(amt);
+                                        transaction.setVolume(0);
+
+                                        // Set extra fields
+                                        transaction.setMilkPrice((preferencesManager.get(MilkBasePrice, "")).toString());
+                                        transaction.setMilkTemperature("111");
+                                        transaction.setTransactionStatus("FAILED");
+                                        transaction.setUpiId(qrCodeId);
+                                        transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
+
+                                        /// Yet uploaded to server flag set.. Need to change. Only it will insert into Local DB
+                                        transaction.setUploadToServer(0);
+
+                                        String uniqueId = generateSafeUniqueTransactionId(transactionDao);
+                                        transaction.setUniqueTransactionId(uniqueId);
+
+                                        // Insert into database
+                                        long transactionId = transactionDao.insert(transaction);
+                                        transaction.setId(transactionId);
+
+                                        logError("save karti ", new Gson().toJson(transaction));
+
+                                        preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
+
+                                        runOnUiThread(() -> {
+
+                                            //    Toast.makeText(PayWithQrActivity.this, "Transaction id : " + (String.valueOf(transactionId)), Toast.LENGTH_SHORT).show();
+
+                                            if (!isMilkVendingStarted) {
+                                                isMilkVendingStarted = true;
+
+                                                /// Here after 3 minute if status is not getting as a true.
+                                                // Dialog will be close and transaction will be add in the database as a TIME OUT
+                                                timeoutHandler = new Handler(Looper.getMainLooper());
+                                                timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, amt, 0, transaction);
+
+                                                // Post the Runnable with a delay
+                                                timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
+
+                                                sendForMilkVending(amt, payCodeId, transaction);
+                                            }
+                                        });
+
+                                    } catch (Exception e) {
+                                        e.printStackTrace();
+                                    }
+                                }).start();
+
+                                // Stop service after handling payment
+                                Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
+                                stopService(serviceIntent);
+                            }
+
+
+
+                }else {
+                    saveTransactionAsATimeOUt(paymentObject);
+                    goToHomeScreen();
+                }
+
+            }
+
+            @Override
+            public void onError(String error) {
+                saveTransactionAsATimeOUt(paymentObject);
+                goToHomeScreen();
+            }
+        });
+    }
 
     /*Save transaction if time is out*/
     private void saveTransactionAsATimeOUt(JSONObject paymentObject) {
@@ -1078,7 +1235,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     /*
      * When payment is done. Send for Vending the milk*/
-    public void sendForMilkVending(double amt, Payment payment, String payCodeId, TransactionEntity transaction) {
+    public void sendForMilkVending(double amt, String payCodeId, TransactionEntity transaction) {
         milkDispensingDialog = new LottieDialog(PayWithQrActivity.this);
         try {
 
@@ -1115,10 +1272,19 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             //  logError(TAG, "QR_PAYMENT: SEND COMMAND " + gson.toJson(sendToDevice));
 
             /// Check that usb serial is not null
-            if (usbSerialCommunication != null) {
+            if (usbSerialCommunication != null && usbSerialCommunication.connected) {
 
                 shouldContinueSending = true;
 //                usbSerialCommunication.sendData(commandJson);
+
+                if(!isDataSent){
+                    isDataSent = true;
+
+                    Constants.saveLogs(PayWithQrActivity.this,
+                            "Sent Weight - " + sendToDevice.getWeight() + " TransactionId: " + transaction.getUniqueTransactionId() +  ", JSON: " + gson.toJson(sendToDevice)
+                    );
+
+                }
 
                 sendDataRepeatedly(gson.toJson(sendToDevice));
 
@@ -1127,7 +1293,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 usbSerialCommunication.setReadDataListener(data -> {
                     handleSerialReadingResponse(
                             data, milkDispensingDialog, amt, payCodeId,
-                            payment, timeoutHandler, timeoutRunnable,
+                             timeoutHandler, timeoutRunnable,
                             milkDensity, currentTemperature, transaction,
                             weight
                     );
@@ -1196,7 +1362,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             handlerForSendData.removeCallbacksAndMessages(null);
         }
 
-
         if (lottieDialog != null && lottieDialog.isShowing()) {
             try {
                 lottieDialog.dismiss();
@@ -1223,13 +1388,23 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     /*Read Listener Response*/
-    private void handleSerialReadingResponse(String data, LottieDialog lottieDialog, double amt, String payCodeId, Payment payment, Handler timeoutHandler, Runnable timeoutRunnable, double milkDensity, float milkTemperature, TransactionEntity transaction, float setWeight) {
+    private void handleSerialReadingResponse(String data, LottieDialog lottieDialog, double amt, String payCodeId, Handler timeoutHandler, Runnable timeoutRunnable, double milkDensity, float milkTemperature, TransactionEntity transaction, float setWeight) {
         logError("TAG", "onReadData: " + data);
 
         /// If it contains status key
         //
         if (data.contains("status")) {
-            isStopConditionMet = true;
+
+
+            if(!isStopConditionMet){
+                Constants.saveLogs(PayWithQrActivity.this,
+                        "Pump Started - " + "  TransactionId: " + transaction.getUniqueTransactionId() +  ", JSON: " + data
+                );
+
+                isStopConditionMet = true;
+            }
+
+
 
             logError("TAG", "onReadData: if status get" + data);
 
@@ -1270,7 +1445,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 // So api will not call again and again
                 if (!isDatabaseOperationStarted) {
                     isDatabaseOperationStarted = true;
-                   updateDataInDatabaseWhenProcessDone(amt, payCodeId, payment, volumeOfMilk, milkTemperature, transaction, milkDispense.getDoorstatus());
+                    Constants.saveLogs(PayWithQrActivity.this,
+                            "Get Weight - " + milkDispense.getCurrentWeight() + " TransactionId: " + transaction.getUniqueTransactionId() +  ", JSON: " + (new Gson().toJson(milkDispense))
+                    );
+                   updateDataInDatabaseWhenProcessDone(amt, payCodeId, volumeOfMilk, milkTemperature, transaction, milkDispense.getDoorstatus());
                 }
 
             }
@@ -1444,7 +1622,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     /// If milk is send to the customer. Show process done dialog
-    public void showAndProcessDoneDialog(double amt, Payment payment, float volumeOfMilk, float milkTemperature, String payCodeId) {
+    public void showAndProcessDoneDialog(double amt, float volumeOfMilk, float milkTemperature, String payCodeId) {
 
         if (isFinishing() || isDestroyed()) return; // Prevent dialog if activity is finishing
 
@@ -1466,7 +1644,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         tvProcessDoneText.setVisibility(View.VISIBLE);
         tvOpenTheDoor.setVisibility(View.VISIBLE);
         tvProgressDialog.setVisibility(View.GONE);
-        tvDispenseVolume.setVisibility(View.VISIBLE);
+        tvDispenseVolume.setVisibility(View.GONE);
 
         float truncatedValueOfMilkVolume = Float.parseFloat(String.format("%.2f", volumeOfMilk));
         tvDispenseVolume.setText(getString(R.string.dispense_volume) + " " + truncatedValueOfMilkVolume + " L");
@@ -1500,19 +1678,12 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 }
 
                 dialog.dismiss();
-                logError(TAG, "onClick: Payment " + new Gson().toJson(payment));
-
-
                 runOnUiThread(() -> goToHomeScreen());
 
 
             }
         });
     }
-
-
-
-
 
 
     /*
@@ -1573,7 +1744,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
     /// When process is completed. Data will be updated into database
-    void updateDataInDatabaseWhenProcessDone(double amt, String payCodeId, Payment payment, float volumeOfMilk, float milkTemperature, TransactionEntity transaction, Boolean doorStatus) {
+    void updateDataInDatabaseWhenProcessDone(double amt, String payCodeId, float volumeOfMilk, float milkTemperature, TransactionEntity transaction, Boolean doorStatus) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -1593,7 +1764,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     runOnUiThread(() -> {
                         logError(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
                         tvProcessing.setText("Thank You!");
-                        showAndProcessDoneDialog(amt, payment, volumeOfMilk, milkTemperature, payCodeId);
+                        showAndProcessDoneDialog(amt, volumeOfMilk, milkTemperature, payCodeId);
                     });
 
 
@@ -1673,7 +1844,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-          Log.e(tag, message);
+         // Log.e(tag, message);
     }
 
 

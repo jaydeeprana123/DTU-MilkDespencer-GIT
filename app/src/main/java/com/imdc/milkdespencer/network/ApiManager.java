@@ -1,5 +1,7 @@
 package com.imdc.milkdespencer.network;
 
+import com.imdc.milkdespencer.models.Response.RazorpayQrPaymentResponse;
+
 import java.util.HashMap;
 
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers;
@@ -43,6 +45,10 @@ public class ApiManager {
         makeApiCall(observable, observer);
     }
 
+    public void makeGetRequestForRazorPay(String url, String authHeader, DisposableObserver<RazorpayQrPaymentResponse> observer) {
+        Observable<RazorpayQrPaymentResponse> observable = apiService.doGetRazorPayResponse(url, authHeader);
+        makeApiCall(observable, observer);
+    }
 
     private <T> void makeApiCall(Observable<T> observable, DisposableObserver<T> observer) {
         observable.subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(observer);

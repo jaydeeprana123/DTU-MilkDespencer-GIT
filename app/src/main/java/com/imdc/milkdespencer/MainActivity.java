@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
+import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.BatteryManager;
 import android.os.Build;
@@ -121,6 +122,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     //  2) Add Agitator and the Compressor, Milk Rate to the right side of the IDMC logo.
     //  3) Admin Screen UI which can be used for the add user and configurations.
     //  4) API Calls ==> Transactions
+
+
     public final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -128,18 +131,22 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 return;
             }
 
-            final UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-            final boolean permissionGranted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+            UsbDevice deviceFromIntent = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+            boolean permissionGranted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
 
-            if (permissionGranted) {
-                if (usbDevice != null) {
-                    // Set flag to true
-                    usbSerialCommunication.openConnection(usbDevice);
+            if (permissionGranted && deviceFromIntent != null) {
+                UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+                // Get fresh device reference
+                HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
+                UsbDevice freshDevice = deviceList.get(deviceFromIntent.getDeviceName());
+
+                if (freshDevice != null && usbManager.hasPermission(freshDevice)) {
+                    usbSerialCommunication.openConnection(freshDevice);  // safer to use fresh reference
                 } else {
-                    logError(TAG, "USB device is null.");
+                    logError(TAG, "Device not found or permission missing.");
                 }
             } else {
-                logError(TAG, "USB permission denied.");
+                logError(TAG, "USB permission denied or device is null.");
             }
 
             if (context != null) {
@@ -147,11 +154,43 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                     context.unregisterReceiver(this);
                 } catch (IllegalArgumentException e) {
                     logError(TAG, "Receiver already unregistered: " + e.getMessage());
-
                 }
             }
         }
     };
+
+
+//    public final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            if (intent == null || !ACTION_USB_PERMISSION.equals(intent.getAction())) {
+//                return;
+//            }
+//
+//            final UsbDevice usbDevice = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
+//            final boolean permissionGranted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false);
+//
+//            if (permissionGranted) {
+//                if (usbDevice != null ) {
+//                    // Set flag to true
+//                    usbSerialCommunication.openConnection(usbDevice);
+//                } else {
+//                    logError(TAG, "USB device is null.");
+//                }
+//            } else {
+//                logError(TAG, "USB permission denied.");
+//            }
+//
+//            if (context != null) {
+//                try {
+//                    context.unregisterReceiver(this);
+//                } catch (IllegalArgumentException e) {
+//                    logError(TAG, "Receiver already unregistered: " + e.getMessage());
+//
+//                }
+//            }
+//        }
+//    };
 
 
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
@@ -164,24 +203,29 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 if (device != null) {
                     logError("USB", "USB disconnected (Electricity GONE)");
                     // Stop communication, update UI
-                    getChargingState = false;
 
-                    /// Here only once save log as a lost electricity
-                    if (!isDischargeState) {
-                        isDischargeState = true;
-                        Constants.saveLogs(MainActivity.this, "Lost Electricity");
+                    // Reset flag, no electricity data received yet
+
+                    if(hasReceivedElectricityData){
+
+                        logError(TAG, "ACTION_USB_DEVICE_DETACHED call");
+
+
+                        hasReceivedElectricityData = false;
+
+                        // Remove previous callbacks (if any) to avoid duplication
+                        handlerElectricity.removeCallbacks(electricityLostRunnable);
+
+
+                        // Post delayed runnable to check if no electricity data after 3 seconds
+                        handlerElectricity.postDelayed(electricityLostRunnable, 3000);
+
                     }
-
-
-                    inMilkDispenseProcessLevel = false;
-                    getUsbShowState = false;
-                    isUsbPermissionGranted = false;
-
-
                 }
             } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null) {
+
                     logError("USB", "USB connected (Electricity BACK)");
                     checkAndRequestUsbPermission(); // see below
                 }
@@ -563,6 +607,35 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 //        }
 //    };
 
+
+    private Handler handlerElectricity = new Handler(Looper.getMainLooper());
+    private Runnable electricityLostRunnable = new Runnable() {
+        @Override
+        public void run() {
+            // If no data received confirming electricity, mark lost here
+            if (!hasReceivedElectricityData) {
+
+                logError(TAG, "electricityLostRunnable");
+
+
+                markElectricityLost();
+            }
+        }
+    };
+    private boolean hasReceivedElectricityData = false;  // Reset on detach and set true in onReadData
+
+
+    private void markElectricityLost() {
+        getChargingState = false;
+        isDischargeState = true;
+
+        inMilkDispenseProcessLevel = false;        getUsbShowState = false;
+        isUsbPermissionGranted = false;
+        logError(TAG, "Save Electricity");
+
+        Constants.saveLogs(MainActivity.this, "Lost Electricity");
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -929,6 +1002,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
     }
 
+
+
+
+
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -938,23 +1016,42 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         tvRemainingVolume.setText(formattedRemainingVolume + "L");
         minimumVolumeLimit = Double.parseDouble(preferencesManager.get(MinimumVolumeLimit, "6.0").toString());
 
+        // Delay the USB check slightly to ensure the device is fully ready
+        new Handler(Looper.getMainLooper()).postDelayed(this::checkAndConnectUsbDevice, 700);
+
+    }
+
+    private void checkAndConnectUsbDevice() {
         UsbManager usbManager = (UsbManager) getSystemService(Context.USB_SERVICE);
+        if (usbManager == null) {
+            Log.e(TAG, "UsbManager is null");
+            return;
+        }
+
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
 
         for (UsbDevice device : deviceList.values()) {
             if (device.getVendorId() == 4292 && device.getProductId() == 60000) {
                 if (usbManager.hasPermission(device)) {
-
-                    /// Here if usb permission is given that time
-                    // usbSerialCommunication connect and then open the device
-                    usbSerialCommunication.connect();
-                    usbSerialCommunication.setBaudRate(115200);
+                    Log.d(TAG, "USB permission granted, connecting...");
+                    try {
+                        usbSerialCommunication.connect();
+                        usbSerialCommunication.setBaudRate(115200);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Error connecting to USB device: " + e.getMessage(), e);
+                    }
+                } else {
+                    Log.d(TAG, "Requesting USB permission...");
+                    PendingIntent permissionIntent = PendingIntent.getBroadcast(
+                            this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
+                    );
+                    usbManager.requestPermission(device, permissionIntent);
                 }
+                break;  // Found the matching device, exit loop
             }
         }
-
-
     }
+
 
     @Override
     protected void onRestart() {
@@ -1032,10 +1129,19 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         runOnUiThread(() -> {
 
-            if(responseTempStatus.getElectricity()){
+            // If electricity is present, mark flag and cancel electricity lost check
+            if ((responseTempStatus.getElectricity())) {
+
+                if(!hasReceivedElectricityData){
+                    hasReceivedElectricityData = true;
+                }
+
+
                 isDischargeState = false;
                 getChargingState = true;
 
+                // Cancel the delayed runnable if it was posted
+                handlerElectricity.removeCallbacks(electricityLostRunnable);
             }else {
                 getChargingState = false;
             }
@@ -1253,7 +1359,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-         Log.e(tag, message);
+       //  Log.e(tag, message);
     }
 
     private void toastMessage(String message){

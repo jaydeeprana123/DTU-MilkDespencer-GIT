@@ -1,6 +1,8 @@
 package com.imdc.milkdespencer.network;
 
 
+import com.imdc.milkdespencer.models.Response.RazorpayQrPaymentResponse;
+
 import java.util.HashMap;
 
 import io.reactivex.rxjava3.core.Observable;
@@ -11,6 +13,7 @@ import retrofit2.http.Body;
 import retrofit2.http.FieldMap;
 import retrofit2.http.FormUrlEncoded;
 import retrofit2.http.GET;
+import retrofit2.http.Header;
 import retrofit2.http.HeaderMap;
 import retrofit2.http.POST;
 import retrofit2.http.Url;
@@ -42,4 +45,6 @@ public interface ApiService {
     @POST()
     Observable<ResponseBody> sendOtp(@Url String url, @FieldMap HashMap<String, String> fields, @HeaderMap HashMap<String, String> header_map);
 
+    @GET
+    Observable<RazorpayQrPaymentResponse> doGetRazorPayResponse(@Url String url, @Header("Authorization") String authHeader);
 }
