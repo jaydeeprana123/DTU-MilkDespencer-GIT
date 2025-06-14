@@ -106,6 +106,13 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     private Runnable qrCodeTimeoutRunnable;
 
+    private Handler retryHandler = new Handler(Looper.getMainLooper());
+    private Runnable retryRunnable;
+    private int retryCount = 0;
+    private final int MAX_RETRIES = 7; // At 2, 3, 4, 5 minutes
+    private boolean hasValidTransaction = false;
+
+
 
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
@@ -915,8 +922,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         });
     }
 
-
-
     /*Here if QR code is generate and payment status is not get.
     Then transaction will be added as a TIME OUT and go to the home screen*/
     private void scheduleDialogDismissal(JSONObject paymentObject, String qrCodeId) {
@@ -936,155 +941,310 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     logError(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
                 }
 
-                /// After 2 minute it will check from the razorpay that payment is deducted or not
-                getRazorPayResponseByQRCodeId(qrCodeId);
-
+                // ✅ Immediately start retry check
+                startRetryPaymentCheck(qrCodeId, paymentObject);
             }
         };
 
-        // Start the timeout task
+        // 🔁 Trigger timeout + retry at 2 minutes
         qrCodeTimeoutHandler.postDelayed(qrCodeTimeoutRunnable, 2 * 60 * 1000);
-
-
-//        new Handler(Looper.getMainLooper()).postDelayed(() -> {
-//            Dialog currentDialog = dialog.get();
-//            if (currentDialog != null && currentDialog.isShowing()) {
-//                logError("generateQRCode", "Dialog dismissed due to timeout");
-//                currentDialog.dismiss();
-//
-//                saveTransactionAsATimeOUt(paymentObject);
-//                goToHomeScreen();
-//            }
-//        }, 15*1000);
     }
 
+    private void startRetryPaymentCheck(String qrCodeId, JSONObject paymentObject) {
+        logError(TAG, "Start retry check for RazorPay response");
+
+        retryCount = 0;
+        hasValidTransaction = false;
+
+        retryRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (hasValidTransaction || retryCount >= MAX_RETRIES) {
+                    logError(TAG, "Stopping retries. Either success or max retries reached.");
+                    return;
+                }
+
+                retryCount++;
+                logError(TAG, "Checking RazorPay payment, attempt: " + retryCount);
+
+                getRazorPayResponseByQRCodeId(qrCodeId, paymentObject);
+
+                if (!hasValidTransaction && retryCount < MAX_RETRIES) {
+                    retryHandler.postDelayed(this, 30 * 1000); // Retry every 30 seconds
+                }
+            }
+        };
+
+        // ✅ Start 1st API call immediately after dialog is dismissed (at 2 mins)
+        retryHandler.postDelayed(retryRunnable, 0);
+    }
 
     /// When there is no response from qr code scan and 6 minutes is done.
     // Then get response from the qrcode
-    private void getRazorPayResponseByQRCodeId(String qrCodeId){
-
-
+    private void getRazorPayResponseByQRCodeId(String qrCodeId, JSONObject paymentObject){
         Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
         stopService(serviceIntent);
 
         Constants.getRazorPayResponse(this, qrCodeId, new RazorpayResponseCallback() {
             @Override
             public void onSuccess(RazorpayQrPaymentResponse response) {
-
                 if (isTransactionCompleted) return;
 
-                isTransactionCompleted = true;
+                logError(TAG, "RazorpayQrPaymentResponse " + new Gson().toJson(response));
 
-                logError(TAG,"RazorpayQrPaymentResponse " +  new Gson().toJson(response));
+                if (response.getItems().isEmpty()) {
+                    logError(TAG, "No transaction found. Retry count: " + retryCount);
 
-                if(response.getItems().isEmpty()){
-                    saveTransactionAsATimeOUt(paymentObject);
-                    goToHomeScreen();
-                }else if(response.getItems().get(0).getId() != null && !response.getItems().get(0).getId().isEmpty()){
+                    if (retryCount >= MAX_RETRIES) {
+                        logError(TAG, "Max retries reached. Timeout.");
 
-                        // Cancel QR code timeout
-                        if (qrCodeTimeoutHandler != null && qrCodeTimeoutRunnable != null) {
-                            qrCodeTimeoutHandler.removeCallbacks(qrCodeTimeoutRunnable);
-                        }
-                            if (response.getItems().get(0).getAmount() != null) {
+                        handleTransactionTimeout(paymentObject);
+                    }
 
-                                if (dialog.get() != null && dialog.get().isShowing()) {
-                                    dialog.get().dismiss();
-                                }
-
-                                String payCodeId = response.getItems().get(0).getId();
-                                float amount = Float.parseFloat(response.getItems().get(0).getAmount().toString());
-                                double amt = amount / 100;
-
-                                preferencesManager.save(Constants.PaidAmt, amt);
-
-                                new Thread(() -> {
-                                    try {
-                                        SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
-                                        SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
-
-                                        String date = dateFormatter.format(System.currentTimeMillis());
-                                        String time = timeFormatter.format(System.currentTimeMillis());
-
-                                        TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
-                                        SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(PayWithQrActivity.this);
-
-                                        TransactionEntity transaction = new TransactionEntity();
-                                        transaction.setUserName("");
-                                        transaction.setPassword(""); // base64 for 'Admin'
-                                        transaction.setTransactionType("ONLINE");
-                                        transaction.setBankTransactionNo(payCodeId);
-                                        transaction.setTransactionDate(date);
-                                        transaction.setTransactionTime(time);
-                                        transaction.setAmount(amt);
-                                        transaction.setVolume(0);
-
-                                        // Set extra fields
-                                        transaction.setMilkPrice((preferencesManager.get(MilkBasePrice, "")).toString());
-                                        transaction.setMilkTemperature("111");
-                                        transaction.setTransactionStatus("FAILED");
-                                        transaction.setUpiId(qrCodeId);
-                                        transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
-
-                                        /// Yet uploaded to server flag set.. Need to change. Only it will insert into Local DB
-                                        transaction.setUploadToServer(0);
-
-                                        String uniqueId = generateSafeUniqueTransactionId(transactionDao);
-                                        transaction.setUniqueTransactionId(uniqueId);
-
-                                        // Insert into database
-                                        long transactionId = transactionDao.insert(transaction);
-                                        transaction.setId(transactionId);
-
-                                        logError("save karti ", new Gson().toJson(transaction));
-
-                                        preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
-
-                                        runOnUiThread(() -> {
-
-                                            //    Toast.makeText(PayWithQrActivity.this, "Transaction id : " + (String.valueOf(transactionId)), Toast.LENGTH_SHORT).show();
-
-                                            if (!isMilkVendingStarted) {
-                                                isMilkVendingStarted = true;
-
-                                                /// Here after 3 minute if status is not getting as a true.
-                                                // Dialog will be close and transaction will be add in the database as a TIME OUT
-                                                timeoutHandler = new Handler(Looper.getMainLooper());
-                                                timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, amt, 0, transaction);
-
-                                                // Post the Runnable with a delay
-                                                timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
-
-                                                sendForMilkVending(amt, payCodeId, transaction);
-                                            }
-                                        });
-
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                }).start();
-
-                                // Stop service after handling payment
-                                Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
-                                stopService(serviceIntent);
-                            }
-
-
-
-                }else {
-                    saveTransactionAsATimeOUt(paymentObject);
-                    goToHomeScreen();
+                    return; // wait for next retry
                 }
 
+                // Valid transaction check
+                if (response.getItems().get(0).getId() != null && !response.getItems().get(0).getId().isEmpty()) {
+                    logError(TAG, "Valid transaction found. Stopping further retries.");
+                    hasValidTransaction = true;
+                    isTransactionCompleted = true;
+
+                    retryHandler.removeCallbacks(retryRunnable);
+
+                    // Proceed with success logic
+                    processValidTransaction(response, qrCodeId);
+                } else {
+                    logError(TAG, "Transaction item is invalid. Will retry.");
+                }
             }
 
             @Override
             public void onError(String error) {
-                saveTransactionAsATimeOUt(paymentObject);
-                goToHomeScreen();
+                logError(TAG, "No transaction found. Retry count: " + retryCount);
+
+                if (retryCount >= MAX_RETRIES) {
+                    logError(TAG, "Max retries reached. Timeout.");
+
+                    handleTransactionTimeout(paymentObject);
+                }
+
+                return; // wait for next retry
             }
         });
     }
+
+    private void handleTransactionTimeout(JSONObject paymentObject) {
+        logError(TAG, "Handling transaction timeout...");
+
+        retryHandler.removeCallbacks(retryRunnable);
+        isTransactionCompleted = true;
+
+        saveTransactionAsATimeOUt(paymentObject);
+        goToHomeScreen();
+    }
+
+
+    private void processValidTransaction(RazorpayQrPaymentResponse response, String qrCodeId) {
+        if (qrCodeTimeoutHandler != null && qrCodeTimeoutRunnable != null) {
+            qrCodeTimeoutHandler.removeCallbacks(qrCodeTimeoutRunnable);
+        }
+
+        if (dialog.get() != null && dialog.get().isShowing()) {
+            dialog.get().dismiss();
+        }
+
+        if (response.getItems().get(0).getAmount() != null) {
+            String payCodeId = response.getItems().get(0).getId();
+            float amount = Float.parseFloat(response.getItems().get(0).getAmount().toString());
+            double amt = amount / 100;
+
+            preferencesManager.save(Constants.PaidAmt, amt);
+
+            new Thread(() -> {
+                try {
+                    SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+                    SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+
+                    String date = dateFormatter.format(System.currentTimeMillis());
+                    String time = timeFormatter.format(System.currentTimeMillis());
+
+                    TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
+                    SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(PayWithQrActivity.this);
+
+                    TransactionEntity transaction = new TransactionEntity();
+                    transaction.setUserName("");
+                    transaction.setPassword("");
+                    transaction.setTransactionType("ONLINE");
+                    transaction.setBankTransactionNo(payCodeId);
+                    transaction.setTransactionDate(date);
+                    transaction.setTransactionTime(time);
+                    transaction.setAmount(amt);
+                    transaction.setVolume(0);
+                    transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
+                    transaction.setMilkTemperature("111");
+                    transaction.setTransactionStatus("FAILED");
+                    transaction.setUpiId(qrCodeId);
+                    transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+                    transaction.setUploadToServer(0);
+
+                    String uniqueId = generateSafeUniqueTransactionId(transactionDao);
+                    transaction.setUniqueTransactionId(uniqueId);
+
+                    long transactionId = transactionDao.insert(transaction);
+                    transaction.setId(transactionId);
+
+                    preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
+
+                    runOnUiThread(() -> {
+                        if (!isMilkVendingStarted) {
+                            isMilkVendingStarted = true;
+
+                            timeoutHandler = new Handler(Looper.getMainLooper());
+                            timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, amt, 0, transaction);
+
+                            timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000);
+
+                            sendForMilkVending(amt, payCodeId, transaction);
+                        }
+                    });
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+
+        stopService(new Intent(PayWithQrActivity.this, PaymentStatusService.class));
+    }
+
+
+
+
+//    private void getRazorPayResponseByQRCodeId(String qrCodeId){
+//
+//
+//        Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
+//        stopService(serviceIntent);
+//
+//        Constants.getRazorPayResponse(this, qrCodeId, new RazorpayResponseCallback() {
+//            @Override
+//            public void onSuccess(RazorpayQrPaymentResponse response) {
+//
+//                if (isTransactionCompleted) return;
+//
+//                isTransactionCompleted = true;
+//
+//                logError(TAG,"RazorpayQrPaymentResponse " +  new Gson().toJson(response));
+//
+//                if(response.getItems().isEmpty()){
+//                    saveTransactionAsATimeOUt(paymentObject);
+//                    goToHomeScreen();
+//                }else if(response.getItems().get(0).getId() != null && !response.getItems().get(0).getId().isEmpty()){
+//
+//                        // Cancel QR code timeout
+//                        if (qrCodeTimeoutHandler != null && qrCodeTimeoutRunnable != null) {
+//                            qrCodeTimeoutHandler.removeCallbacks(qrCodeTimeoutRunnable);
+//                        }
+//                            if (response.getItems().get(0).getAmount() != null) {
+//
+//                                if (dialog.get() != null && dialog.get().isShowing()) {
+//                                    dialog.get().dismiss();
+//                                }
+//
+//                                String payCodeId = response.getItems().get(0).getId();
+//                                float amount = Float.parseFloat(response.getItems().get(0).getAmount().toString());
+//                                double amt = amount / 100;
+//
+//                                preferencesManager.save(Constants.PaidAmt, amt);
+//
+//                                new Thread(() -> {
+//                                    try {
+//                                        SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+//                                        SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+//
+//                                        String date = dateFormatter.format(System.currentTimeMillis());
+//                                        String time = timeFormatter.format(System.currentTimeMillis());
+//
+//                                        TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
+//                                        SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(PayWithQrActivity.this);
+//
+//                                        TransactionEntity transaction = new TransactionEntity();
+//                                        transaction.setUserName("");
+//                                        transaction.setPassword(""); // base64 for 'Admin'
+//                                        transaction.setTransactionType("ONLINE");
+//                                        transaction.setBankTransactionNo(payCodeId);
+//                                        transaction.setTransactionDate(date);
+//                                        transaction.setTransactionTime(time);
+//                                        transaction.setAmount(amt);
+//                                        transaction.setVolume(0);
+//
+//                                        // Set extra fields
+//                                        transaction.setMilkPrice((preferencesManager.get(MilkBasePrice, "")).toString());
+//                                        transaction.setMilkTemperature("111");
+//                                        transaction.setTransactionStatus("FAILED");
+//                                        transaction.setUpiId(qrCodeId);
+//                                        transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
+//
+//                                        /// Yet uploaded to server flag set.. Need to change. Only it will insert into Local DB
+//                                        transaction.setUploadToServer(0);
+//
+//                                        String uniqueId = generateSafeUniqueTransactionId(transactionDao);
+//                                        transaction.setUniqueTransactionId(uniqueId);
+//
+//                                        // Insert into database
+//                                        long transactionId = transactionDao.insert(transaction);
+//                                        transaction.setId(transactionId);
+//
+//                                        logError("save karti ", new Gson().toJson(transaction));
+//
+//                                        preferencesManager.save(Constants.SavedTransaction, new Gson().toJson(transaction));
+//
+//                                        runOnUiThread(() -> {
+//
+//                                            //    Toast.makeText(PayWithQrActivity.this, "Transaction id : " + (String.valueOf(transactionId)), Toast.LENGTH_SHORT).show();
+//
+//                                            if (!isMilkVendingStarted) {
+//                                                isMilkVendingStarted = true;
+//
+//                                                /// Here after 3 minute if status is not getting as a true.
+//                                                // Dialog will be close and transaction will be add in the database as a TIME OUT
+//                                                timeoutHandler = new Handler(Looper.getMainLooper());
+//                                                timeoutRunnable = () -> handleMilkSendingTimeout(milkDispensingDialog, amt, 0, transaction);
+//
+//                                                // Post the Runnable with a delay
+//                                                timeoutHandler.postDelayed(timeoutRunnable, 3 * 60 * 1000); // 3 minutes
+//
+//                                                sendForMilkVending(amt, payCodeId, transaction);
+//                                            }
+//                                        });
+//
+//                                    } catch (Exception e) {
+//                                        e.printStackTrace();
+//                                    }
+//                                }).start();
+//
+//                                // Stop service after handling payment
+//                                Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
+//                                stopService(serviceIntent);
+//                            }
+//
+//
+//
+//                }else {
+//                    saveTransactionAsATimeOUt(paymentObject);
+//                    goToHomeScreen();
+//                }
+//
+//            }
+//
+//            @Override
+//            public void onError(String error) {
+//                saveTransactionAsATimeOUt(paymentObject);
+//                goToHomeScreen();
+//            }
+//        });
+//    }
 
     /*Save transaction if time is out*/
     private void saveTransactionAsATimeOUt(JSONObject paymentObject) {

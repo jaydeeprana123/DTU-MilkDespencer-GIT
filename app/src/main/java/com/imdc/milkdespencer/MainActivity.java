@@ -199,6 +199,15 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             String action = intent.getAction();
 
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
+
+                long currentTime = System.currentTimeMillis();
+                if (currentTime - lastDetachTimestamp < DETACH_DEBOUNCE_TIME_MS) {
+                    logError(TAG, "USB detach ignored due to debounce");
+                    return;
+                }
+
+                lastDetachTimestamp = currentTime;
+
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null) {
                     logError("USB", "USB disconnected (Electricity GONE)");
@@ -209,7 +218,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                     if(hasReceivedElectricityData){
 
                         logError(TAG, "ACTION_USB_DEVICE_DETACHED call");
-
 
                         hasReceivedElectricityData = false;
 
@@ -614,27 +622,37 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         public void run() {
             // If no data received confirming electricity, mark lost here
             if (!hasReceivedElectricityData) {
-
                 logError(TAG, "electricityLostRunnable");
-
-
                 markElectricityLost();
             }
         }
     };
     private boolean hasReceivedElectricityData = false;  // Reset on detach and set true in onReadData
 
+    private boolean isElectricityAlreadyLost = false;
+
+    private long lastDetachTimestamp = 0;
+    private static final long DETACH_DEBOUNCE_TIME_MS = 2000; // Ignore duplicates within 2 seconds
 
     private void markElectricityLost() {
-        getChargingState = false;
-        isDischargeState = true;
+        if (!isElectricityAlreadyLost) {
+            isElectricityAlreadyLost = true;
 
-        inMilkDispenseProcessLevel = false;        getUsbShowState = false;
-        isUsbPermissionGranted = false;
-        logError(TAG, "Save Electricity");
+            getChargingState = false;
+            isDischargeState = true;
 
-        Constants.saveLogs(MainActivity.this, "Lost Electricity");
+            inMilkDispenseProcessLevel = false;        getUsbShowState = false;
+            isUsbPermissionGranted = false;
+            logError(TAG, "Save Electricity");
+
+            Constants.saveLogs(MainActivity.this, "Lost Electricity");
+
+            // Update UI if needed
+        } else {
+            logError(TAG, "Duplicate electricity lost call prevented");
+        }
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -1136,7 +1154,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                     hasReceivedElectricityData = true;
                 }
 
-
+                isElectricityAlreadyLost = false;  // RESET when electricity comes back
                 isDischargeState = false;
                 getChargingState = true;
 
