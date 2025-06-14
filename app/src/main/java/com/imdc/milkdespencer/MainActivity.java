@@ -645,7 +645,13 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             isUsbPermissionGranted = false;
             logError(TAG, "Save Electricity");
 
-            Constants.saveLogs(MainActivity.this, "Lost Electricity");
+            try {
+                Constants.saveLogs(MainActivity.this, "Lost Electricity");
+            } catch (Exception e) {
+                logError("PaymentLog", "Logging failed: ${e.message}");
+                // Don't crash, just log the error silently
+            }
+
 
             // Update UI if needed
         } else {

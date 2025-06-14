@@ -18,7 +18,6 @@ import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbManager;
 import android.os.AsyncTask;
-import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -30,6 +29,7 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 
 import androidx.appcompat.app.AlertDialog;
@@ -113,7 +113,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     private boolean hasValidTransaction = false;
 
 
-
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -137,7 +136,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             milkDispensingDialog.dismiss();
                         }
 
-                        Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity");
+
+                        try {
+                            Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity");
+                        } catch (Exception e) {
+                            logError("PaymentLog", "Logging failed: ${e.message}");
+                            // Don't crash, just log the error silently
+                        }
+
                         tvProcessing.setText("Sorry. No Electricity, please try after some time!");
 
                         String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
@@ -165,7 +171,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             goToHomeScreen();
                         }
                     }
-
 
 
                 }
@@ -368,7 +373,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     private static final long SEND_INTERVAL_MS = 500; // Send every 500ms
 
-    private  boolean isTransactionCompleted = false;
+    private boolean isTransactionCompleted = false;
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
     @Override
@@ -461,15 +466,19 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 }
 
 
-                if(!usbSerialCommunication.connected){
+                if (!usbSerialCommunication.connected) {
+                    try {
+                        Constants.saveLogs(PayWithQrActivity.this, "USB Not Connected");
+                    } catch (Exception e) {
+                        logError("PaymentLog", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
+                    }
 
-                    Constants.saveLogs(PayWithQrActivity.this, "USB Not Connected");
-                    Constants.showUSBConnectionErrorMessageDialog(PayWithQrActivity.this, "Alert", "Usb is not connected properly!",(dialog1, which) -> {
+                    Constants.showUSBConnectionErrorMessageDialog(PayWithQrActivity.this, "Alert", "Usb is not connected properly!", (dialog1, which) -> {
                         goToHomeScreen();
                     });
                     return;
                 }
-
 
 
                 String customerId = preferencesManager.get(Constants.RazorPayCustomerID, "").toString();
@@ -981,7 +990,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     /// When there is no response from qr code scan and 6 minutes is done.
     // Then get response from the qrcode
-    private void getRazorPayResponseByQRCodeId(String qrCodeId, JSONObject paymentObject){
+    private void getRazorPayResponseByQRCodeId(String qrCodeId, JSONObject paymentObject) {
         Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
         stopService(serviceIntent);
 
@@ -1012,8 +1021,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                     retryHandler.removeCallbacks(retryRunnable);
 
+                    try {
+                        Constants.saveLogs(PayWithQrActivity.this, "Success By Razorpay API Call");
+                    } catch (Exception e) {
+                        logError("PaymentLog", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
+                    }
+
+
                     // Proceed with success logic
-                    processValidTransaction(response, qrCodeId);
+                    processValidTransactionByCheckRazorpayAPICall(response, qrCodeId);
                 } else {
                     logError(TAG, "Transaction item is invalid. Will retry.");
                 }
@@ -1040,12 +1057,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         retryHandler.removeCallbacks(retryRunnable);
         isTransactionCompleted = true;
 
+        runOnUiThread(() ->
+                Toast.makeText(PayWithQrActivity.this, "We didn't receive a payment", Toast.LENGTH_LONG).show()
+        );
+
         saveTransactionAsATimeOUt(paymentObject);
         goToHomeScreen();
     }
 
 
-    private void processValidTransaction(RazorpayQrPaymentResponse response, String qrCodeId) {
+    private void processValidTransactionByCheckRazorpayAPICall(RazorpayQrPaymentResponse response, String qrCodeId) {
         if (qrCodeTimeoutHandler != null && qrCodeTimeoutRunnable != null) {
             qrCodeTimeoutHandler.removeCallbacks(qrCodeTimeoutRunnable);
         }
@@ -1117,8 +1138,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
         stopService(new Intent(PayWithQrActivity.this, PaymentStatusService.class));
     }
-
-
 
 
 //    private void getRazorPayResponseByQRCodeId(String qrCodeId){
@@ -1437,12 +1456,18 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 shouldContinueSending = true;
 //                usbSerialCommunication.sendData(commandJson);
 
-                if(!isDataSent){
+                if (!isDataSent) {
                     isDataSent = true;
 
-                    Constants.saveLogs(PayWithQrActivity.this,
-                            "Sent Weight - " + sendToDevice.getWeight() + " TransactionId: " + transaction.getUniqueTransactionId() +  ", JSON: " + gson.toJson(sendToDevice)
-                    );
+                    try {
+                        Constants.saveLogs(PayWithQrActivity.this,
+                                "Sent Weight - " + sendToDevice.getWeight() + " TransactionId: " + transaction.getUniqueTransactionId() + ", JSON: " + gson.toJson(sendToDevice)
+                        );
+                    } catch (Exception e) {
+                        logError("PaymentLog", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
+                    }
+
 
                 }
 
@@ -1453,7 +1478,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 usbSerialCommunication.setReadDataListener(data -> {
                     handleSerialReadingResponse(
                             data, milkDispensingDialog, amt, payCodeId,
-                             timeoutHandler, timeoutRunnable,
+                            timeoutHandler, timeoutRunnable,
                             milkDensity, currentTemperature, transaction,
                             weight
                     );
@@ -1471,7 +1496,15 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 // So api will not call again and again
                 if (!isDatabaseOperationStarted) {
                     isDatabaseOperationStarted = true;
-                    Constants.saveLogs(PayWithQrActivity.this, "Dispensation Not Started");
+
+                    try {
+                        Constants.saveLogs(PayWithQrActivity.this, "Dispensation Not Started");
+                    } catch (Exception e) {
+                        logError("PaymentLog", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
+                    }
+
+
                     updateTransactionIfUSBSerialCommunicationLost(transaction);
                 }
             }
@@ -1506,7 +1539,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
         handlerForSendData.postDelayed(sendCommandRunnable, SEND_INTERVAL_MS);
     }
-
 
 
     /*If 5 minutes done and status is not getting as a true.
@@ -1556,14 +1588,20 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         if (data.contains("status")) {
 
 
-            if(!isStopConditionMet){
-                Constants.saveLogs(PayWithQrActivity.this,
-                        "Pump Started - " + "  TransactionId: " + transaction.getUniqueTransactionId() +  ", JSON: " + data
-                );
+            if (!isStopConditionMet) {
+
+                try {
+                    Constants.saveLogs(PayWithQrActivity.this,
+                            "Pump Started - " + "  TransactionId: " + transaction.getUniqueTransactionId() + ", JSON: " + data
+                    );
+                } catch (Exception e) {
+                    logError("PaymentLog", "Logging failed: ${e.message}");
+                    // Don't crash, just log the error silently
+                }
+
 
                 isStopConditionMet = true;
             }
-
 
 
             logError("TAG", "onReadData: if status get" + data);
@@ -1584,9 +1622,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 logError(TAG + " volumeOfMilk", String.valueOf(volumeOfMilk));
 
                 /// Here check that if volume is negative then, get weight as a set weight
-                if(volumeOfMilk < 0){
+                if (volumeOfMilk < 0) {
 
-                    logError("VOLUME OF MILK" , "IS MINUS");
+                    logError("VOLUME OF MILK", "IS MINUS");
 
                     volumeOfMilk = (float) (setWeight / milkDensity);
                 }
@@ -1605,10 +1643,17 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 // So api will not call again and again
                 if (!isDatabaseOperationStarted) {
                     isDatabaseOperationStarted = true;
-                    Constants.saveLogs(PayWithQrActivity.this,
-                            "Get Weight - " + milkDispense.getCurrentWeight() + " TransactionId: " + transaction.getUniqueTransactionId() +  ", JSON: " + (new Gson().toJson(milkDispense))
-                    );
-                   updateDataInDatabaseWhenProcessDone(amt, payCodeId, volumeOfMilk, milkTemperature, transaction, milkDispense.getDoorstatus());
+
+                    try {
+                        Constants.saveLogs(PayWithQrActivity.this,
+                                "Get Weight - " + milkDispense.getCurrentWeight() + " TransactionId: " + transaction.getUniqueTransactionId() + ", JSON: " + (new Gson().toJson(milkDispense))
+                        );
+                    } catch (Exception e) {
+                        logError("PaymentLog", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
+                    }
+
+                    updateDataInDatabaseWhenProcessDone(amt, payCodeId, volumeOfMilk, milkTemperature, transaction, milkDispense.getDoorstatus());
                 }
 
             }
@@ -1918,7 +1963,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     /// Here I convert temperature of milk into string and set 3 digits after dot(.)
                     String strMilkTemperature = String.format("%.3f", milkTemperature);
 
-                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), doorStatus?"DOOR OPEN":"SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
+                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), doorStatus ? "DOOR OPEN" : "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
 
                     // Now show dialog on UI thread
                     runOnUiThread(() -> {
@@ -1966,6 +2011,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             qrCodeTimeoutHandler.removeCallbacks(qrCodeTimeoutRunnable);
         }
 
+        if (retryHandler != null && retryRunnable != null) {
+            retryHandler.removeCallbacks(retryRunnable);
+        }
+
+
         // Also clear dialog safely
         if (dialog.get() != null && dialog.get().isShowing()) {
             try {
@@ -2004,7 +2054,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-         // Log.e(tag, message);
+        // Log.e(tag, message);
     }
 
 
