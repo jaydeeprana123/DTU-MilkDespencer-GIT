@@ -940,7 +940,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             Dialog currentDialog = dialog.get();
             if (currentDialog != null && currentDialog.isShowing()) {
                 logError(TAG + "generateQRCode", "Dialog dismissed due to timeout");
-                currentDialog.dismiss();
+
 
                 try {
                     if (paymentStatusReceiver != null) {
@@ -951,7 +951,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 }
 
                 // ✅ Immediately start retry check
-                startRetryPaymentCheck(qrCodeId, paymentObject);
+                startRetryPaymentCheck(qrCodeId, paymentObject,currentDialog);
             }
         };
 
@@ -959,7 +959,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         qrCodeTimeoutHandler.postDelayed(qrCodeTimeoutRunnable, 2 * 60 * 1000);
     }
 
-    private void startRetryPaymentCheck(String qrCodeId, JSONObject paymentObject) {
+    private void startRetryPaymentCheck(String qrCodeId, JSONObject paymentObject, Dialog qrCodeDialog) {
         logError(TAG, "Start retry check for RazorPay response");
 
         retryCount = 0;
@@ -976,7 +976,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 retryCount++;
                 logError(TAG, "Checking RazorPay payment, attempt: " + retryCount);
 
-                getRazorPayResponseByQRCodeId(qrCodeId, paymentObject);
+                getRazorPayResponseByQRCodeId(qrCodeId, paymentObject, qrCodeDialog);
 
                 if (!hasValidTransaction && retryCount < MAX_RETRIES) {
                     retryHandler.postDelayed(this, 30 * 1000); // Retry every 30 seconds
@@ -990,7 +990,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     /// When there is no response from qr code scan and 6 minutes is done.
     // Then get response from the qrcode
-    private void getRazorPayResponseByQRCodeId(String qrCodeId, JSONObject paymentObject) {
+    private void getRazorPayResponseByQRCodeId(String qrCodeId, JSONObject paymentObject, Dialog qrCodeDialog) {
         Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
         stopService(serviceIntent);
 
@@ -1007,6 +1007,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     if (retryCount >= MAX_RETRIES) {
                         logError(TAG, "Max retries reached. Timeout.");
 
+                        /// Here qr code dialog will dismiss
+                        if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
+                            qrCodeDialog.dismiss();
+                        }
+
                         handleTransactionTimeout(paymentObject);
                     }
 
@@ -1020,6 +1025,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     isTransactionCompleted = true;
 
                     retryHandler.removeCallbacks(retryRunnable);
+
+                    /// Here qr code dialog will dismiss
+                    if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
+                        qrCodeDialog.dismiss();
+                    }
 
                     try {
                         Constants.saveLogs(PayWithQrActivity.this, "Success By Razorpay API Call");
