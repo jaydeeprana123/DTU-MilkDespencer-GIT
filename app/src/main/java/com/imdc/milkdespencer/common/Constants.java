@@ -1544,6 +1544,37 @@ public class Constants {
     }
 
 
+
+    /*Update the transactions after payment done
+    * Here don't call API*/
+    public static void updateTransactionAfterPaymentDone(Context activity, TransactionDao transactionDao, long transactionId, String transactionStatus, float volume, String milkTemperature, TransactionEntity transaction) {
+        preferencesManager = SharedPreferencesManager.getInstance(activity);
+
+        remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
+        remainingVolume = remainingVolume - volume;
+        preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
+
+        transactionDao.updateTransactionDetailsAfterPaymentDone(
+                String.valueOf(transactionId),           // Unique Transaction ID
+                volume,                 // volume
+                preferencesManager.get(MilkBasePrice, "").toString(),              // milk price
+                milkTemperature,
+                transactionStatus,// milk temperature,
+                remainingVolume,
+                transaction.getTransactionDate(),
+                transaction.getTransactionTime()
+
+        );
+
+        transaction.setVolume(volume);
+        transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
+        transaction.setMilkTemperature(milkTemperature);
+        transaction.setTransactionStatus(transactionStatus);
+        transaction.setRemainingvolume(remainingVolume);
+
+    }
+
+
     /// Update the transactions
     public static void updateTransaction(Context activity, TransactionDao transactionDao, long transactionId, String transactionStatus, float volume, String milkTemperature, TransactionEntity transaction) {
         preferencesManager = SharedPreferencesManager.getInstance(activity);
@@ -1698,11 +1729,12 @@ public class Constants {
             JsonObject jsonObject = new Gson().toJsonTree(transactionEntity).getAsJsonObject();
             jsonObject.addProperty("Key", KeyForApi);
             jsonObject.addProperty("value", ValueForApi);
+            jsonObject.addProperty("QRCreatedOn", transactionEntity.getCreatedBy());
             jsonArray.add(jsonObject);
         }
 
         String request = new Gson().toJson(jsonArray);
-     //   Log.e(TAG, "doPostTransaction: " + request);
+        Log.e(TAG, "doPostTransaction: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1774,11 +1806,12 @@ public class Constants {
             JsonObject jsonObject = new Gson().toJsonTree(transactionEntity).getAsJsonObject();
             jsonObject.addProperty("Key", KeyForApi);
             jsonObject.addProperty("value", ValueForApi);
+            jsonObject.addProperty("QRCreatedOn", transactionEntity.getCreatedBy());
             jsonArray.add(jsonObject);
         }
 
         String request = new Gson().toJson(jsonArray);
-      //  Log.e(TAG, "doPostTransactionList: " + request);
+        Log.e(TAG, "doPostTransactionList: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1821,6 +1854,8 @@ public class Constants {
                 // Completion logic if needed
             }
         };
+
+
 
         apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
     }

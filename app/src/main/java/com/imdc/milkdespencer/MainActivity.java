@@ -16,6 +16,7 @@ import static com.imdc.milkdespencer.common.Constants.remainingVolume;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isSendDataStop;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -648,7 +649,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             try {
                 Constants.saveLogs(MainActivity.this, "Lost Electricity");
             } catch (Exception e) {
-                logError("PaymentLog", "Logging failed: ${e.message}");
+                logError("LostElectricity", "Logging failed: ${e.message}");
                 // Don't crash, just log the error silently
             }
 
@@ -664,6 +665,17 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 //        copyDatabase(this);
+
+
+        /// Kiosk mode on
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+//            if (!am.isInLockTaskMode()) {
+//                startLockTask();
+//            }
+//        }
+
+
 
         clearAllCache(getApplicationContext());
 
@@ -690,8 +702,19 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     /*Hide System UI*/
+//    private void hideSystemUI() {
+//        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+//    }
+
     private void hideSystemUI() {
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+        View decorView = getWindow().getDecorView();
+        decorView.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                       );
     }
 
 
@@ -704,7 +727,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private void initializeDependencies() {
         preferencesManager = SharedPreferencesManager.getInstance(this);
         remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
-
 
 
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
@@ -1186,6 +1208,20 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 //                }
 
                 if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
+
+                    if(!isLowMilkLevel){
+                        try {
+                            Constants.saveLogs(MainActivity.this, "Low Level");
+                        } catch (Exception e) {
+                            logError("PaymentLog", "Logging failed: ${e.message}");
+                            // Don't crash, just log the error silently
+                        }
+
+                        isLowMilkLevel = true;
+
+                    }
+
+
                     handleLowLevel();
                 } else {
                     handleNormalLevel();
@@ -1282,7 +1318,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
      * Low Milk level Screen Will be Visible */
     private void handleLowLevel() {
 
-        isLowMilkLevel = true;
+
         logError(TAG, "low level");
         cv_error.setVisibility(View.VISIBLE);
         btnDone.setVisibility(View.GONE);
@@ -1296,7 +1332,10 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     /*If Level is Normal then
      * Low Milk level Screen Will be Hide And Buttons Will be Visible */
     private void handleNormalLevel() {
-        isLowMilkLevel = false;
+
+        if(isLowMilkLevel){
+            isLowMilkLevel = false;
+        }
 
         // Hide error and show main payment buttons
         cv_error.setVisibility(View.GONE);
@@ -1383,7 +1422,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-       //  Log.e(tag, message);
+         Log.e(tag, message);
     }
 
     private void toastMessage(String message){

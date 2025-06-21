@@ -38,6 +38,7 @@ import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.common.Constants;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
+import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDevice;
 import com.imdc.milkdespencer.models.SendToDeviceForCIP;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
@@ -64,6 +65,8 @@ public class CIPActivity extends AppCompatActivity {
 
     boolean isRemoveMilkOn = false;
 
+    String milkCurrentTemperature = "";
+
     private UsbSerialCommunication usbSerialCommunication;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +81,14 @@ public class CIPActivity extends AppCompatActivity {
         }
 
         preferencesManager = SharedPreferencesManager.getInstance(this);
+
+        // Fetch preferences
+        ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
+        float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, "0.0").toString());
+        double currentSavedTemp = responseTempStatus.getTemperature() / 10.0;
+        float currentTemperature = (float) (currentSavedTemp + offSet);
+
+        milkCurrentTemperature = String.valueOf(currentTemperature);
 
         appDatabase = AppDatabase.getInstance(this);
         btnCIP = findViewById(R.id.btnCIP);
@@ -218,7 +229,6 @@ public class CIPActivity extends AppCompatActivity {
             if (usbSerialCommunication != null) {
                 usbSerialCommunication.sendData(gson.toJson(sendToDevice));
 
-
             } else {
 
             }
@@ -238,11 +248,7 @@ public class CIPActivity extends AppCompatActivity {
         isCipOn = false;
         UsbSerialCommunication.isSendDataStop= false;
 
-
-
     }
-
-
 
 
    private void addCIPDataINtoDatabase(String transactionStatus){
@@ -272,7 +278,7 @@ public class CIPActivity extends AppCompatActivity {
 
                 /// Added new on 4-1-2025
                 transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
-                transaction.setMilkTemperature("222");
+                transaction.setMilkTemperature(milkCurrentTemperature);
 
                 /// Added on 1-1 2025
                 transaction.setMachineId(preferencesManager.get(MachineId, "").toString());

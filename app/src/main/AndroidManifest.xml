@@ -25,6 +25,11 @@
         tools:targetApi="s">
 
 
+        <meta-data
+            android:name="android.app.lock_task_mode"
+            android:value="lock" />
+
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
