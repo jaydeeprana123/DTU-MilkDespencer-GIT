@@ -231,20 +231,14 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
                     // Reset flag, no electricity data received yet
 
-                    if(hasReceivedElectricityData){
+                    // Always cancel any previous post
+                    handlerElectricity.removeCallbacks(electricityLostRunnable);
 
-                        logError(TAG, "ACTION_USB_DEVICE_DETACHED call");
+                    // Always reset flag on detach
+                    hasReceivedElectricityData = false;
 
-                        hasReceivedElectricityData = false;
-
-                        // Remove previous callbacks (if any) to avoid duplication
-                        handlerElectricity.removeCallbacks(electricityLostRunnable);
-
-
-                        // Post delayed runnable to check if no electricity data after 3 seconds
-                        handlerElectricity.postDelayed(electricityLostRunnable, 3000);
-
-                    }
+                    // Post new check after 3 seconds
+                    handlerElectricity.postDelayed(electricityLostRunnable, 3000);
                 }
             } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
@@ -633,16 +627,18 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private Handler handlerElectricity = new Handler(Looper.getMainLooper());
-    private Runnable electricityLostRunnable = new Runnable() {
+    private final Runnable electricityLostRunnable = new Runnable() {
         @Override
         public void run() {
-            // If no data received confirming electricity, mark lost here
             if (!hasReceivedElectricityData) {
-                logError(TAG, "electricityLostRunnable");
+                logError(TAG, "Runnable: No electricity data received, marking as lost");
                 markElectricityLost();
+            } else {
+                logError(TAG, "Runnable: Electricity data received, skipping lost marking");
             }
         }
     };
+
     private boolean hasReceivedElectricityData = false;  // Reset on detach and set true in onReadData
 
     private boolean isElectricityAlreadyLost = false;
@@ -652,28 +648,27 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
     private void markElectricityLost() {
         if (!isElectricityAlreadyLost) {
+            logError(TAG, "Electricity lost detected, saving log...");
             isElectricityAlreadyLost = true;
 
             getChargingState = false;
             isDischargeState = true;
-
-            inMilkDispenseProcessLevel = false;        getUsbShowState = false;
+            inMilkDispenseProcessLevel = false;
+            getUsbShowState = false;
             isUsbPermissionGranted = false;
-            logError(TAG, "Save Electricity");
 
             try {
                 Constants.saveLogs(MainActivity.this, "Lost Electricity", KEY_ELECTRICITY);
             } catch (Exception e) {
-                logError("LostElectricity", "Logging failed: ${e.message}");
-                // Don't crash, just log the error silently
+                logError("LostElectricity", "Logging failed: " + e.getMessage());
             }
 
-
-            // Update UI if needed
+            // Optional UI update...
         } else {
-            logError(TAG, "Duplicate electricity lost call prevented");
+            logError(TAG, "Electricity already marked as lost. Skipping duplicate.");
         }
     }
+
 
 
     @Override
@@ -1220,17 +1215,20 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             // If electricity is present, mark flag and cancel electricity lost check
             if ((responseTempStatus.getElectricity())) {
-
-                if(!hasReceivedElectricityData){
+                if (!hasReceivedElectricityData) {
+                    logError(TAG, "Electricity data received. Marking power as back.");
                     hasReceivedElectricityData = true;
+
+                    if (isElectricityAlreadyLost) {
+                        logError(TAG, "Resetting electricity lost state");
+                        isElectricityAlreadyLost = false;
+                    }
+
+                    handlerElectricity.removeCallbacks(electricityLostRunnable);
                 }
 
-                isElectricityAlreadyLost = false;  // RESET when electricity comes back
-                isDischargeState = false;
                 getChargingState = true;
-
-                // Cancel the delayed runnable if it was posted
-                handlerElectricity.removeCallbacks(electricityLostRunnable);
+                isDischargeState = false;
             }else {
                 getChargingState = false;
             }
