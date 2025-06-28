@@ -13,32 +13,61 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="@dimen/_2sdp"
+        android:padding="@dimen/_5sdp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
 
-        <TextView
-            android:id="@+id/tvLogText"
-            style="@style/TextAppearance.AppCompat.Title"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0.8"
-            android:text="TEST "
-            app:layout_constraintEnd_toStartOf="@+id/tvTransactionAmount"
-            app:layout_constraintStart_toStartOf="parent"
-            tools:ignore="MissingConstraints" />
+            android:orientation="horizontal"
+            android:weightSum="3">
 
-        <TextView
-            android:id="@+id/tvLogsDateTime"
-            style="@style/TextAppearance.AppCompat.SearchResult.Subtitle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_weight="0.8"
-            android:text=""
-            app:layout_constraintEnd_toStartOf="@+id/tvTransactionAmount"
-            app:layout_constraintStart_toStartOf="parent"
-            tools:ignore="MissingConstraints" />
+
+            <TextView
+                android:id="@+id/tvLogStatus"
+                style="@style/TextAppearance.AppCompat.Title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.4"
+                android:text="rer"
+                android:textColor="@color/red"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toStartOf="@+id/tvTransactionAmount"
+                app:layout_constraintStart_toStartOf="parent"
+                tools:ignore="MissingConstraints"
+                />
+
+
+            <TextView
+                android:id="@+id/tvLogsDateTime"
+                style="@style/TextAppearance.AppCompat.SearchResult.Subtitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="0.5"
+                android:text="gag"
+                app:layout_constraintEnd_toStartOf="@+id/tvTransactionAmount"
+                app:layout_constraintStart_toStartOf="parent"
+                tools:ignore="MissingConstraints" />
+
+            <TextView
+                android:id="@+id/tvLogText"
+                style="@style/TextAppearance.AppCompat.Title"
+                android:layout_width="0dp"
+                android:layout_weight="2.1"
+                android:layout_height="wrap_content"
+                android:text="TEST "
+                app:layout_constraintEnd_toStartOf="@+id/tvTransactionAmount"
+                app:layout_constraintStart_toStartOf="parent"
+                tools:ignore="MissingConstraints" />
+
+
+        </LinearLayout>
+
+
+
+
 
 
     </LinearLayout>

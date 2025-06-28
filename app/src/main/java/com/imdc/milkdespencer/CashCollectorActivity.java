@@ -1,6 +1,11 @@
 package com.imdc.milkdespencer;
 
 import static com.imdc.milkdespencer.MainActivity.getInstance;
+import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
+import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_DATE;
+import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_TIME;
+import static com.imdc.milkdespencer.common.Constants.KEY_USB;
+import static com.imdc.milkdespencer.common.Constants.KEY_WEIGHT;
 import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
@@ -165,6 +170,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
     private boolean isElectricityLost = false;
 
+    private String transactionStartTime;
+    private String transactionStartDate;
 
     /**********   USB functions   ******************************************/
 
@@ -190,7 +197,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                             milkDispensingDialog.dismiss();
                         }
 
-                        Constants.saveLogs(CashCollectorActivity.this, "Lost Electricity");
+                        Constants.saveLogs(CashCollectorActivity.this, "Lost Electricity",KEY_ELECTRICITY);
                         tvProcessing.setText("Sorry. No Electricity, please try after some time!");
 
                         String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
@@ -605,7 +612,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 // So api will not call again and again
                 if (!isDatabaseOperationStarted) {
                     isDatabaseOperationStarted = true;
-                    Constants.saveLogs(CashCollectorActivity.this, "Dispensation Not Started");
+                    Constants.saveLogs(CashCollectorActivity.this, "Dispensation Not Started", KEY_USB);
                     updateTransactionIfUSBSerialCommunicationLost(transaction);
                 }
 
@@ -676,8 +683,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     timeoutHandler.removeCallbacks(timeoutRunnable);
                 }
 
-                milkDispensingDialog.dismiss();
-
                 tempIndex++;
                 logError("tempIndex", String.valueOf(tempIndex));
 
@@ -741,7 +746,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                         "FAILED",
                         "",
                         0,
-                        "111"
+                        "111",
+                        transactionStartDate,
+                        transactionStartTime
                 );
 
                 runOnUiThread(() -> {
@@ -834,9 +841,24 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                     // Now show dialog on UI thread
                     runOnUiThread(() -> {
+
+                        tvProcessing.setText("Thank You!");
+
                         logError(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 
-                        showAndProcessDoneDialog(transaction.getAmount(), volumeOfMilk);
+                        // Delay the call to show dialog by 5 seconds
+                        /// Discussed on 21-6-2025
+                        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+
+                            /// Here dismiss milk dispense lottie dialog after 5 seconds
+                            if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
+                                milkDispensingDialog.dismiss();
+                            }
+
+                            showAndProcessDoneDialog(transaction.getAmount(), volumeOfMilk);
+                        }, 5000); // 5000 ms = 5 seconds
+
+
                     });
 
                 } catch (Exception e) {
@@ -1109,13 +1131,18 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                     transaction.setUpiId("");
                                     transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
 
+                                    // Add field on 28-6-2025
+                                    transaction.setTransactionStartTime(transactionStartDate +" || "+transactionStartTime);
+
                                     String uniqueId = generateSafeUniqueTransactionId(transactionDao);
                                     transaction.setUniqueTransactionId(uniqueId);
+
+                                    /// Set upload to server as a 0...Means not uploaded on server yet
+                                    transaction.setUploadToServer(0);
 
                                     // Insert into database
                                     long transactionId = transactionDao.insert(transaction);
                                     transaction.setId(transactionId);
-
 
                                     logError("save karti ", new Gson().toJson(transaction));
 
@@ -1419,6 +1446,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
         logError("Cash collector ", "Screen");
 
+        transactionStartDate = getIntent().getStringExtra(KEY_TRANSACTION_START_DATE);
+        transactionStartTime = getIntent().getStringExtra(KEY_TRANSACTION_START_TIME);
         screenTimeOut();
 
 
@@ -2134,7 +2163,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         Log.e("BackButton", "User pressed the back button!");
 
         // Your logic here
-        Constants.saveLogs(CashCollectorActivity.this, "Back Pressed");
+        Constants.saveLogs(CashCollectorActivity.this, "Back Pressed", "Back Pressed");
         super.onBackPressed();  // if you want the default behavior
     }
 

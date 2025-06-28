@@ -1,6 +1,7 @@
 package com.imdc.milkdespencer;
 
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
+import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
 
@@ -152,7 +153,7 @@ public class MainActivity_8_4 extends AppCompatActivity implements UsbSerialComm
             } else {
                 if (!isDischargeState) {
                     isDischargeState = true;
-                    Constants.saveLogs(MainActivity_8_4.this, "Lost Electricity");
+                    Constants.saveLogs(MainActivity_8_4.this, "Lost Electricity", KEY_ELECTRICITY);
                 }
 
                 inMilkDispenseProcessLevel = false;

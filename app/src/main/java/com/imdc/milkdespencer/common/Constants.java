@@ -96,6 +96,8 @@ public class Constants {
 
     public static float remainingVolume = 0;
 
+    public static final String KEY_TRANSACTION_START_DATE = "transaction_start_date";
+    public static final String KEY_TRANSACTION_START_TIME = "transaction_start_time";
     private static final String PREFS_NAME = "usb_permission_prefs";
     public static final String PREF_PERMISSION_GRANTED = "permission_granted";
 
@@ -130,6 +132,18 @@ public class Constants {
     public static final String CurrentTemperature = "CurrentTemperature";
     public static final String ResponseTempStatus = "ResponseTempStatus";
     public static final String ResponseMilkDispense = "ResponseMilkDispense";
+
+
+    public static final String KEY_ELECTRICITY = "Electricity";
+    public static final String KEY_TEMPERATURE = "Temperature";
+    public static final String KEY_LOW_LEVEL = "Low Level";
+    public static final String KEY_USB = "Usb";
+
+    public static final String KEY_QR_GENERATE = "QR Generate";
+
+    public static final String KEY_WEIGHT = "Weight";
+
+    public static final String KEY_API_CALL = "Api Call";
 
     public static final String PaymentReceived = "PaymentReceived";
 
@@ -828,7 +842,7 @@ public class Constants {
                                 if (isNetworkAvailable(context)) {
                                     doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
                                 } else {
-                                    Constants.saveLogs(context, "Internet Connection Error");
+                                    Constants.saveLogs(context, "Internet Connection Error", KEY_API_CALL);
                                     //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
                                 }
                             } catch (Exception e) {
@@ -1428,14 +1442,14 @@ public class Constants {
     }
 
 
-    public static void saveLogs(Context context, String message) {
+    public static void saveLogs(Context context, String message, String logStatus) {
         preferencesManager = SharedPreferencesManager.getInstance(context);
         new Thread(new Runnable() {
             @Override
             public void run() {
                 AppDatabase database = AppDatabase.getInstance(context);
                 LogDao logDao = database.logDao();
-                LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "000000A31122024").toString(), "", "", 0);
+                LogEntity logEntity = new LogEntity(message, preferencesManager.get(Constants.MachineId, "000000A31122024").toString(), "", "", 0, logStatus);
                 long logId = logDao.insert(logEntity);
                 logEntity.setId((int) logId);
 
@@ -1480,7 +1494,11 @@ public class Constants {
         return String.valueOf(timestamp) + randomNumber;
     }
 
-    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo, String transactionDate, String transactionTime, double amount, String transactionStatus, String upiId, float volume, String milkTemperature) {
+    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo,
+                                         String transactionDate, String transactionTime,
+                                         double amount, String transactionStatus,
+                                         String upiId, float volume, String milkTemperature,
+                                         String transactionStartDate, String transactionStartTime) {
         preferencesManager = SharedPreferencesManager.getInstance(activity);
 
         remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
@@ -1504,7 +1522,10 @@ public class Constants {
 
         transaction.setTransactionStatus(transactionStatus);
         transaction.setUpiId(upiId);
-        transaction.setUploadToServer(1);
+        transaction.setUploadToServer(0);
+
+        // Add field on 28-6-2025
+        transaction.setTransactionStartTime(transactionStartDate +" || "+transactionStartTime);
 
         try {
             String uniqueId = generateSafeUniqueTransactionId(transactionDao);
@@ -1529,7 +1550,7 @@ public class Constants {
                 // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
             } else {
 
-                Constants.saveLogs(activity, "Internet Connection Error");
+                Constants.saveLogs(activity, "Internet Connection Error",KEY_API_CALL);
 
                 //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
             }
@@ -1614,7 +1635,7 @@ public class Constants {
 
 
         } else {
-            Constants.saveLogs(activity, "Internet Connection Error");
+            Constants.saveLogs(activity, "Internet Connection Error",KEY_API_CALL);
             preferencesManager.delete(Constants.PaymentReceived);
             preferencesManager.delete(Constants.PaidAmt);
             preferencesManager.delete(Constants.SavedTransaction);
@@ -1729,12 +1750,11 @@ public class Constants {
             JsonObject jsonObject = new Gson().toJsonTree(transactionEntity).getAsJsonObject();
             jsonObject.addProperty("Key", KeyForApi);
             jsonObject.addProperty("value", ValueForApi);
-            jsonObject.addProperty("QRCreatedOn", transactionEntity.getCreatedBy());
             jsonArray.add(jsonObject);
         }
 
         String request = new Gson().toJson(jsonArray);
-        Log.e(TAG, "doPostTransaction: " + request);
+       // Log.e(TAG, "doPostTransaction: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1765,7 +1785,7 @@ public class Constants {
                     }
 
                 } catch (Exception e) {
-                    Log.e(TAG, "Response parsing error", e);
+                   // Log.e(TAG, "Response parsing error", e);
                 }
             }
 
@@ -1806,12 +1826,11 @@ public class Constants {
             JsonObject jsonObject = new Gson().toJsonTree(transactionEntity).getAsJsonObject();
             jsonObject.addProperty("Key", KeyForApi);
             jsonObject.addProperty("value", ValueForApi);
-            jsonObject.addProperty("QRCreatedOn", transactionEntity.getCreatedBy());
             jsonArray.add(jsonObject);
         }
 
         String request = new Gson().toJson(jsonArray);
-        Log.e(TAG, "doPostTransactionList: " + request);
+      //  Log.e(TAG, "doPostTransactionList: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1839,7 +1858,7 @@ public class Constants {
                     }
 
                 } catch (Exception e) {
-                    Log.e(TAG, "Response parsing error", e);
+                  //  Log.e(TAG, "Response parsing error", e);
                 }
             }
 

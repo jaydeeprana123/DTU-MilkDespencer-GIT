@@ -1,6 +1,10 @@
 package com.imdc.milkdespencer;
 
 import static com.imdc.milkdespencer.DatabaseExporter.copyDatabase;
+import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
+import static com.imdc.milkdespencer.common.Constants.KEY_LOW_LEVEL;
+import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_DATE;
+import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_TIME;
 import static com.imdc.milkdespencer.common.Constants.MinimumVolumeLimit;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isLowLevel;
 
@@ -48,6 +52,9 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.airbnb.lottie.LottieDrawable;
@@ -57,6 +64,7 @@ import com.google.firebase.FirebaseApp;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.imdc.milkdespencer.Workers.PeriodicWorkerForTemperatureApiCall;
 import com.imdc.milkdespencer.common.Constants;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
@@ -71,10 +79,13 @@ import com.imdc.milkdespencer.roomdb.interfaces.TransactionDao;
 
 import java.io.File;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener {
 
@@ -116,6 +127,10 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
     //    private  UsbSerialManager usbSerialManager;
     private UsbSerialCommunication usbSerialCommunication;
+
+    private String startBtnClickTime;
+    private String startBtnClickDate;
+
     ///TODO: 1) Read Continuous data from Serial // { "temperature": "3.04",  should not be more than set Temperature divide by 10 and then add offset value
     //  "compressor": true, green and red indicators
     //  "agitator": false, green and red indicators
@@ -647,7 +662,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             logError(TAG, "Save Electricity");
 
             try {
-                Constants.saveLogs(MainActivity.this, "Lost Electricity");
+                Constants.saveLogs(MainActivity.this, "Lost Electricity", KEY_ELECTRICITY);
             } catch (Exception e) {
                 logError("LostElectricity", "Logging failed: ${e.message}");
                 // Don't crash, just log the error silently
@@ -677,6 +692,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
 
+        /// Start worker for api call on every 30 minutes for milk temperature send
+        startWorkerForApiCallForTemperature();
+
         clearAllCache(getApplicationContext());
 
         FirebaseApp.initializeApp(this);
@@ -695,6 +713,20 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     }
 
 
+    private void startWorkerForApiCallForTemperature(){
+        // 30-minute periodic request
+        PeriodicWorkRequest apiWorkRequest =
+                new PeriodicWorkRequest.Builder(PeriodicWorkerForTemperatureApiCall.class, 30, TimeUnit.MINUTES)
+                        .build();
+
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "CallApiEvery30Min",
+                ExistingPeriodicWorkPolicy.KEEP, // Prevent duplicate scheduling
+                apiWorkRequest
+        );
+    }
+
+
     /*Keep Screen On*/
     private void keepScreenOn() {
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -702,20 +734,20 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     /*Hide System UI*/
-//    private void hideSystemUI() {
-//        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-//    }
-
     private void hideSystemUI() {
-        View decorView = getWindow().getDecorView();
-        decorView.setSystemUiVisibility(
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                       );
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
     }
+
+//    private void hideSystemUI() {
+//        View decorView = getWindow().getDecorView();
+//        decorView.setSystemUiVisibility(
+//                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+//                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+//                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+//                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+//                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+//                       );
+//    }
 
 
     /*Initialize
@@ -832,6 +864,13 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
     /*Show Start Button Dialog*/
     private void showStartDialog() {
+
+        SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+
+        startBtnClickDate = dateFormatter.format(System.currentTimeMillis());
+        startBtnClickTime = timeFormatter.format(System.currentTimeMillis());
+
         btnStart.setVisibility(View.GONE);
         hideSystemUI();
         inMilkDispenseProcessLevel = true;
@@ -960,6 +999,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         if (cv_error.getVisibility() == View.VISIBLE) return;
         Intent intent = new Intent(this, CashCollectorActivity.class);
+        intent.putExtra(KEY_TRANSACTION_START_DATE, startBtnClickDate);
+        intent.putExtra(KEY_TRANSACTION_START_TIME, startBtnClickTime);
         startActivityForResult(intent, ScreenEnum.CASH_COLLECTOR.ordinal());
     }
 
@@ -974,6 +1015,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         if (cv_error.getVisibility() == View.VISIBLE) return;
         Intent intent = new Intent(this, PayWithQrActivity.class);
+        intent.putExtra(KEY_TRANSACTION_START_DATE, startBtnClickDate);
+        intent.putExtra(KEY_TRANSACTION_START_TIME, startBtnClickTime);
         startActivityForResult(intent, ScreenEnum.PAY_WITH_QR.ordinal());
     }
 
@@ -1211,7 +1254,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
                     if(!isLowMilkLevel){
                         try {
-                            Constants.saveLogs(MainActivity.this, "Low Level");
+                            Constants.saveLogs(MainActivity.this, "Low Level", KEY_LOW_LEVEL);
                         } catch (Exception e) {
                             logError("PaymentLog", "Logging failed: ${e.message}");
                             // Don't crash, just log the error silently
@@ -1422,7 +1465,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-         Log.e(tag, message);
+//         Log.e(tag, message);
     }
 
     private void toastMessage(String message){

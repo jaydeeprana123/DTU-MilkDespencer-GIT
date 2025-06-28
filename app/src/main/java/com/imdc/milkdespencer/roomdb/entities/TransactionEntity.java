@@ -31,8 +31,31 @@ public class TransactionEntity {
     private String uniqueTransactionId;
     private String createdBy;
 
-    // ✅ New Field
+    // ✅ New Field in in Database 3 to 4 conversion
     private int uploadToServer = 0;
+
+    // ✅ New Field in in Database 4 to 5 conversion
+    private String qrCreatedOn;
+
+
+    // ✅ New Field in in Database 4 to 5 conversion
+    private String transactionStartTime;
+
+    public String getQrCreatedOn() {
+        return qrCreatedOn;
+    }
+
+    public void setQrCreatedOn(String qrCreatedOn) {
+        this.qrCreatedOn = qrCreatedOn;
+    }
+
+    public String getTransactionStartTime() {
+        return transactionStartTime;
+    }
+
+    public void setTransactionStartTime(String transactionStartTime) {
+        this.transactionStartTime = transactionStartTime;
+    }
 
     public float getRemainingvolume() {
         return remainingvolume;

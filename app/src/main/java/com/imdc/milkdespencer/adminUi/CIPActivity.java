@@ -2,6 +2,7 @@ package com.imdc.milkdespencer.adminUi;
 
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.GetConfigurationUrl;
+import static com.imdc.milkdespencer.common.Constants.KEY_API_CALL;
 import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.RemainingVolumePref;
@@ -104,7 +105,7 @@ public class CIPActivity extends AppCompatActivity {
             public void onClick(View view) {
                 btnRemoveMilk.setEnabled(true);
                 btnCIP.setEnabled(true);
-                Log.e("btn CIP", " is pressed");
+               // Log.e("btn CIP", " is pressed");
 
                 sendDataForCIP(false, false, true, false);
 
@@ -124,7 +125,7 @@ public class CIPActivity extends AppCompatActivity {
             public void onClick(View view) {
                 btnRemoveMilk.setEnabled(true);
                 btnCIP.setEnabled(true);
-                Log.e("btn btnRemoveMilk", " is pressed");
+               // Log.e("btn btnRemoveMilk", " is pressed");
                 sendDataForCIP(false, false, true, false);
                 showCIPRunningDialog(CIPActivity.this,(dialog, which) -> {
                     sendDataForCIP(false, false, false, false);
@@ -289,10 +290,10 @@ public class CIPActivity extends AppCompatActivity {
 
                 if (isNetworkAvailable(getApplicationContext())) {
                     doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
-                    Constants.saveLogs(getApplicationContext(), "CIP Done");
+                    Constants.saveLogs(getApplicationContext(), "CIP Done", "CIP");
 
                 } else {
-                    Constants.saveLogs(getApplicationContext(), "Internet Connection Error");
+                    Constants.saveLogs(getApplicationContext(), "Internet Connection Error", KEY_API_CALL);
                     //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {

@@ -42,6 +42,7 @@ public class LogsAdapter extends RecyclerView.Adapter<LogsAdapter.LogsViewHolder
         LogEntity logItem = logs.get(position);
         // Bind transaction data to the view holder
         holder.tvLogText.setText(logItem.getMessage());
+        holder.tvLogStatus.setText(logItem.getLogstatus());
         SimpleDateFormat format = new SimpleDateFormat("dd/MM/yyyy hh:mm a", Locale.getDefault());
         String formattedDate = format.format(logItem.getTimestamp());
         holder.tvLogsDateTime.setText(formattedDate);
@@ -56,12 +57,13 @@ public class LogsAdapter extends RecyclerView.Adapter<LogsAdapter.LogsViewHolder
 
     public class LogsViewHolder extends RecyclerView.ViewHolder {
 
-        TextView tvLogText, tvLogsDateTime;
+        TextView tvLogText, tvLogsDateTime,tvLogStatus;
 
         public LogsViewHolder(@NonNull View itemView) {
             super(itemView);
             tvLogText = itemView.findViewById(R.id.tvLogText);
             tvLogsDateTime = itemView.findViewById(R.id.tvLogsDateTime);
+            tvLogStatus= itemView.findViewById(R.id.tvLogStatus);
 
         }
     }

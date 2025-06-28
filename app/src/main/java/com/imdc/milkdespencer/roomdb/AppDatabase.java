@@ -20,7 +20,8 @@ import com.imdc.milkdespencer.roomdb.interfaces.UserDao;
 import java.util.concurrent.Executors;
 
 /// Change the version 3 to 4
-@Database(entities = {User.class, TransactionEntity.class, LogEntity.class}, version = 4, exportSchema = false)
+/// Change the version 4 to 5 on 28-6-2025
+@Database(entities = {User.class, TransactionEntity.class, LogEntity.class}, version = 5, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     private static AppDatabase instance;
 
@@ -46,6 +47,22 @@ public abstract class AppDatabase extends RoomDatabase {
     };
 
 
+    // ✅ Migration: Add qrCreatedOn and transactionStartTime in transactions table
+    private static final Migration MIGRATION_4_5 = new Migration(4, 5) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase database) {
+
+            // Add new columns to the transactions table
+            database.execSQL("ALTER TABLE transactions ADD COLUMN qrCreatedOn TEXT");
+            database.execSQL("ALTER TABLE transactions ADD COLUMN transactionStartTime TEXT");
+
+            // Add new column as a logstatus to the Logs table
+            database.execSQL("ALTER TABLE logs ADD COLUMN logstatus TEXT");
+        }
+    };
+
+
+
     private static final RoomDatabase.Callback roomCallback = new RoomDatabase.Callback() {
         @Override
         public void onCreate(@NonNull SupportSQLiteDatabase db) {
@@ -65,7 +82,7 @@ public abstract class AppDatabase extends RoomDatabase {
             instance = Room.databaseBuilder(context.getApplicationContext(),
                      AppDatabase.class, "IDMC-MilkVending")
                     .addCallback(roomCallback)
-                    .addMigrations(MIGRATION_3_4) // ✅ Important for older users
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5)// ✅ Important for older users
                     .enableMultiInstanceInvalidation()
                     .allowMainThreadQueries()
                     .build();

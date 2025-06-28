@@ -23,20 +23,30 @@ public class LogEntity {
     // ✅ New Field
     private String password;
 
+    private String logstatus;
+
 //    public LogEntity(String message) {
 //        this.message = message;
 //        this.timestamp = System.currentTimeMillis();
 //    }
 
-    public LogEntity(String message, String machineId, String username, String password, int uploadToServer) {
+    public LogEntity(String message, String machineId, String username, String password, int uploadToServer, String logstatus) {
         this.message = message;
         this.timestamp = System.currentTimeMillis();
         this.machineId = machineId;
         this.username = username;
         this.password = password;
         this.uploadToServer = uploadToServer;
+        this.logstatus = logstatus;
     }
 
+    public String getLogstatus() {
+        return logstatus;
+    }
+
+    public void setLogstatus(String logstatus) {
+        this.logstatus = logstatus;
+    }
 
     public int getUploadToServer() {
         return uploadToServer;

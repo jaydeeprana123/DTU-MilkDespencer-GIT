@@ -2,6 +2,13 @@ package com.imdc.milkdespencer;
 
 
 import static com.imdc.milkdespencer.common.Constants.FromScreen;
+import static com.imdc.milkdespencer.common.Constants.KEY_API_CALL;
+import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
+import static com.imdc.milkdespencer.common.Constants.KEY_QR_GENERATE;
+import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_DATE;
+import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_TIME;
+import static com.imdc.milkdespencer.common.Constants.KEY_USB;
+import static com.imdc.milkdespencer.common.Constants.KEY_WEIGHT;
 import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.ScreenTimeOutPref;
@@ -118,6 +125,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     private final int MAX_RETRIES = 7; // At 2, 3, 4, 5 minutes
     private boolean hasValidTransaction = false;
 
+    private String transactionStartTime;
+    private String transactionStartDate;
+
 
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
@@ -144,7 +154,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
                         try {
-                            Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity");
+                            Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity", KEY_ELECTRICITY);
                         } catch (Exception e) {
                             logError("PaymentLog", "Logging failed: ${e.message}");
                             // Don't crash, just log the error silently
@@ -357,6 +367,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 //        IntentFilter battertyFilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
 //        registerReceiver(batteryReceiver, battertyFilter);
 
+        transactionStartDate = getIntent().getStringExtra(KEY_TRANSACTION_START_DATE);
+        transactionStartTime = getIntent().getStringExtra(KEY_TRANSACTION_START_TIME);
         screenTimeOut();
 
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
@@ -438,7 +450,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 if (!usbSerialCommunication.connected) {
                     try {
-                        Constants.saveLogs(PayWithQrActivity.this, "USB Not Connected");
+                        Constants.saveLogs(PayWithQrActivity.this, "USB Not Connected", KEY_USB);
                     } catch (Exception e) {
                         logError("PaymentLog", "Logging failed: ${e.message}");
                         // Don't crash, just log the error silently
@@ -838,6 +850,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 logError("Error razor", e.getMessage());
 
+
+                try {
+                    Constants.saveLogs(PayWithQrActivity.this, " - Error in QR Code Generation",KEY_QR_GENERATE);
+                } catch (Exception exc) {
+                    logError("PaymentLog", "Logging failed: ${e.message}");
+                    // Don't crash, just log the error silently
+                }
+
                 btnBackToHome.setVisibility(View.VISIBLE);
                 tvProcessing.setText("We're sorry! Please try again after a while.");
                 Constants.showAlertDialog(PayWithQrActivity.this, "Error", e.getMessage());
@@ -891,18 +911,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         logError(TAG , "qrCodeId GOT IT" + qrCodeId);
 
 
-        // save transaction once Qr code is generated
-
-        if(!isTransactionInsertionStarted){
-            isTransactionInsertionStarted = true;
-            saveTransactionAsAQRCodeGenerate(paymentObject);
-        }
-
-
 
         runOnUiThread(() -> {
             dialog.set(showQRCodeDialog(imageUrl));
             dialog.get().show();
+
+            // save transaction once Qr code is generated
+            if(!isTransactionInsertionStarted){
+                isTransactionInsertionStarted = true;
+                saveTransactionAsAQRCodeGenerate(paymentObject);
+            }
 
             Intent serviceIntent = new Intent(PayWithQrActivity.this, PaymentStatusService.class);
             serviceIntent.putExtra("qr_code_id", qrCodeId);
@@ -1019,7 +1037,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     }
 
                     try {
-                        Constants.saveLogs(PayWithQrActivity.this, qrCodeId + " - Success By Razorpay API Call");
+                        Constants.saveLogs(PayWithQrActivity.this, qrCodeId + " - Success By Razorpay API Call",KEY_API_CALL);
                     } catch (Exception e) {
                         logError("PaymentLog", "Logging failed: ${e.message}");
                         // Don't crash, just log the error silently
@@ -1136,8 +1154,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 transaction.setAmount(amount);
                 transaction.setVolume(0);
-                /// in created by...We save current time. So we can get QR Code generated time
-                transaction.setCreatedBy(date +" || "+time);
+
 
                 // Set extra fields
                 transaction.setMilkPrice((preferencesManager.get(MilkBasePrice, "")).toString());
@@ -1148,6 +1165,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 /// Yet uploaded to server flag set.. Need to change. Only it will insert into Local DB
                 transaction.setUploadToServer(0);
+
+                // Add field on 28-6-2025
+                transaction.setTransactionStartTime(transactionStartDate +" || "+transactionStartTime);
+                /// 28-6-2025 - in created by...We save current time. So we can get QR Code generated time
+                transaction.setQrCreatedOn(date +" || "+time);
 
                 String uniqueId = generateSafeUniqueTransactionId(transactionDao);
                 transaction.setUniqueTransactionId(uniqueId);
@@ -1195,7 +1217,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     double amount = Double.parseDouble(paymentObject.get("amount").toString()) / 100;
                     long transactionId = Constants.insertTransaction(
                             PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time,
-                            amount, "TIME OUT", qrCodeId, 0, "111"
+                            amount, "TIME OUT", qrCodeId, 0, "111",
+                            transactionStartDate,
+                            transactionStartTime
                     );
                 }
 
@@ -1376,7 +1400,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                     try {
                         Constants.saveLogs(PayWithQrActivity.this,
-                                "Sent Weight - " + sendToDevice.getWeight() + " TransactionId: " + transaction.getUniqueTransactionId()
+                                "Sent Weight - " + sendToDevice.getWeight() + " TransactionId: " + transaction.getUniqueTransactionId(),
+                                KEY_WEIGHT
+
                         );
                     } catch (Exception e) {
                         logError("PaymentLog", "Logging failed: ${e.message}");
@@ -1413,7 +1439,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     isDatabaseOperationStarted = true;
 
                     try {
-                        Constants.saveLogs(PayWithQrActivity.this, "Dispensation Not Started");
+                        Constants.saveLogs(PayWithQrActivity.this, "Dispensation Not Started", KEY_USB);
                     } catch (Exception e) {
                         logError("PaymentLog", "Logging failed: ${e.message}");
                         // Don't crash, just log the error silently
@@ -1507,7 +1533,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 try {
                     Constants.saveLogs(PayWithQrActivity.this,
-                            "Pump Started - " + "  TransactionId: " + transaction.getUniqueTransactionId()
+                            "Pump Started - " + "  TransactionId: " + transaction.getUniqueTransactionId(),
+                            KEY_WEIGHT
                     );
                 } catch (Exception e) {
                     logError("PaymentLog", "Logging failed: ${e.message}");
@@ -1550,7 +1577,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 isCommandSent = false;
 
 //                tvProcessing.setText("Thank You..");
-                preferencesManager.save(Constants.CurrentTemperature, milkDispense.getCurrentWeight());
 
                 /// Here if database operation is not started then start.
                 // So api will not call again and again
@@ -1559,7 +1585,8 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                     try {
                         Constants.saveLogs(PayWithQrActivity.this,
-                                "Get Weight - " + milkDispense.getCurrentWeight() + " TransactionId: " + transaction.getUniqueTransactionId()
+                                "Get Weight - " + milkDispense.getCurrentWeight() + " TransactionId: " + transaction.getUniqueTransactionId(),
+                                KEY_WEIGHT
                         );
                     } catch (Exception e) {
                         logError("PaymentLog", "Logging failed: ${e.message}");
@@ -1611,7 +1638,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                         "FAILED",
                         qrCodeId,
                         volumeOfMilk,
-                        "111"
+                        "111",
+                        transactionStartDate,
+                        transactionStartTime
                 );
 
                 runOnUiThread(() -> {
@@ -1650,7 +1679,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                         "FAILED",
                         qrCodeId,
                         volumeOfMilk,
-                        "111"
+                        "111",
+                        transactionStartDate,
+                        transactionStartTime
                 );
 
 
@@ -2087,14 +2118,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-         Log.e(tag, message);
+       //  Log.e(tag, message);
     }
 
 
     @Override
     public void onBackPressed() {
         Log.e("BackButton", "User pressed the back button!");
-        Constants.saveLogs(PayWithQrActivity.this, "Back Pressed");
+        Constants.saveLogs(PayWithQrActivity.this, "Back Pressed", "Back Pressed");
 
         Object transactionObj = preferencesManager.get(Constants.SavedTransaction, "");
         String transactionJson = transactionObj != null ? transactionObj.toString() : "";
