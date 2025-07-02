@@ -1,6 +1,7 @@
 package com.imdc.milkdespencer;
 
 import static com.imdc.milkdespencer.DatabaseExporter.copyDatabase;
+import static com.imdc.milkdespencer.common.Constants.KEY_APP_STATUS;
 import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
 import static com.imdc.milkdespencer.common.Constants.KEY_LOW_LEVEL;
 import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_DATE;
@@ -755,10 +756,15 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         preferencesManager = SharedPreferencesManager.getInstance(this);
         remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
 
-
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
 
         appDatabase = AppDatabase.getInstance(this);
+
+        try {
+            Constants.saveLogs(MainActivity.this, "App Started", KEY_APP_STATUS);
+        } catch (Exception e) {
+            logError("App Started", "Logging failed: " + e.getMessage());
+        }
 
         // Check If internet is available
         if (isNetworkAvailable(MainActivity.this)) {

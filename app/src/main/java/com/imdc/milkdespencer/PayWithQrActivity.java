@@ -312,6 +312,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                             transactionEntity.setTransactionDate(transactionDate);
                             transactionEntity.setTransactionTime(transactionTime);
                             transactionEntity.setAmount(amt);
+                            transactionEntity.setBankTransactionNo(payCodeId);
 
                             if (isTransactionHandled.getAndSet(true)) return;
 
@@ -1117,6 +1118,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 transactionEntity.setTransactionDate(transactionDate);
                 transactionEntity.setTransactionTime(transactionTime);
                 transactionEntity.setAmount(amt);
+                transactionEntity.setBankTransactionNo(payCodeId);
                 updateIntoDatabaseAfterPaymentDone(transactionEntity);
             } else {
                // insertIntoDatabaseAfterPaymentDone(payCodeId, amt);
@@ -1148,7 +1150,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 transaction.setUserName("");
                 transaction.setPassword(""); // base64 for 'Admin'
                 transaction.setTransactionType("ONLINE");
-                transaction.setBankTransactionNo(qrCodeId);
+                transaction.setBankTransactionNo("");
                 transaction.setTransactionDate(date);
                 transaction.setTransactionTime(time);
 

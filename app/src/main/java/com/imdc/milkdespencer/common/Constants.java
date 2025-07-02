@@ -134,6 +134,7 @@ public class Constants {
     public static final String ResponseMilkDispense = "ResponseMilkDispense";
 
 
+    public static final String KEY_APP_STATUS = "App Status";
     public static final String KEY_ELECTRICITY = "Electricity";
     public static final String KEY_TEMPERATURE = "Temperature";
     public static final String KEY_LOW_LEVEL = "Low Level";
@@ -1583,7 +1584,8 @@ public class Constants {
                 transactionStatus,// milk temperature,
                 remainingVolume,
                 transaction.getTransactionDate(),
-                transaction.getTransactionTime()
+                transaction.getTransactionTime(),
+                transaction.getBankTransactionNo()
 
         );
 

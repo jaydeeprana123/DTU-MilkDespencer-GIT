@@ -33,8 +33,8 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET volume = :volume, milkPrice = :milkPrice, milkTemperature = :milkTemperature, transactionStatus = :transactionStatus, remainingvolume = :remainingVolume WHERE id = :id")
     int updateTransactionDetails(String id, float volume, String milkPrice, String milkTemperature, String transactionStatus, float remainingVolume);
 
-    @Query("UPDATE transactions SET volume = :volume, milkPrice = :milkPrice, milkTemperature = :milkTemperature, transactionStatus = :transactionStatus, remainingvolume = :remainingVolume, transactionDate = :transactionDate, transactionTime = :transactionTime WHERE id = :id")
-    int updateTransactionDetailsAfterPaymentDone(String id, float volume, String milkPrice, String milkTemperature, String transactionStatus, float remainingVolume, String transactionDate, String transactionTime);
+    @Query("UPDATE transactions SET volume = :volume, milkPrice = :milkPrice, milkTemperature = :milkTemperature, transactionStatus = :transactionStatus, remainingvolume = :remainingVolume, transactionDate = :transactionDate, transactionTime = :transactionTime, bankTransactionNo = :bankTransactionNo WHERE id = :id")
+    int updateTransactionDetailsAfterPaymentDone(String id, float volume, String milkPrice, String milkTemperature, String transactionStatus, float remainingVolume, String transactionDate, String transactionTime, String bankTransactionNo);
 
 
     @Query("UPDATE transactions SET uploadToServer = :uploadToServer WHERE id = :id")
