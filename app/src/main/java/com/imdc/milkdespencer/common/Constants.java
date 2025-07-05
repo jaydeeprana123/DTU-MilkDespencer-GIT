@@ -102,7 +102,7 @@ public class Constants {
     public static final String PREF_PERMISSION_GRANTED = "permission_granted";
 
 
-    public static final String TAG = "MilkDespencer";
+    public static final String TAG = "tag";
     public static final String MachineId = "MachineId";
 
     public static final String MaxVolumeLimit = "MaxVolumeLimit";
@@ -135,6 +135,7 @@ public class Constants {
 
 
     public static final String KEY_APP_STATUS = "App Status";
+    public static final String KEY_CALIBRATION = "Calibration";
     public static final String KEY_ELECTRICITY = "Electricity";
     public static final String KEY_TEMPERATURE = "Temperature";
     public static final String KEY_LOW_LEVEL = "Low Level";

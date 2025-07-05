@@ -1,12 +1,19 @@
 package com.imdc.milkdespencer.adminUi;
 
+import static com.imdc.milkdespencer.common.Constants.KEY_CALIBRATION;
+import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
+
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.Bundle;
+import android.text.Html;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
@@ -21,6 +28,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.imdc.milkdespencer.MainActivity;
 import com.imdc.milkdespencer.R;
+import com.imdc.milkdespencer.common.Constants;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
 import com.imdc.milkdespencer.models.SendToDevice;
 
@@ -35,8 +43,17 @@ public class CalibrationActivity extends AppCompatActivity {
     double maxWeight = 0.0;
     private TextInputLayout tilKnownWeight, tilMaxWeight;
     private TextInputEditText tieKnownWeight, tieMaxWeight;
+
+    private TextView tvInstruction;
+
+    private ImageButton btnMinusMinWeight, btnMinusMaxWeight, btnPlusMinWeight,btnPlusMaxWeight;
+
     private MaterialButton startCalibrationBtn;
     private TextView tvMessage, tvLblMessage;
+
+    private int minWeightInGram = 500;
+
+    private int maxWeightInGram = 5000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +69,15 @@ public class CalibrationActivity extends AppCompatActivity {
         tilKnownWeight = findViewById(R.id.tilKnownWeight);
         tilMaxWeight = findViewById(R.id.tilMaxWeight);
         tieKnownWeight = findViewById(R.id.tieKnownWeight);
+
+        tvInstruction = findViewById(R.id.tvInstruction);
+
+        btnMinusMinWeight= findViewById(R.id.btnMinusMinWeight);
+        btnPlusMinWeight= findViewById(R.id.btnPlusMinWeight);
+
+        btnMinusMaxWeight= findViewById(R.id.btnMinusMaxWeight);
+        btnPlusMaxWeight= findViewById(R.id.btnPlusMaxWeight);
+
         tieMaxWeight = findViewById(R.id.tieMaxWeight);
         startCalibrationBtn = findViewById(R.id.startCalibrationBtn);
         tvMessage = findViewById(R.id.tv_Message);
@@ -62,8 +88,16 @@ public class CalibrationActivity extends AppCompatActivity {
         tieKnownWeight = findViewById(R.id.tieKnownWeight);
         tieMaxWeight = findViewById(R.id.tieMaxWeight);
 
-        tieMaxWeight.setText("10000");
-        tieKnownWeight.setText("500");
+        tieMaxWeight.setText(String.valueOf(maxWeightInGram));
+        tieKnownWeight.setText(String.valueOf(minWeightInGram));
+
+        String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
+                "Press Calibration button and follow the instructions.";
+
+        tvInstruction.setText(Html.fromHtml(instruction));
+
+        clickListener();
+
         // Set up input validation for the known weight field
         tilKnownWeight.setEndIconOnClickListener(new View.OnClickListener() {
             @Override
@@ -167,7 +201,7 @@ public class CalibrationActivity extends AppCompatActivity {
                         @Override
                         public void onReadData(String data) {
 
-                            Log.e(TAG, "onReadData: " + data);
+//                            Log.e(TAG, "onReadData: " + data);
                             String message = "";
                             switch (data) {
                                 case "0":
@@ -188,16 +222,39 @@ public class CalibrationActivity extends AppCompatActivity {
 
                                     break;
                                 case "1":
-                                    message = "Calib function ON Tare.Remove any weights from the scale.";
+
+                                    tvMessage.setTextColor(Color.parseColor("#000000"));
+                                    tvMessage.setTypeface(null, Typeface.BOLD);
+
+                                    message = "Keep dispenser door open till the calibration process is complete.\n" +
+                                            "\n" +
+                                            "Ensure no any items on plate.";
                                     break;
                                 case "2":
-                                    message = "Tare done...Place a low known weight on the scale...";
+                                    tvMessage.setTextColor(Color.parseColor("#0000ff"));
+                                    tvMessage.setTypeface(null, Typeface.BOLD);
+                                    /// Put minimum dynamic value
+
+                                     message = "Put <" + minWeightInGram + "grams> weight on plate and wait";
+
+
                                     break;
                                 case "3":
-                                    message = "Tare Again... remove any weights from the scale.";
+
+                                    tvMessage.setTextColor(Color.parseColor("#ff0000"));
+                                    tvMessage.setTypeface(null, Typeface.BOLD);
+
+                                    /// Put minimum dynamic value
+                                     message = "Tare Done !\n\nRemove <" + minWeightInGram + "grams> weight from plate and wait.";
+
                                     break;
                                 case "4":
-                                    message = "Tare done..Place a high known weight on the scale..";
+
+                                    tvMessage.setTextColor(Color.parseColor("#0000ff"));
+                                    tvMessage.setTypeface(null, Typeface.BOLD);
+                                    /// Put maximum dynamic value
+                                    message = "Put <5 kg> weight on plate and wait.";
+                                     message = "Put <" + (maxWeightInGram/1000) + "kg> weight on plate and wait.";
                                     break;
                                 default:
                                     message = "Calibration Process";
@@ -213,6 +270,79 @@ public class CalibrationActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    private void clickListener() {
+
+        /// For Minimum Weight
+        btnMinusMinWeight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if(minWeightInGram > 0){
+                    minWeightInGram = minWeightInGram - 100;
+                    tieKnownWeight.setText(String.valueOf(minWeightInGram));
+
+                    String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
+                            "Press Calibration button and follow the instructions.";
+
+                    tvInstruction.setText(Html.fromHtml(instruction));
+                }
+
+
+
+            }
+        });
+
+        btnPlusMinWeight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                minWeightInGram = minWeightInGram + 100;
+                tieKnownWeight.setText(String.valueOf(minWeightInGram));
+
+                String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
+                        "Press Calibration button and follow the instructions.";
+
+                tvInstruction.setText(Html.fromHtml(instruction));
+            }
+        });
+
+
+        /// For Maximum Weight
+        btnMinusMaxWeight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if(maxWeightInGram > 100){
+                    maxWeightInGram = maxWeightInGram - 1000;
+                    tieMaxWeight.setText(String.valueOf(maxWeightInGram));
+
+                    String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
+                            "Press Calibration button and follow the instructions.";
+
+                    tvInstruction.setText(Html.fromHtml(instruction));
+                }
+
+
+            }
+        });
+
+        btnPlusMaxWeight.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                maxWeightInGram = maxWeightInGram + 1000;
+                tieMaxWeight.setText(String.valueOf(maxWeightInGram));
+
+                String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
+                        "Press Calibration button and follow the instructions.";
+
+                tvInstruction.setText(Html.fromHtml(instruction));
+
+
+            }
+        });
+
     }
 
     @Override
@@ -231,7 +361,7 @@ public class CalibrationActivity extends AppCompatActivity {
         sendToDevice.setCalib(isCalibMode); //TODO ::  Make this value as true when the.
 //                UsbSerialCommunication.currentClass = "CCA";
         Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
-        Log.e(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
+       // Log.e(TAG, "DisplayEvents: SEND COMMAND " + gson.toJson(sendToDevice));
 
         usbSerialCommunication.sendData(gson.toJson(sendToDevice));
         usbSerialCommunication.sendData(gson.toJson(sendToDevice));
@@ -258,7 +388,17 @@ public class CalibrationActivity extends AppCompatActivity {
                 LottieAnimationView lottieAnimationView = view.findViewById(R.id.lottieAnimationView);
                 TextView tvProgressDialog = view.findViewById(R.id.tvProgressDialog);
                 MaterialButton btnDone = view.findViewById(R.id.doneButton);
+
+                TextView tvProcessDoneText = view.findViewById(R.id.tvProcessDoneText);
+                TextView tvOpenTheDoor = view.findViewById(R.id.tvOpenTheDoor);
+
                 btnDone.setVisibility(View.VISIBLE);
+                tvProcessDoneText.setVisibility(View.VISIBLE);
+                tvOpenTheDoor.setVisibility(View.VISIBLE);
+                btnDone.setText("Ok");
+
+                tvProcessDoneText.setText("Calibration done");
+                tvOpenTheDoor.setText("Remove all weight and close dispenser door.");
                 tvProgressDialog.setVisibility(View.GONE);
                 lottieAnimationView.setAnimation(R.raw.process_done);
                 lottieAnimationView.setRepeatMode(LottieDrawable.RESTART);
@@ -270,12 +410,21 @@ public class CalibrationActivity extends AppCompatActivity {
                 builder.setCancelable(false); // Set to true if you want the dialog to be cancellable
 
                 AlertDialog dialog = builder.create();
-                dialog.show();
+                if (!isFinishing() && !isDestroyed()) {
+                    dialog.show();
+                }
+
 
                 btnDone.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         dialog.dismiss();
+
+                        try {
+                            Constants.saveLogs(CalibrationActivity.this, "Calibration Done", KEY_CALIBRATION);
+                        } catch (Exception e) {
+
+                        }
 
                         Intent intent = new Intent(CalibrationActivity.this, MainActivity.class);
                         startActivity(intent);

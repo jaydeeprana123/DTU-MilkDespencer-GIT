@@ -88,7 +88,7 @@ public class AdminActivity extends AppCompatActivity {
             if (getIntent().hasExtra(Constants.LoginUser)) {
                 String loginExtra = getIntent().getStringExtra(Constants.LoginUser);
                 user = new Gson().fromJson(loginExtra, User.class);
-                Log.e("TAG", "onCreate: " + new Gson().toJson(user));
+              //  Log.e("TAG", "onCreate: " + new Gson().toJson(user));
                 if (getSupportActionBar() != null) {
                     if (user.getUserType() == UserTypeEnum.ADMIN.value()) {
                         getSupportActionBar().setTitle("Admin Panel");
@@ -177,8 +177,9 @@ public class AdminActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                Log.e("btn CIP", " is pressed");
+//                Log.e("btn CIP", " is pressed");
                     isCipOn = true;
+                    isSendDataStop = true;
                     Intent intent = new Intent(AdminActivity.this, CIPActivity.class);
                     startActivity(intent);
 

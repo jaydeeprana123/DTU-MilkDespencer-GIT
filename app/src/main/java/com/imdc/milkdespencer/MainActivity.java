@@ -7,6 +7,7 @@ import static com.imdc.milkdespencer.common.Constants.KEY_LOW_LEVEL;
 import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_DATE;
 import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_TIME;
 import static com.imdc.milkdespencer.common.Constants.MinimumVolumeLimit;
+import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isLowLevel;
 
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
@@ -71,6 +72,7 @@ import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
 import com.imdc.milkdespencer.enums.ScreenEnum;
 import com.imdc.milkdespencer.models.ResponseTempStatus;
+import com.imdc.milkdespencer.models.SendToDeviceForCIP;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.LogEntity;
 import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
@@ -88,7 +90,7 @@ import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener {
+public class MainActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener, UsbSerialCommunication.ReadDataForCIPListener {
 
     //    private FirebaseAnalytics mFirebaseAnalytics;
     private boolean inMilkDispenseProcessLevel = false;
@@ -860,6 +862,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         cvPayWithCash.setOnClickListener(v -> btnPayWithCash.performClick());
         cvPayWithQr.setOnClickListener(v -> btnPayWithQr.performClick());
         usbSerialCommunication.setReadDataListener(this);
+        usbSerialCommunication.setReadDataForCIPListener(this);
     }
 
 
@@ -1059,6 +1062,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     @Override
     protected void onStart() {
         super.onStart();
+
         inMilkDispenseProcessLevel = false;
         tvProcessing.setVisibility(View.GONE);
         hideSystemUI();
@@ -1101,6 +1105,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     protected void onResume() {
         super.onResume();
         isSendDataStop = false;
+        isCipOn = false;
         DecimalFormat df = new DecimalFormat("0.00");
         String formattedRemainingVolume = df.format(remainingVolume);
         tvRemainingVolume.setText(formattedRemainingVolume + "L");
@@ -1304,6 +1309,50 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         });
     }
 
+
+    @Override
+    public void onReadCIPData(String data) {
+        if (data != null && data.contains("Inside CIP loop")) {
+            logError(TAG + " receivedData INN: ", data);
+
+            if(!isCipOn){
+                sendDataForCIP(false, false, false, true);
+            }
+
+
+
+        }
+    }
+
+    /*
+     * When payment is done. Send for Vending the milk*/
+    public void sendDataForCIP(boolean compressorStatus, boolean agitatorStatus, boolean pumpStatus, boolean isCipDone) {
+        try {
+            // Prepare data to send to device
+            SendToDeviceForCIP sendToDevice = new SendToDeviceForCIP();
+            sendToDevice.setCompressor(compressorStatus);
+            sendToDevice.setAgitator(agitatorStatus);
+            sendToDevice.setPump(pumpStatus);
+            sendToDevice.setCipdone(isCipDone);
+            Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+            //  logError(TAG, "QR_PAYMENT: SEND COMMAND " + gson.toJson(sendToDevice));
+
+            /// Check that usb serial is not null
+            if (usbSerialCommunication != null) {
+                usbSerialCommunication.sendData(gson.toJson(sendToDevice));
+
+                usbSerialCommunication.connect();
+                usbSerialCommunication.setBaudRate(115200);
+
+            } else {
+                usbSerialCommunication.connect();
+                usbSerialCommunication.setBaudRate(115200);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
 
     /// Check that temperature value should not null

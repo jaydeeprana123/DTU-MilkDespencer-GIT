@@ -595,6 +595,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 sendDataRepeatedly(commandJson);
 
                 // Set the listener and handle in a different method
+
                 usbSerialCommunication.setReadDataListener(data ->
                         handleSerialReadingResponse(data, currentSavedTemp, milkDensity, milkSellingPrice, transaction, weight)
                 );
@@ -2160,7 +2161,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     @Override
     public void onBackPressed() {
         // This runs when the user clicks the back button
-        Log.e("BackButton", "User pressed the back button!");
+      //  Log.e("BackButton", "User pressed the back button!");
 
         // Your logic here
         Constants.saveLogs(CashCollectorActivity.this, "Back Pressed", "Back Pressed");

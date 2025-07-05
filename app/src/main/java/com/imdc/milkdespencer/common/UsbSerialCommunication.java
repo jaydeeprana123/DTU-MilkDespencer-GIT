@@ -16,6 +16,7 @@ import android.hardware.usb.UsbManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
@@ -46,6 +47,9 @@ public class UsbSerialCommunication {
     Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
     SendToDevice sendToDevice;
     private ReadDataListener readDataListener;
+
+    private ReadDataForCIPListener readDataForCIPListener;
+
     private int baudRate = 115200; // Default baud rate, change as needed
     private UsbDevice usbDevice;
     private UsbDeviceConnection usbConnection;
@@ -88,6 +92,11 @@ public class UsbSerialCommunication {
 
     public void setReadDataListener(ReadDataListener listener) {
         this.readDataListener = listener;
+    }
+
+
+    public void setReadDataForCIPListener(ReadDataForCIPListener listener) {
+        this.readDataForCIPListener = listener;
     }
 
     public void setBaudRate(int baudRate) {
@@ -475,6 +484,21 @@ public class UsbSerialCommunication {
 
                         if (bytesRead > 0) {
                             String receivedData = new String(buffer, 0, bytesRead);
+
+                            if (readDataForCIPListener != null) {
+                                readDataForCIPListener.onReadCIPData(receivedData);
+                            }
+
+
+                            if (isCipOn && receivedData != null && receivedData.contains("Inside CIP loop")) {
+                                logError(TAG + " receivedData INN: ", receivedData);
+
+                                if (!isSendDataStop) {
+                                    isSendDataStop = true;
+                                }
+                            }
+
+
                             boolean icCalibResponse = receivedData.equalsIgnoreCase("1") ||
                                     receivedData.equalsIgnoreCase("2") ||
                                     receivedData.equalsIgnoreCase("3") ||
@@ -778,7 +802,15 @@ public class UsbSerialCommunication {
 
     public interface ReadDataListener {
         void onReadData(String data);
+
     }
+
+
+    public interface ReadDataForCIPListener {
+        void onReadCIPData(String data);
+
+    }
+
 
     public final BroadcastReceiver usbPermissionReceiver = new BroadcastReceiver() {
         public void onReceive(Context context, Intent intent) {
@@ -812,7 +844,7 @@ public class UsbSerialCommunication {
 
 
     private void logError(String tag, String message){
-      //  Log.e(tag, message);
+       // Log.e(tag, message);
     }
 
 }

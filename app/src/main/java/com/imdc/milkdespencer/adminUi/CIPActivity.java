@@ -3,6 +3,9 @@ package com.imdc.milkdespencer.adminUi;
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.GetConfigurationUrl;
 import static com.imdc.milkdespencer.common.Constants.KEY_API_CALL;
+import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
+import static com.imdc.milkdespencer.common.Constants.KEY_USB;
+import static com.imdc.milkdespencer.common.Constants.KEY_WEIGHT;
 import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.RemainingVolumePref;
@@ -28,17 +31,24 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
+
 import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.imdc.milkdespencer.MainActivity;
+import com.imdc.milkdespencer.PayWithQrActivity;
 import com.imdc.milkdespencer.R;
 import com.imdc.milkdespencer.common.Constants;
+import com.imdc.milkdespencer.common.LottieDialog;
 import com.imdc.milkdespencer.common.SharedPreferencesManager;
 import com.imdc.milkdespencer.common.UsbSerialCommunication;
+import com.imdc.milkdespencer.models.ResponseMilkDispense;
 import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDevice;
 import com.imdc.milkdespencer.models.SendToDeviceForCIP;
@@ -52,11 +62,13 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
 
-public class CIPActivity extends AppCompatActivity {
+public class CIPActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener, UsbSerialCommunication.ReadDataForCIPListener {
     //    private FirebaseAnalytics mFirebaseAnalytics;
     SharedPreferencesManager preferencesManager;
     Button btnCompressorOff, btnAgitatorOff, btnRemoveMilk,
             btnCIP;
+
+    boolean isBackButtonPressed = false;
 
     private MaterialButton btnBackToHome;
     AppDatabase appDatabase;
@@ -69,19 +81,52 @@ public class CIPActivity extends AppCompatActivity {
     String milkCurrentTemperature = "";
 
     private UsbSerialCommunication usbSerialCommunication;
+
+    private static final long SEND_INTERVAL_MS = 1000; // Send every 500ms
+
+    private boolean shouldContinueSending = false;
+
+    private boolean isStopWhenCIPEnabled = false;
+
+    private Handler handlerForSendData = new Handler(); // Create a Handler instance
+    Runnable sendCommandRunnable;
+
+    ConstraintLayout clProgress, clMain;
+
+    private static final String TAG = CIPActivity.class.getSimpleName();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cip);
+
+        logError(Constants.TAG, "onCreate call");
+
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
+        preferencesManager = SharedPreferencesManager.getInstance(this);
+        appDatabase = AppDatabase.getInstance(this);
+        btnCIP = findViewById(R.id.btnCIP);
+        btnCompressorOff = findViewById(R.id.btnCompressorOff);
+        btnAgitatorOff = findViewById(R.id.btnAgitatorOff);
+        btnRemoveMilk = findViewById(R.id.btnRemoveMilk);
+        btnBackToHome = findViewById(R.id.btnBackToHome);
+        clProgress = findViewById(R.id.clProgress);
+        clMain = findViewById(R.id.clMain);
+        btnAgitatorOff.setEnabled(false);
+        btnCIP.setEnabled(false);
+        btnRemoveMilk.setEnabled(false);
 
         if (!usbSerialCommunication.connected) {
             usbSerialCommunication.connect();
             usbSerialCommunication.setBaudRate(115200);
 
+            fireOnForCIPOn();
+        } else {
+            fireOnForCIPOn();
         }
 
-        preferencesManager = SharedPreferencesManager.getInstance(this);
+        usbSerialCommunication.setReadDataListener(this);
+        usbSerialCommunication.setReadDataForCIPListener(this);
 
         // Fetch preferences
         ResponseTempStatus responseTempStatus = new Gson().fromJson(preferencesManager.get(Constants.ResponseTempStatus, "").toString(), ResponseTempStatus.class);
@@ -91,31 +136,23 @@ public class CIPActivity extends AppCompatActivity {
 
         milkCurrentTemperature = String.valueOf(currentTemperature);
 
-        appDatabase = AppDatabase.getInstance(this);
-        btnCIP = findViewById(R.id.btnCIP);
-        btnCompressorOff = findViewById(R.id.btnCompressorOff);
-        btnAgitatorOff = findViewById(R.id.btnAgitatorOff);
-        btnRemoveMilk = findViewById(R.id.btnRemoveMilk);
-        btnBackToHome = findViewById(R.id.btnBackToHome);
-        btnAgitatorOff.setEnabled(false);
-        btnCIP.setEnabled(false);
-        btnRemoveMilk.setEnabled(false);
+
         btnCIP.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 btnRemoveMilk.setEnabled(true);
                 btnCIP.setEnabled(true);
-               // Log.e("btn CIP", " is pressed");
+                // Log.e("btn CIP", " is pressed");
 
                 sendDataForCIP(false, false, true, false);
 
 //                isCipOn = true;
-                showCIPRunningDialog(CIPActivity.this,(dialog, which) -> {
+                showCIPRunningDialog(CIPActivity.this, (dialog, which) -> {
                     sendDataForCIP(false, false, false, false);
 
                     addCIPDataINtoDatabase("CIP");
 
-                    }, "CIP IS RUNNING");
+                }, "CIP IS RUNNING");
 
             }
         });
@@ -125,9 +162,9 @@ public class CIPActivity extends AppCompatActivity {
             public void onClick(View view) {
                 btnRemoveMilk.setEnabled(true);
                 btnCIP.setEnabled(true);
-               // Log.e("btn btnRemoveMilk", " is pressed");
+                // Log.e("btn btnRemoveMilk", " is pressed");
                 sendDataForCIP(false, false, true, false);
-                showCIPRunningDialog(CIPActivity.this,(dialog, which) -> {
+                showCIPRunningDialog(CIPActivity.this, (dialog, which) -> {
                     sendDataForCIP(false, false, false, false);
 
                     addCIPDataINtoDatabase("REMOVE MILK");
@@ -140,13 +177,12 @@ public class CIPActivity extends AppCompatActivity {
         btnCompressorOff.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                isStopWhenCIPEnabled = true;
                 isSendDataStop = true;
-
                 btnCompressorOff.setEnabled(false);
                 btnAgitatorOff.setEnabled(true);
                 isCompressorOff = true;
-                if(isAgitatorOff){
+                if (isAgitatorOff) {
                     btnRemoveMilk.setEnabled(true);
                 }
 
@@ -172,14 +208,50 @@ public class CIPActivity extends AppCompatActivity {
         btnBackToHome.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                isBackButtonPressed = true;
                 sendDataForCIP(false, false, false, true);
                 isCipOn = false;
-                finish();
+
+                runOnUiThread(() -> {
+                    clProgress.setVisibility(View.VISIBLE);
+                    clMain.setVisibility(View.GONE);                          // ✅ End the activity
+                });
+
+
             }
         });
 
 
     }
+
+    /// Send data continues..And get data from on read... It will stop for to enable CIP mode on
+    private void sendDataRepeatedly(String commandJson) {
+        sendCommandRunnable = new Runnable() {
+            @Override
+            public void run() {
+
+                logError("sendCommandRunnable", "sendCommandRunnable");
+
+                if (shouldContinueSending) {
+
+                    logError(TAG, " commandJson" + commandJson);
+
+                    usbSerialCommunication.sendData(commandJson);
+
+                    if (isStopWhenCIPEnabled) {
+                        shouldContinueSending = false;
+                        return;
+                    }
+
+                    handlerForSendData.postDelayed(this, SEND_INTERVAL_MS);
+                }
+            }
+        };
+
+        handlerForSendData.postDelayed(sendCommandRunnable, SEND_INTERVAL_MS);
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -204,7 +276,17 @@ public class CIPActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
 
         if (item.getItemId() == R.id.action_logout) {
-            finish();
+
+            runOnUiThread(() -> {
+                clProgress.setVisibility(View.VISIBLE);
+                clMain.setVisibility(View.GONE);                          // ✅ End the activity
+            });
+
+            isBackButtonPressed = true;
+            sendDataForCIP(false, false, false, true);
+            isCipOn = false;
+
+
 //            Intent intent = new Intent(AdminActivity.this, MainActivity.class);
 //            startActivity(intent);
 //            finish();
@@ -213,9 +295,70 @@ public class CIPActivity extends AppCompatActivity {
     }
 
 
+    /*Continue set as a cip on, If not getting status as a status as a enabled */
+    public void fireOnForCIPOn() {
+
+        logError(Constants.TAG, "fireOnForCIPOn");
+        shouldContinueSending = true;
+        clProgress.setVisibility(View.VISIBLE);
+
+        try {
+            SendToDevice sendToDevice = new SendToDevice();
+
+            ResponseTempStatus responseTempStatus = new Gson().fromJson(
+                    preferencesManager.get(Constants.ResponseTempStatus, "").toString(),
+                    ResponseTempStatus.class
+            );
+
+            float setTemperature = Float.parseFloat(preferencesManager.get(Constants.TemperatureSet, "0.0").toString());
+            float offSet = Float.parseFloat(preferencesManager.get(Constants.TemperatureOffSet, "0.0").toString());
+
+            // Calculations
+            double currentSavedTemp = responseTempStatus.getTemperature() / 10.0;
+            float currentTemperature = (float) (currentSavedTemp + offSet);
+
+            sendToDevice.setCurtemperature(currentTemperature + offSet);
+            sendToDevice.setSettemperature(setTemperature);
+
+            /// 31-12-2024 add isCIP
+            sendToDevice.setCIP(true);
+            sendToDevice.setLowlevel(isLowLevel);
+            sendToDevice.setWeight(100.0f);
+            sendToDevice.setStatus(false);
+            Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
+            logError(TAG, "Send CIP data" + gson.toJson(sendToDevice));
+            /// Check that usb serial is not null
+            if (usbSerialCommunication != null) {
+
+                logError(TAG, "Send CIP " + gson.toJson(sendToDevice));
+
+                sendDataRepeatedly(gson.toJson(sendToDevice));
+
+
+                usbSerialCommunication.setReadDataListener(this);
+
+            } else {
+
+//                try {
+//                    Constants.saveLogs(CIPActivity.this, "USB not connected on CIP Screen", KEY_USB);
+//                } catch (Exception e) {
+//                    logError("USB", "Logging failed: ${e.message}");
+//                    // Don't crash, just log the error silently
+//                }
+//
+//                showErrorIfUSBSerialCommunicationLost();
+
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
     /*
      * When payment is done. Send for Vending the milk*/
-    public void sendDataForCIP(boolean compressorStatus,boolean agitatorStatus,boolean pumpStatus, boolean isCipDone) {
+    public void sendDataForCIP(boolean compressorStatus, boolean agitatorStatus, boolean pumpStatus, boolean isCipDone) {
         try {
             // Prepare data to send to device
             SendToDeviceForCIP sendToDevice = new SendToDeviceForCIP();
@@ -231,7 +374,9 @@ public class CIPActivity extends AppCompatActivity {
                 usbSerialCommunication.sendData(gson.toJson(sendToDevice));
 
             } else {
-
+                usbSerialCommunication = new UsbSerialCommunication(getApplicationContext()); // replace with actual init logic
+                usbSerialCommunication.connect();
+                usbSerialCommunication.setBaudRate(115200);
             }
 
         } catch (Exception e) {
@@ -239,20 +384,52 @@ public class CIPActivity extends AppCompatActivity {
         }
     }
 
+    /*Read Listener Response*/
+    private void handleSerialReadingResponse(String data) {
+        logError(TAG, "onReadData: " + data);
+
+        /// If it contains status key
+        //
+        if (data.contains("CIP")) {
+
+            if (!isStopWhenCIPEnabled) {
+
+                clProgress.setVisibility(View.GONE);
+                isStopWhenCIPEnabled = true;
+            }
+
+            logError("TAG", "onReadData: if status get" + data);
+        }
+    }
+
+    private void logError(String tag, String message) {
+       // Log.e(tag, message);
+    }
+
+
+    private void showErrorIfUSBSerialCommunicationLost() {
+        runOnUiThread(() -> Constants.showDispenseErrorMessageDialog(
+                CIPActivity.this,
+                "Error",
+                "Sorry. Something Went wrong!! Please try after some time.",
+                (dialog, which) -> finish()
+        ));
+    }
 
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
+        isSendDataStop = false;
+        handlerForSendData.removeCallbacks(sendCommandRunnable);
         sendDataForCIP(false, false, false, true);
         isCipOn = false;
-        UsbSerialCommunication.isSendDataStop= false;
+
 
     }
 
 
-   private void addCIPDataINtoDatabase(String transactionStatus){
+    private void addCIPDataINtoDatabase(String transactionStatus) {
         remainingVolume = 0;
         preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
         new Thread(() -> {
@@ -289,11 +466,23 @@ public class CIPActivity extends AppCompatActivity {
                 transaction.setId(transactionId);
 
                 if (isNetworkAvailable(getApplicationContext())) {
-                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
-                    Constants.saveLogs(getApplicationContext(), "CIP Done", "CIP");
+
+                    try {
+                        doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
+                        Constants.saveLogs(getApplicationContext(), "CIP Done", "CIP");
+                    } catch (Exception e) {
+
+                    }
+
 
                 } else {
-                    Constants.saveLogs(getApplicationContext(), "Internet Connection Error", KEY_API_CALL);
+
+                    try {
+                        Constants.saveLogs(getApplicationContext(), "Internet Connection Error", KEY_API_CALL);
+                    } catch (Exception e) {
+
+                    }
+
                     //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
                 }
             } catch (Exception e) {
@@ -303,4 +492,66 @@ public class CIPActivity extends AppCompatActivity {
     }
 
 
+    @Override
+    public void onReadData(String data) {
+        logError(TAG + " onReadData: ", data);
+
+        // Only proceed if the back button was pressed
+        if (isBackButtonPressed) {
+
+            ResponseTempStatus responseTempStatus;
+            try {
+                // Try parsing the JSON into ResponseTempStatus
+                responseTempStatus = new Gson().fromJson(data, ResponseTempStatus.class);
+
+                // If temperature field exists, hide progressBar and finish activity
+                if (responseTempStatus.getTemperature() != null) {
+
+                    runOnUiThread(() -> {
+                        clProgress.setVisibility(View.GONE);  // ✅ Correct: must run on UI thread
+                        finish();                              // ✅ End the activity
+                    });
+
+                }
+
+            } catch (Exception e) {
+                logError(TAG, "Error parsing responseTempStatus " + e);  // ✅ Good error logging
+                return;
+            }
+        }
+    }
+
+
+    @Override
+    public void onReadCIPData(String data) {
+        if (data != null && data.contains("Inside CIP loop") && !isBackButtonPressed) {
+            logError(TAG + " receivedData INN: ", data);
+
+            runOnUiThread(() -> {
+                clProgress.setVisibility(View.GONE);
+                clMain.setVisibility(View.VISIBLE);
+                if (!isSendDataStop) {
+                    isSendDataStop = true;
+                }
+            });
+        }
+    }
+
+
+    @Override
+    public void onBackPressed() {
+
+        runOnUiThread(() -> {
+            clProgress.setVisibility(View.VISIBLE);
+            clMain.setVisibility(View.GONE);                          // ✅ End the activity
+        });
+
+
+        isBackButtonPressed = true;
+        sendDataForCIP(false, false, false, true);
+        isCipOn = false;
+
+
+        // Optionally call the default behavior
+    }
 }
