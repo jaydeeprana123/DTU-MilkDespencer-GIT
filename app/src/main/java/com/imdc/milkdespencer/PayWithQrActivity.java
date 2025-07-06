@@ -94,6 +94,9 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     private boolean isDatabaseOperationStarted = false;
 
+    // Add this with your other class variables
+    private volatile boolean transactionCompleted = false;
+
     private String qrCodeId = "";
 
     private LottieDialog milkDispensingDialog;
@@ -1530,7 +1533,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         //
         if (data.contains("status")) {
 
-
             if (!isStopConditionMet) {
 
                 try {
@@ -1556,7 +1558,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             // Here if milkDispense.getStatus == true. timeOutHandler will be stop
             /// Here true status getting two times.
             // So put condition that if lottieDialog is showing that time only goes to this condition
-            if (milkDispense != null && milkDispense.getStatus() && lottieDialog.isShowing()) {
+            if (milkDispense != null && milkDispense.getStatus() && lottieDialog.isShowing() && !transactionCompleted) {
+
+                // Set the flag immediately to prevent any race conditions
+                transactionCompleted = true;
 
                 /// Here we calculate volume of milk
                 float volumeOfMilk = (float) ((milkDispense.getCurrentWeight()) / milkDensity);

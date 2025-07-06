@@ -594,7 +594,8 @@ public class Constants {
         okButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                context.finish();;
+                context.finish();
+                ;
 
             }
         });
@@ -602,7 +603,6 @@ public class Constants {
         // Show the dialog
         dialog.show();
     }
-
 
 
     /*
@@ -786,7 +786,7 @@ public class Constants {
         String formattedRemainingVolume = df.format(remainingVolume);
         tvRemainingVolume.setText("Remaining Volume : " + formattedRemainingVolume);
 
-       double maximumVolumeLimit = Double.parseDouble(preferencesManager.get(MaxVolumeLimit, "200").toString());
+        double maximumVolumeLimit = Double.parseDouble(preferencesManager.get(MaxVolumeLimit, "200").toString());
 
         // Set click listener for OK button
         okButton.setOnClickListener(new View.OnClickListener() {
@@ -796,14 +796,14 @@ public class Constants {
 
                 if (tieVolume.getText().toString().isEmpty()) {
                     Toast.makeText(context, "Please enter volume", Toast.LENGTH_SHORT).show();
-                }else if(Float.parseFloat(tieVolume.getText().toString()) > maximumVolumeLimit || Float.parseFloat(tieVolume.getText().toString()) < 10){
+                } else if (Float.parseFloat(tieVolume.getText().toString()) > maximumVolumeLimit || Float.parseFloat(tieVolume.getText().toString()) < 10) {
                     Toast.makeText(context, "Enter Valid Value", Toast.LENGTH_SHORT).show();
-                }else {
+                } else {
 
                     float tempRemainVolume = remainingVolume + Float.parseFloat(tieVolume.getText().toString());
-                    if(tempRemainVolume > maximumVolumeLimit){
+                    if (tempRemainVolume > maximumVolumeLimit) {
                         Toast.makeText(context, "Enter Valid Value", Toast.LENGTH_SHORT).show();
-                    }else {
+                    } else {
                         remainingVolume += Float.parseFloat(tieVolume.getText().toString());
 
                         preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
@@ -970,7 +970,7 @@ public class Constants {
                     public void run() {
 
                         List<User> userLIst = appDatabase.userDao().getAllUsers();
-                      //  Log.e("length of user", String.valueOf(userLIst.size()));
+                        //  Log.e("length of user", String.valueOf(userLIst.size()));
                         for (int i = 0; i < userLIst.size(); i++) {
 //                            Log.e("email", userLIst.get(i).getUsername());
 //                            Log.e("email", userLIst.get(i).getPassword());
@@ -979,7 +979,7 @@ public class Constants {
                         User login = appDatabase.userDao().login(username, password);
 
                         if (login != null) {
-                           // Log.e(TAG, "onClick: " + new Gson().toJson(login));
+                            // Log.e(TAG, "onClick: " + new Gson().toJson(login));
                             preferencesManager.save(Constants.LoginUser, new Gson().toJson(login));
                             Intent intent = new Intent(context.getApplicationContext(), AdminActivity.class);
                             intent.putExtra(Constants.LoginUser, new Gson().toJson(login));
@@ -990,7 +990,7 @@ public class Constants {
                                 @Override
                                 public void run() {
 
-                                   // Log.e(TAG, "onClick: " + new Gson().toJson(login));
+                                    // Log.e(TAG, "onClick: " + new Gson().toJson(login));
 
                                     Toast.makeText(context, "Please Enter Valid Username and Password!!", Toast.LENGTH_SHORT).show();
                                 }
@@ -1029,7 +1029,7 @@ public class Constants {
                 .addConverterFactory(GsonConverterFactory.create()).build();
 
 
-     //   Log.e(TAG + " SMS URL ", preferencesManager.get(SMSApiUrl, "https://api.kaleyra.io/v1/").toString());
+        //   Log.e(TAG + " SMS URL ", preferencesManager.get(SMSApiUrl, "https://api.kaleyra.io/v1/").toString());
 
 
 //        Retrofit retrofit = new Retrofit.Builder().baseUrl("https://api.kaleyra.io/v1/") // Replace with your base URL
@@ -1112,7 +1112,7 @@ public class Constants {
                                     new Thread(() -> {
                                         String otp = "OTP for MVM password reset is " + generateOtp(6) + ". -IDMC";
                                         String content = "to=" + phoneNo + "&type=OTP&sender=" + preferencesManager.get(SMSSender, "IDMCCS").toString() + "&body=" + otp;
-                                      //  Log.e(TAG, "onClick: " + content);
+                                        //  Log.e(TAG, "onClick: " + content);
 
                                         HashMap<String, String> fields = new HashMap<>();
                                         fields.put("to", "+91" + phoneNo);
@@ -1128,13 +1128,13 @@ public class Constants {
                                         fields.put("api-key", preferencesManager.get(SMSApiKey, "Ae0de2903bdeb26110fd03ccab96e92a1").toString());
 //                                        fields.put("api-key", "Ae0de2903bdeb26110fd03ccab96e92a1");
 
-                                      //  Log.e("fields OF SMS ", fields.toString());
+                                        //  Log.e("fields OF SMS ", fields.toString());
 
 
                                         HashMap<String, String> headers = new HashMap<>();
                                         headers.put("Content-Type", "application/x-www-form-urlencoded");
                                         headers.put("api-key", preferencesManager.get(SMSApiKey, "Ae0de2903bdeb26110fd03ccab96e92a1").toString());
-                                     //   Log.e("headers OF sms ", headers.toString());
+                                        //   Log.e("headers OF sms ", headers.toString());
                                         /// Old API : A5b9c8ba406fbc9bf361ffeb8bf6cb120
 
                                         DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
@@ -1146,7 +1146,7 @@ public class Constants {
                                                         isOtpSend[0] = true;
                                                         ResponseOTP responseModel = new Gson().fromJson(response.charStream(), ResponseOTP.class);
                                                         if (responseModel != null) {
-                                                          //  Log.e(TAG, "onNext: " + new Gson().toJson(responseModel));
+                                                            //  Log.e(TAG, "onNext: " + new Gson().toJson(responseModel));
                                                             if (responseModel.getError() != null) {
                                                                 tilOtp.setVisibility(View.VISIBLE);
                                                                 tilNewPassword.setVisibility(View.VISIBLE);
@@ -1168,7 +1168,7 @@ public class Constants {
                                             public void onError(Throwable e) {
                                                 handler.post(() -> {
 
-                                                //    Log.e("SMS onError", e.toString());
+                                                    //    Log.e("SMS onError", e.toString());
 
                                                     pd.dismiss(); // Dismiss the ProgressDialog on the main thread
                                                     Utils.handleApiError(context, e, apiManager);
@@ -1192,7 +1192,7 @@ public class Constants {
                                     }).start();
                                 });
                             }
-                          //  Log.e(TAG, "onClick:mobileNoExists " + mobileNoExists);
+                            //  Log.e(TAG, "onClick:mobileNoExists " + mobileNoExists);
                         }
                     }).start();
 
@@ -1289,7 +1289,7 @@ public class Constants {
                 String otp = tieOtp.getText().toString();
 
                 String sentOTP = (String) preferencesManager.get(Constants.OTP, "");
-               // Log.e(TAG, "onClick: " + sentOTP);
+                // Log.e(TAG, "onClick: " + sentOTP);
 
 
                 if (otp.isEmpty()) {
@@ -1416,7 +1416,7 @@ public class Constants {
 
         float DENSITY_OF_MILK = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
         double amountInLiters = milkBasePrice * literValue;
-      //  Log.e(TAG, "calculateMilkWeight: BP " + milkBasePrice + " <+++> " + amountInLiters);
+        //  Log.e(TAG, "calculateMilkWeight: BP " + milkBasePrice + " <+++> " + amountInLiters);
 
         return amountInLiters * DENSITY_OF_MILK;
     }
@@ -1427,7 +1427,7 @@ public class Constants {
         float milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
 
         double amountInLiters = milkBasePrice * literValue;
-      //  Log.e(TAG, "calculateMilkWeight: BP " + milkBasePrice + " <+++> " + amountInLiters);
+        //  Log.e(TAG, "calculateMilkWeight: BP " + milkBasePrice + " <+++> " + amountInLiters);
 
         return amountInLiters;
     }
@@ -1439,7 +1439,7 @@ public class Constants {
         float milkBasePrice = Float.parseFloat(preferencesManager.get(Constants.MilkBasePrice, "0.0").toString());
         float DENSITY_OF_MILK = Float.parseFloat(preferencesManager.get(Constants.MilkDensityPref, "0.0").toString());
 
-       // Log.e(TAG, "calculateMilkAmount: BasePrice " + milkBasePrice + " <+++> " + (cost / milkBasePrice));
+        // Log.e(TAG, "calculateMilkAmount: BasePrice " + milkBasePrice + " <+++> " + (cost / milkBasePrice));
         return (cost / milkBasePrice) * DENSITY_OF_MILK;
     }
 
@@ -1455,7 +1455,7 @@ public class Constants {
                 long logId = logDao.insert(logEntity);
                 logEntity.setId((int) logId);
 
-              //  Log.e(TAG, "run: saveLogs " + logDao.getAllLogs());
+                //  Log.e(TAG, "run: saveLogs " + logDao.getAllLogs());
 
                 if (logId > 0 && isNetworkAvailable(context)) {
                     doPostLog(preferencesManager, "/api/Log/PostLog", logEntity, logDao);
@@ -1527,7 +1527,7 @@ public class Constants {
         transaction.setUploadToServer(0);
 
         // Add field on 28-6-2025
-        transaction.setTransactionStartTime(transactionStartDate +" || "+transactionStartTime);
+        transaction.setTransactionStartTime(transactionStartDate + " || " + transactionStartTime);
 
         try {
             String uniqueId = generateSafeUniqueTransactionId(transactionDao);
@@ -1552,14 +1552,14 @@ public class Constants {
                 // doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, activity);
             } else {
 
-                Constants.saveLogs(activity, "Internet Connection Error",KEY_API_CALL);
+                Constants.saveLogs(activity, "Internet Connection Error", KEY_API_CALL);
 
                 //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
             }
 
             return transactionId;
         } catch (Exception e) {
-          //  Log.e("InsertTransaction", "Failed to insert transaction: " + e.getMessage(), e);
+            //  Log.e("InsertTransaction", "Failed to insert transaction: " + e.getMessage(), e);
             return -1;
         }
 
@@ -1567,9 +1567,8 @@ public class Constants {
     }
 
 
-
     /*Update the transactions after payment done
-    * Here don't call API*/
+     * Here don't call API*/
     public static void updateTransactionAfterPaymentDone(Context activity, TransactionDao transactionDao, long transactionId, String transactionStatus, float volume, String milkTemperature, TransactionEntity transaction) {
         preferencesManager = SharedPreferencesManager.getInstance(activity);
 
@@ -1638,7 +1637,7 @@ public class Constants {
 
 
         } else {
-            Constants.saveLogs(activity, "Internet Connection Error",KEY_API_CALL);
+            Constants.saveLogs(activity, "Internet Connection Error", KEY_API_CALL);
             preferencesManager.delete(Constants.PaymentReceived);
             preferencesManager.delete(Constants.PaidAmt);
             preferencesManager.delete(Constants.SavedTransaction);
@@ -1686,7 +1685,7 @@ public class Constants {
         ApiManager apiManager = new ApiManager(apiService);
 
         String request = new Gson().toJson(transaction);
-      //  Log.e(TAG, "doPostTransaction: " + request);
+        //  Log.e(TAG, "doPostTransaction: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1699,7 +1698,7 @@ public class Constants {
                 try {
                     JsonElement jsonElement = JsonParser.parseReader(response.charStream());
                     String json = new Gson().toJson(jsonElement);
-                  //  Log.e(TAG, "onNext: " + json);
+                    //  Log.e(TAG, "onNext: " + json);
 
                     onComplete.run();
 
@@ -1710,7 +1709,7 @@ public class Constants {
 
             @Override
             public void onError(Throwable e) {
-              //  Log.e(TAG, "onError: ", e);
+                //  Log.e(TAG, "onError: ", e);
                 e.printStackTrace();
 
                 onComplete.run();
@@ -1729,8 +1728,11 @@ public class Constants {
 
 
     public static void doPostTransaction(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction, TransactionDao transactionDao) {
+
+        if (preferencesManager == null) return;
+
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-     //   Log.e("Base URL", baseUrl);
+        //   Log.e("Base URL", baseUrl);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -1757,7 +1759,7 @@ public class Constants {
         }
 
         String request = new Gson().toJson(jsonArray);
-       // Log.e(TAG, "doPostTransaction: " + request);
+        // Log.e(TAG, "doPostTransaction: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1767,15 +1769,28 @@ public class Constants {
         DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
             @Override
             public void onNext(ResponseBody response) {
+
+                if (response == null) {
+//                    Log.e(TAG, "Response is null");
+                    return;
+                }
+
                 try {
-                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
-                    String json = new Gson().toJson(jsonElement);
-                  //  Log.e(TAG, "onNext: " + json);
+                    // JsonElement jsonElement = JsonParser.parseReader(response.charStream());
+                    //  String json = new Gson().toJson(jsonElement);
+                    //  Log.e(TAG, "onNext: " + json);
 
 
-                    if (transactionDao != null) {
+                    if (transactionDao != null && transaction != null) {
                         new Thread(() -> {
-                            transactionDao.updateTransactionUploadToServerStatus(String.valueOf(transaction.getId()), 1);
+                            try {
+                                transactionDao.updateTransactionUploadToServerStatus(
+                                        String.valueOf(transaction.getId()), 1
+                                );
+                            } catch (Exception daoEx) {
+                                //  Log.e(TAG, "Error updating DB", daoEx);
+                            }
+
                         }).start();
                     }
 
@@ -1788,14 +1803,14 @@ public class Constants {
                     }
 
                 } catch (Exception e) {
-                   // Log.e(TAG, "Response parsing error", e);
+                    // Log.e(TAG, "Response parsing error", e);
                 }
             }
 
             @Override
             public void onError(Throwable e) {
-                Log.e(TAG, "onError: ", e);
-                e.printStackTrace();
+//                Log.e(TAG, "onError: ", e);
+//                e.printStackTrace();
             }
 
             @Override
@@ -1808,8 +1823,13 @@ public class Constants {
     }
 
     public static void doPostAsyncTransactions(SharedPreferencesManager preferencesManager, String url, ArrayList<TransactionEntity> transactionList, TransactionDao transactionDao) {
+
+        if (preferencesManager == null) return;
+
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-      //  Log.e("Base URL", baseUrl);
+        //  Log.e("Base URL", baseUrl);
+
+        if (transactionList == null || transactionList.isEmpty()) return;
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -1833,7 +1853,7 @@ public class Constants {
         }
 
         String request = new Gson().toJson(jsonArray);
-      //  Log.e(TAG, "doPostTransactionList: " + request);
+        //  Log.e(TAG, "doPostTransactionList: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1844,11 +1864,11 @@ public class Constants {
             @Override
             public void onNext(ResponseBody response) {
                 try {
-                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
-                    String json = new Gson().toJson(jsonElement);
-                  //  Log.e(TAG, "onNext list: " + json);
+//                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
+//                    String json = new Gson().toJson(jsonElement);
+                    //  Log.e(TAG, "onNext list: " + json);
 
-                    ArrayList idList = new ArrayList();
+                    ArrayList<String> idList = new ArrayList();
                     for (int i = 0; i < transactionList.size(); i++) {
                         idList.add(String.valueOf(transactionList.get(i).getId()));
                     }
@@ -1856,19 +1876,24 @@ public class Constants {
 
                     if (transactionDao != null && !idList.isEmpty()) {
                         new Thread(() -> {
-                            transactionDao.updateTransactionUploadToServerStatusForIds(1, idList);
+                            try {
+                                transactionDao.updateTransactionUploadToServerStatusForIds(1, idList);
+                            } catch (Exception daoEx) {
+                                //  Log.e(TAG, "Error updating DB", daoEx);
+                            }
+
                         }).start();
                     }
 
                 } catch (Exception e) {
-                  //  Log.e(TAG, "Response parsing error", e);
+                    //  Log.e(TAG, "Response parsing error", e);
                 }
             }
 
             @Override
             public void onError(Throwable e) {
-                Log.e(TAG, "onError: ", e);
-                e.printStackTrace();
+//                Log.e(TAG, "onError: ", e);
+//                e.printStackTrace();
             }
 
             @Override
@@ -1878,14 +1903,16 @@ public class Constants {
         };
 
 
-
         apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
     }
 
 
     public static void doPostLog(SharedPreferencesManager preferencesManager, String url, LogEntity log, LogDao logDao) {
+
+        if (preferencesManager == null) return;
+
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-      //  Log.e("Base URL", baseUrl);
+        //  Log.e("Base URL", baseUrl);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -1914,7 +1941,7 @@ public class Constants {
 
         String request = new Gson().toJson(jsonArray);
 
-      //  Log.e(TAG, "doPostLog: " + request);
+        //  Log.e(TAG, "doPostLog: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1927,22 +1954,29 @@ public class Constants {
                 try {
                     JsonElement jsonElement = JsonParser.parseReader(response.charStream());
                     String json = new Gson().toJson(jsonElement);
-                  //  Log.e(TAG, "onNext: " + json);
+                    //  Log.e(TAG, "onNext: " + json);
 
                     if (log != null && logDao != null) {
                         new Thread(() -> {
-                            logDao.updateLogUploadToServerStatus(String.valueOf(log.getId()), 1);
+
+                            try {
+                                logDao.updateLogUploadToServerStatus(String.valueOf(log.getId()), 1);
+                            } catch (Exception e) {
+//                                Log.e(TAG, "DB update failed", e);
+                            }
+
+
                         }).start();
                     }
                 } catch (Exception e) {
-                    Log.e(TAG, "Response parsing error", e);
+                    // Log.e(TAG, "Response parsing error", e);
                 }
             }
 
             @Override
             public void onError(Throwable e) {
-                Log.e(TAG, "onError: ", e);
-                e.printStackTrace();
+//                Log.e(TAG, "onError: ", e);
+//                e.printStackTrace();
             }
 
             @Override
@@ -1956,8 +1990,13 @@ public class Constants {
 
 
     public static void doPostAsyncLogs(SharedPreferencesManager preferencesManager, String url, ArrayList<LogEntity> logList, LogDao logDao) {
+
+        if (preferencesManager == null) return;
+
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-       // Log.e("Base URL", baseUrl);
+        // Log.e("Base URL", baseUrl);
+
+        if (logList == null || logList.isEmpty()) return;
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -1981,7 +2020,7 @@ public class Constants {
         }
 
         String request = new Gson().toJson(jsonArray);
-      //  Log.e(TAG, "doPostLogList: " + request);
+        //  Log.e(TAG, "doPostLogList: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -1992,11 +2031,11 @@ public class Constants {
             @Override
             public void onNext(ResponseBody response) {
                 try {
-                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
-                    String json = new Gson().toJson(jsonElement);
-                 //   Log.e(TAG, "onNext: " + json);
+//                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
+//                    String json = new Gson().toJson(jsonElement);
+                    //   Log.e(TAG, "onNext: " + json);
 
-                    ArrayList idList = new ArrayList();
+                    ArrayList<String> idList = new ArrayList();
                     for (int i = 0; i < logList.size(); i++) {
                         idList.add(String.valueOf(logList.get(i).getId()));
                     }
@@ -2005,19 +2044,26 @@ public class Constants {
                     // Update database in a background thread to avoid main thread access
                     if (logDao != null && !idList.isEmpty()) {
                         new Thread(() -> {
-                            logDao.updateLogsUploadToServerStatusForIds(1, idList);
+
+                            try {
+                                logDao.updateLogsUploadToServerStatusForIds(1, idList);
+                            } catch (Exception e) {
+                                Log.e(TAG, "DB update failed", e);
+                            }
+
+
                         }).start();
                     }
 
                 } catch (Exception e) {
-                    Log.e(TAG, "Response parsing error", e);
+                  // Log.e(TAG, "Response parsing error", e);
                 }
             }
 
             @Override
             public void onError(Throwable e) {
-                Log.e(TAG, "onError: ", e);
-                e.printStackTrace();
+//                Log.e(TAG, "onError: ", e);
+//                e.printStackTrace();
             }
 
             @Override
@@ -2145,14 +2191,14 @@ public class Constants {
                     pd.dismiss();
                     if (!response.toString().isEmpty()) {
                         String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
-                     //   Log.e(TAG, "Configuration Data: " + json);
+                        //   Log.e(TAG, "Configuration Data: " + json);
 
                         preferencesManager = SharedPreferencesManager.getInstance(activity);
                         ConfigurationResponse configurationResponse = new Gson().fromJson(json, ConfigurationResponse.class);
 
 
                         /// Save in shared preference
-                     //   Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
+                        //   Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
                         preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL() + "/");
                         preferencesManager.save(SMSSid, configurationResponse.getData().get(0).getSmsSid());
                         preferencesManager.save(SMSApiKey, configurationResponse.getData().get(0).getSmsAPIKey());
@@ -2217,7 +2263,7 @@ public class Constants {
 
     public static void doPostConfigurationData(Activity activity, String url) {
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-    //    Log.e("Base URL", baseUrl + url);
+        //    Log.e("Base URL", baseUrl + url);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -2234,7 +2280,7 @@ public class Constants {
         jsonObject.addProperty("value", ValueForApi);
 
         String request = new Gson().toJson(jsonObject);
-     //   Log.e(TAG, "doPostLog: " + request);
+        //   Log.e(TAG, "doPostLog: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 
@@ -2257,13 +2303,13 @@ public class Constants {
 
                     if (response != null && !response.toString().isEmpty()) {
                         String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
-                       // Log.e(TAG, "Configuration Data: " + json);
+                        // Log.e(TAG, "Configuration Data: " + json);
 
                         preferencesManager = SharedPreferencesManager.getInstance(activity);
                         ConfigurationResponse configurationResponse = new Gson().fromJson(json, ConfigurationResponse.class);
 
                         // Save configuration data in SharedPreferences
-                     //   Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
+                        //   Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
                         preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL() + "/");
                         preferencesManager.save(SMSSid, configurationResponse.getData().get(0).getSmsSid());
                         preferencesManager.save(SMSApiKey, configurationResponse.getData().get(0).getSmsAPIKey());
@@ -2346,7 +2392,6 @@ public class Constants {
             }
         });
     }
-
 
 
     /*Check that internet connection is available or not*/
@@ -2504,7 +2549,7 @@ public class Constants {
     }
 
 
-     void logError(String tag, String message){
+    void logError(String tag, String message) {
         // Log.e(tag, message);
     }
 
