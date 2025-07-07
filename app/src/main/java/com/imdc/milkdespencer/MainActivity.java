@@ -762,46 +762,45 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         appDatabase = AppDatabase.getInstance(this);
 
-        try {
-            Constants.saveLogs(MainActivity.this, "App Started", KEY_APP_STATUS);
-        } catch (Exception e) {
-            logError("App Started", "Logging failed: " + e.getMessage());
-        }
 
-        // Check If internet is available
         if (isNetworkAvailable(MainActivity.this)) {
             new Thread(() -> {
-                TransactionDao transactionDao = appDatabase.transactionDao();
+                try {
+                    TransactionDao transactionDao = appDatabase.transactionDao();
 
-                // Get un-uploaded transactions
-                List<TransactionEntity> unUploadTransactionList = transactionDao.getUnUploadedTransactions();
+                    // Get un-uploaded transactions
+                    List<TransactionEntity> unUploadTransactionList = transactionDao.getUnUploadedTransactions();
 
-                for (TransactionEntity transaction : unUploadTransactionList) {
-                    if (transaction.getMilkTemperature() == null || transaction.getMilkTemperature().isEmpty()) {
-                        transaction.setMilkTemperature("111");
+                    for (TransactionEntity transaction : unUploadTransactionList) {
+                        if (transaction.getMilkTemperature() == null || transaction.getMilkTemperature().isEmpty()) {
+                            transaction.setMilkTemperature("111");
+                        }
                     }
-                }
 
-                if (!unUploadTransactionList.isEmpty()) {
-                    // Upload on the server
-                    doPostAsyncTransactions(preferencesManager, "/api/Transaction/PostTransaction",
-                            new ArrayList<>(unUploadTransactionList), transactionDao);
-                }
+                    if (!unUploadTransactionList.isEmpty()) {
+                        // Upload on the server
+                        doPostAsyncTransactions(preferencesManager, "/api/Transaction/PostTransaction",
+                                new ArrayList<>(unUploadTransactionList), transactionDao);
+                    }
 
-                LogDao logDao = appDatabase.logDao();
+                    LogDao logDao = appDatabase.logDao();
 
-                // Get un-uploaded logs
-                List<LogEntity> unUploadLogsList = logDao.getUnUploadedLogs();
+                    // Get un-uploaded logs
+                    List<LogEntity> unUploadLogsList = logDao.getUnUploadedLogs();
 
-                if (!unUploadLogsList.isEmpty()) {
-                    // Upload on the server
-                    doPostAsyncLogs(preferencesManager, "/api/Log/PostLog",
-                            new ArrayList<>(unUploadLogsList), logDao);
+                    if (!unUploadLogsList.isEmpty()) {
+                        // Upload on the server
+                        doPostAsyncLogs(preferencesManager, "/api/Log/PostLog",
+                                new ArrayList<>(unUploadLogsList), logDao);
+                    }
+
+                    // ✅ 3. Now save "App Started" log AFTER both APIs
+                    Constants.saveLogs(MainActivity.this, "App Started", KEY_APP_STATUS);
+                } catch (Exception e) {
+                    logError("App Started", "Exception: " + e.getMessage());
                 }
             }).start();
         }
-
-
     }
 
 
