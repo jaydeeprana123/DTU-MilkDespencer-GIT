@@ -241,7 +241,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                     hasReceivedElectricityData = false;
 
                     // Post new check after 3 seconds
-                    handlerElectricity.postDelayed(electricityLostRunnable, 3000);
+                    if (!isRunnableScheduled) {
+                        handlerElectricity.postDelayed(electricityLostRunnable, 3000);
+                        isRunnableScheduled = true;
+                    } else {
+                        logError(TAG, "Runnable already scheduled, not posting again");
+                    }
                 }
             } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
@@ -338,6 +343,27 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 tv_Message.setText("No Electricity please try after some time.");
                 lvAnimation.setAnimation(R.raw.no_electricity);
                 btnStart.setVisibility(View.GONE);
+
+
+        });
+    }
+
+
+    private void handlePleaseWaitState() {
+
+        logError(TAG + "handlePleaseWaitState", "Please wait");
+
+        runOnUiThread(() -> {
+            updateUIForNotChargingState();
+            logError(TAG + "visiblity Visible", "cv_error");
+            btnStart.setVisibility(View.GONE);
+            cv_error.setVisibility(View.VISIBLE);
+            btnDone.setVisibility(View.GONE);
+//                    btnPayWithCash.setEnabled(false);
+//                    btnPayWithQr.setEnabled(false);
+            tv_Message.setText("Please wait...");
+            lvAnimation.setAnimation(R.raw.please_wait);
+
 
 
         });
@@ -633,6 +659,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private final Runnable electricityLostRunnable = new Runnable() {
         @Override
         public void run() {
+
+            isRunnableScheduled = false; // allow next scheduling
+
             if (!hasReceivedElectricityData) {
                 logError(TAG, "Runnable: No electricity data received, marking as lost");
                 markElectricityLost();
@@ -641,6 +670,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             }
         }
     };
+
+
+    private boolean isRunnableScheduled = false;
 
     private boolean hasReceivedElectricityData = false;  // Reset on detach and set true in onReadData
 
@@ -1235,6 +1267,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                     }
 
                     handlerElectricity.removeCallbacks(electricityLostRunnable);
+                    isRunnableScheduled = false; // Cancel scheduled lost check
                 }
 
                 getChargingState = true;

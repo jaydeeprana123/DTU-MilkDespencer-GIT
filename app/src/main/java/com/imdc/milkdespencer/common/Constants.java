@@ -1952,8 +1952,8 @@ public class Constants {
             @Override
             public void onNext(ResponseBody response) {
                 try {
-                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
-                    String json = new Gson().toJson(jsonElement);
+//                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
+//                    String json = new Gson().toJson(jsonElement);
                     //  Log.e(TAG, "onNext: " + json);
 
                     if (log != null && logDao != null) {
