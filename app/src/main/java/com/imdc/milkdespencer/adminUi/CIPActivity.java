@@ -103,7 +103,7 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
         logError(Constants.TAG, "onCreate call");
 
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
-        preferencesManager = SharedPreferencesManager.getInstance(this);
+        preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
         appDatabase = AppDatabase.getInstance(this);
         btnCIP = findViewById(R.id.btnCIP);
         btnCompressorOff = findViewById(R.id.btnCompressorOff);

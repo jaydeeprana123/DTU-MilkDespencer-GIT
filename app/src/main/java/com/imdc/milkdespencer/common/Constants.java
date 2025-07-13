@@ -760,7 +760,7 @@ public class Constants {
     /*
      * Show Dialog for added volume
      * */
-    public static void showAddedVolumeDialog(Activity context) {
+    public static void showAddedVolumeDialog(Context context) {
         // Create a layout inflater to inflate the custom dialog layout
         LayoutInflater inflater = LayoutInflater.from(context);
         View view = inflater.inflate(R.layout.added_volume_configuration_dialog, null);
@@ -1496,7 +1496,7 @@ public class Constants {
         return String.valueOf(timestamp) + randomNumber;
     }
 
-    public static long insertTransaction(Activity activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo,
+    public static long insertTransaction(Context activity, TransactionDao transactionDao, String transactionType, String bankTransactionNo,
                                          String transactionDate, String transactionTime,
                                          double amount, String transactionStatus,
                                          String upiId, float volume, String milkTemperature,
@@ -1606,13 +1606,22 @@ public class Constants {
         remainingVolume = remainingVolume - volume;
         preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
 
+        SimpleDateFormat dateFormatter = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        SimpleDateFormat timeFormatter = new SimpleDateFormat("HH:mm:ss", Locale.getDefault());
+
+        String transactionDate = dateFormatter.format(System.currentTimeMillis());
+        String transactionTime = timeFormatter.format(System.currentTimeMillis());
+
+
         transactionDao.updateTransactionDetails(
                 String.valueOf(transactionId),           // Unique Transaction ID
                 volume,                 // volume
                 preferencesManager.get(MilkBasePrice, "").toString(),              // milk price
                 milkTemperature,
                 transactionStatus,// milk temperature,
-                remainingVolume
+                remainingVolume,
+                transactionDate,
+                transactionTime
 
         );
 
@@ -1668,62 +1677,6 @@ public class Constants {
         } while (transactionDao.getTransactionByUniqueId(uniqueId) != null);
 
         return uniqueId;
-    }
-
-
-    public static void doPostTransactionAfterUpdate(SharedPreferencesManager preferencesManager, String url, TransactionEntity transaction, Runnable onComplete) {
-        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
-        Log.e("Base URL", baseUrl);
-
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create())
-                .addCallAdapterFactory(RxJava3CallAdapterFactory.create())
-                .build();
-
-        ApiService apiService = retrofit.create(ApiService.class);
-        ApiManager apiManager = new ApiManager(apiService);
-
-        String request = new Gson().toJson(transaction);
-        //  Log.e(TAG, "doPostTransaction: " + request);
-
-        RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
-
-        HashMap<String, String> header = new HashMap<>();
-        header.put("Content-Type", "application/json");
-
-        DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
-            @Override
-            public void onNext(ResponseBody response) {
-                try {
-                    JsonElement jsonElement = JsonParser.parseReader(response.charStream());
-                    String json = new Gson().toJson(jsonElement);
-                    //  Log.e(TAG, "onNext: " + json);
-
-                    onComplete.run();
-
-                } catch (Exception e) {
-                    Log.e(TAG, "Response parsing error", e);
-                }
-            }
-
-            @Override
-            public void onError(Throwable e) {
-                //  Log.e(TAG, "onError: ", e);
-                e.printStackTrace();
-
-                onComplete.run();
-            }
-
-            @Override
-            public void onComplete() {
-                // Completion logic if needed
-
-                onComplete.run();
-            }
-        };
-
-        apiManager.makePostRequestCall(url, requestBody, header, disposableObserver);
     }
 
 
@@ -2164,104 +2117,10 @@ public class Constants {
 //    }
 
 
-    public static void doGetConfigurationData(Activity activity) {
-
-        Retrofit retrofit = new Retrofit.Builder().baseUrl(preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/api/").toString()) // Replace with your base URL
-                .addConverterFactory(GsonConverterFactory.create()).addCallAdapterFactory(RxJava3CallAdapterFactory.create()) // Add this line
-                .addConverterFactory(GsonConverterFactory.create()).build();
-
-        String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/api/").toString();
-
-        Log.d(TAG + "Base URL  run: ==>", baseUrl);
-        Log.d(TAG + "Base URL  run: ==> GetConfigurationUrl", baseUrl + GetConfigurationUrl);
-
-        ApiService apiService = retrofit.create(ApiService.class);
-
-        ApiManager apiManager = new ApiManager(apiService);
-
-        Handler handler = new Handler(Looper.getMainLooper());
-        handler.post(() -> {
-            ProgressDialog pd = new ProgressDialog(activity);
-            pd.setTitle("Please Wait...");
-            pd.setCancelable(false);
-            pd.show();
-            DisposableObserver<ResponseBody> disposableObserver = new DisposableObserver<ResponseBody>() {
-                @Override
-                public void onNext(ResponseBody response) {
-                    pd.dismiss();
-                    if (!response.toString().isEmpty()) {
-                        String json = new Gson().toJson(new Gson().fromJson(response.charStream(), JsonElement.class));
-                        //   Log.e(TAG, "Configuration Data: " + json);
-
-                        preferencesManager = SharedPreferencesManager.getInstance(activity);
-                        ConfigurationResponse configurationResponse = new Gson().fromJson(json, ConfigurationResponse.class);
 
 
-                        /// Save in shared preference
-                        //   Log.e(TAG, "RazorPayKey: " + configurationResponse.getData().get(0).getRazorPayKey());
-                        preferencesManager.save(SMSApiUrl, configurationResponse.getData().get(0).getSmsAPIURL() + "/");
-                        preferencesManager.save(SMSSid, configurationResponse.getData().get(0).getSmsSid());
-                        preferencesManager.save(SMSApiKey, configurationResponse.getData().get(0).getSmsAPIKey());
-                        preferencesManager.save(SMSSender, configurationResponse.getData().get(0).getSmsSender());
-                        preferencesManager.save(SMSTemplateId, configurationResponse.getData().get(0).getSmsTemplateID());
-                        preferencesManager.save(SMSTemplateContent, configurationResponse.getData().get(0).getSmsTemplateContent());
-
-
-                        preferencesManager.save(RazorPayKey, "rzp_live_oTrQqk0HauuUWZ");
-
-                        //  preferencesManager.save(RazorPayKey, configurationResponse.getData().get(0).getRazorPayKey());
-
-                        preferencesManager.save(RazorPaySecretKey, "7lBcCfNsgl7wKtshFz7QCm8F");
-
-
-                        //     preferencesManager.save(RazorPaySecretKey, configurationResponse.getData().get(0).getRazorPaySecretKey());
-                    }
-                }
-
-                @Override
-                public void onError(Throwable e) {
-                    // Handle the error
-                    if (pd != null && pd.isShowing()) {
-                        pd.dismiss();
-                    }
-                    e.printStackTrace();
-                    activity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Utils.handleApiError(activity, e, apiManager);
-                        }
-                    });
-                }
-
-                @Override
-                public void onComplete() {
-                    // Handle completion if needed
-                }
-            };
-
-            JsonObject jsonObject = new JsonObject();
-            jsonObject.addProperty("Key", "Admin");
-            jsonObject.addProperty("value", "Mvb@102405A19022025");
-
-            RequestBody requestBody = RequestBody.create(
-                    MediaType.parse("application/json; charset=utf-8"),
-                    jsonObject.toString()
-            );
-
-            apiManager.makeGetResponseCallWithBody(
-                    GetConfigurationUrl,
-                    requestBody,
-                    disposableObserver
-            );
-
-            //  apiManager.makeGetResponseCall(GetConfigurationUrl, disposableObserver);
-        });
-
-
-    }
-
-
-    public static void doPostConfigurationData(Activity activity, String url) {
+    public static void doPostConfigurationData(Context activity, String url) {
+        preferencesManager = SharedPreferencesManager.getInstance(activity);
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
         //    Log.e("Base URL", baseUrl + url);
 

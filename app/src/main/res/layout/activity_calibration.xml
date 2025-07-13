@@ -136,17 +136,7 @@
           </LinearLayout>
 
 
-    <TextView
-        android:id="@+id/tvInstruction"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:textColor="@color/red"
-        android:textStyle="bold"
-        android:layout_marginHorizontal="@dimen/_12sdp"
-        android:layout_marginTop="@dimen/_12sdp"
-        app:layout_constraintTop_toBottomOf="@id/llCalibration" />
+
 
 
     <com.google.android.material.button.MaterialButton
@@ -156,15 +146,30 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="@dimen/_20sdp"
         android:layout_marginBottom="@dimen/_16sdp"
-        android:layout_marginTop="@dimen/_4sdp"
+        android:layout_marginTop="@dimen/_8sdp"
         android:gravity="center"
         android:text="@string/start_calibration"
         android:textAlignment="center"
+        android:textSize="@dimen/_12ssp"
         android:textColor="@color/md_theme_light_onPrimary"
         app:backgroundTint="@color/md_theme_light_primary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvInstruction" />
+        app:layout_constraintTop_toBottomOf="@+id/llCalibration" />
+
+    <TextView
+        android:id="@+id/tvInstruction"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:textColor="@color/red"
+        android:textStyle="bold"
+        android:textSize="@dimen/_12ssp"
+        android:layout_marginHorizontal="@dimen/_12sdp"
+        android:layout_marginTop="@dimen/_12sdp"
+        android:textAlignment="center"
+        app:layout_constraintTop_toBottomOf="@id/startCalibrationBtn" />
 
     <TextView
         android:id="@+id/tv_lbl_Message"
@@ -174,28 +179,29 @@
         android:layout_marginHorizontal="@dimen/_4sdp"
         android:layout_marginVertical="@dimen/_12sdp"
         android:gravity="center"
-        android:text="@string/calibration_Message"
+        android:textColor="@color/red"
         android:textStyle="bold"
+        android:textSize="@dimen/_12ssp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/startCalibrationBtn"
+        app:layout_constraintTop_toBottomOf="@+id/tvInstruction"
         tools:ignore="MissingConstraints" />
 
-    <TextView
-        android:id="@+id/tv_Message"
-        style="@style/TextAppearance.AppCompat.Headline"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="@dimen/_8sdp"
-        android:layout_marginVertical="@dimen/_12sdp"
-        android:gravity="center"
-        android:maxLines="100"
-        android:text="@string/calibration_Message"
-        android:textStyle="bold"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tv_lbl_Message"
-        tools:ignore="MissingConstraints" />
+<!--    <TextView-->
+<!--        android:id="@+id/tv_Message"-->
+<!--        style="@style/TextAppearance.AppCompat.Headline"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_marginHorizontal="@dimen/_8sdp"-->
+<!--        android:layout_marginVertical="@dimen/_12sdp"-->
+<!--        android:gravity="center"-->
+<!--        android:maxLines="100"-->
+<!--        android:text="@string/calibration_Message"-->
+<!--        android:textStyle="bold"-->
+<!--        app:layout_constraintEnd_toEndOf="parent"-->
+<!--        app:layout_constraintStart_toStartOf="parent"-->
+<!--        app:layout_constraintTop_toBottomOf="@+id/tv_lbl_Message"-->
+<!--        tools:ignore="MissingConstraints" />-->
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

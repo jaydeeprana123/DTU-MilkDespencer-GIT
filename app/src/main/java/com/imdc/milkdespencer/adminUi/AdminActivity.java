@@ -168,7 +168,7 @@ public class AdminActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                showAddedVolumeDialog(AdminActivity.this);
+                showAddedVolumeDialog(getApplicationContext());
 
             }
         });

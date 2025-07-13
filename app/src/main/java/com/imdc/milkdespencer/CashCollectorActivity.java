@@ -182,11 +182,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+
+            if (intent == null || intent.getAction() == null) return;
+
             String action = intent.getAction();
 
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (device != null) {
+                if (device != null && device.getProductName() != null && device.getProductName().contains("CP2102")) {
                     logError("USB", "USB disconnected (Electricity GONE)");
                     // Stop communication, update UI
 
@@ -197,7 +200,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                             milkDispensingDialog.dismiss();
                         }
 
-                        Constants.saveLogs(CashCollectorActivity.this, "Lost Electricity",KEY_ELECTRICITY);
+                        Constants.saveLogs(getApplicationContext(), "Lost Electricity",KEY_ELECTRICITY);
                         tvProcessing.setText("Sorry. No Electricity, please try after some time!");
 
                         String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
@@ -613,7 +616,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 // So api will not call again and again
                 if (!isDatabaseOperationStarted) {
                     isDatabaseOperationStarted = true;
-                    Constants.saveLogs(CashCollectorActivity.this, "Dispensation Not Started", KEY_USB);
+                    Constants.saveLogs(getApplicationContext(), "Dispensation Not Started", KEY_USB);
                     updateTransactionIfUSBSerialCommunicationLost(transaction);
                 }
 
@@ -688,7 +691,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 logError("tempIndex", String.valueOf(tempIndex));
 
                 preferencesManager.save(Constants.CurrentTemperature, currentSavedTemp);
-                preferencesManager = SharedPreferencesManager.getInstance(this);
                 deviceCom.SetEscrowAction(SSPSystem.BillAction.Accept);
 
                 /// Here if database operation is not started then start.
@@ -737,7 +739,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
                 TransactionDao transactionDao = AppDatabase.getInstance(CashCollectorActivity.this).transactionDao();
                 long transactionId = Constants.insertTransaction(
-                        CashCollectorActivity.this,
+                        getApplicationContext(),
                         transactionDao,
                         "CASH",
                         "",
@@ -994,7 +996,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 LayoutInflater inflater = LayoutInflater.from(CashCollectorActivity.this);
                 View view = inflater.inflate(R.layout.dialog_note_detected, null);
 
-                preferencesManager = SharedPreferencesManager.getInstance(CashCollectorActivity.this);
+                preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
 
                 AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity.this);
                 builder.setView(view);
@@ -1462,7 +1464,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         bvDisplay.setVisibility(View.INVISIBLE);
         cashCollectorActivity = this;
 
-        preferencesManager = SharedPreferencesManager.getInstance(this);
+        preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
         /// When user comes first delete the previously saved payment data in shared preference
         preferencesManager.delete(Constants.PaymentCashReceived);
 
@@ -2085,7 +2087,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
      * And after that screen automatically off
      * */
     void screenTimeOut() {
-        preferencesManager = SharedPreferencesManager.getInstance(getInstance());
+        preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
         logError("timeOut", preferencesManager.get(ScreenTimeOutPref, "0").toString());
 
         Long screenTimeOut = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0.0").toString());
@@ -2164,7 +2166,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
       //  Log.e("BackButton", "User pressed the back button!");
 
         // Your logic here
-        Constants.saveLogs(CashCollectorActivity.this, "Back Pressed", "Back Pressed");
+        Constants.saveLogs(getApplicationContext(), "Back Pressed", "Back Pressed");
         super.onBackPressed();  // if you want the default behavior
     }
 

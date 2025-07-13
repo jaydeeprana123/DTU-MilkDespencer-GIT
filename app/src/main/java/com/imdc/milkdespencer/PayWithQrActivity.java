@@ -31,6 +31,7 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.GridView;
@@ -78,6 +79,7 @@ import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -135,11 +137,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     private final BroadcastReceiver usbReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
+
+            if (intent == null || intent.getAction() == null) return;
+
             String action = intent.getAction();
 
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
-                if (device != null) {
+                if (device != null && device.getProductName() != null && device.getProductName().contains("CP2102")) {
                     logError("USB", "USB disconnected (Electricity GONE)");
                     // Stop communication, update UI
 
@@ -157,7 +162,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
                         try {
-                            Constants.saveLogs(PayWithQrActivity.this, "Lost Electricity", KEY_ELECTRICITY);
+                            Constants.saveLogs(getApplicationContext(), "Lost Electricity", KEY_ELECTRICITY);
                         } catch (Exception e) {
                             logError("PaymentLog", "Logging failed: ${e.message}");
                             // Don't crash, just log the error silently
@@ -386,7 +391,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         btnBackToHome = findViewById(R.id.btnBackToHome);
         tabLayout = findViewById(R.id.tabLayout);
 
-        preferencesManager = SharedPreferencesManager.getInstance(PayWithQrActivity.this);
+        preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
         /// When user comes first delete the previously saved payment data in shared preference
         preferencesManager.delete(Constants.PaymentReceived);
         preferencesManager.delete(Constants.PaidAmt);
@@ -454,7 +459,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 if (!usbSerialCommunication.connected) {
                     try {
-                        Constants.saveLogs(PayWithQrActivity.this, "USB Not Connected", KEY_USB);
+                        Constants.saveLogs(getApplicationContext(), "USB Not Connected", KEY_USB);
                     } catch (Exception e) {
                         logError("PaymentLog", "Logging failed: ${e.message}");
                         // Don't crash, just log the error silently
@@ -856,7 +861,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
                 try {
-                    Constants.saveLogs(PayWithQrActivity.this, " - Error in QR Code Generation",KEY_QR_GENERATE);
+                    Constants.saveLogs(getApplicationContext(), " - Error in QR Code Generation",KEY_QR_GENERATE);
                 } catch (Exception exc) {
                     logError("PaymentLog", "Logging failed: ${e.message}");
                     // Don't crash, just log the error silently
@@ -1041,7 +1046,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     }
 
                     try {
-                        Constants.saveLogs(PayWithQrActivity.this, qrCodeId + " - Success By Razorpay API Call",KEY_API_CALL);
+                        Constants.saveLogs(getApplicationContext(), qrCodeId + " - Success By Razorpay API Call",KEY_API_CALL);
                     } catch (Exception e) {
                         logError("PaymentLog", "Logging failed: ${e.message}");
                         // Don't crash, just log the error silently
@@ -1147,7 +1152,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 double amount = Double.parseDouble(paymentObject.get("amount").toString()) / 100;
 
                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
-                SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(PayWithQrActivity.this);
+                SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
 
                 TransactionEntity transaction = new TransactionEntity();
                 transaction.setUserName("");
@@ -1221,7 +1226,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 } else if (paymentObject.has("amount")) {
                     double amount = Double.parseDouble(paymentObject.get("amount").toString()) / 100;
                     long transactionId = Constants.insertTransaction(
-                            PayWithQrActivity.this, transactionDao, "ONLINE", "", date, time,
+                            getApplicationContext(), transactionDao, "ONLINE", "", date, time,
                             amount, "TIME OUT", qrCodeId, 0, "111",
                             transactionStartDate,
                             transactionStartTime
@@ -1278,7 +1283,13 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
         qrCodeDialog.setCancelable(false);
 
-        // Show the dialog
+        // Hide system UI (navigation + status bars)
+        Window window = qrCodeDialog.getWindow();
+        if (window != null) {
+            View decorView = window.getDecorView();
+            decorView.setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+        }
 
         return qrCodeDialog;
     }
@@ -1404,7 +1415,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     isDataSent = true;
 
                     try {
-                        Constants.saveLogs(PayWithQrActivity.this,
+                        Constants.saveLogs(getApplicationContext(),
                                 "Sent Weight - " + sendToDevice.getWeight() + " TransactionId: " + transaction.getUniqueTransactionId(),
                                 KEY_WEIGHT
 
@@ -1444,7 +1455,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     isDatabaseOperationStarted = true;
 
                     try {
-                        Constants.saveLogs(PayWithQrActivity.this, "Dispensation Not Started", KEY_USB);
+                        Constants.saveLogs(getApplicationContext(), "Dispensation Not Started", KEY_USB);
                     } catch (Exception e) {
                         logError("PaymentLog", "Logging failed: ${e.message}");
                         // Don't crash, just log the error silently
@@ -1536,7 +1547,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             if (!isStopConditionMet) {
 
                 try {
-                    Constants.saveLogs(PayWithQrActivity.this,
+                    Constants.saveLogs(getApplicationContext(),
                             "Pump Started - " + "  TransactionId: " + transaction.getUniqueTransactionId(),
                             KEY_WEIGHT
                     );
@@ -1591,7 +1602,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     isDatabaseOperationStarted = true;
 
                     try {
-                        Constants.saveLogs(PayWithQrActivity.this,
+                        Constants.saveLogs(getApplicationContext(),
                                 "Get Weight - " + milkDispense.getCurrentWeight() + " TransactionId: " + transaction.getUniqueTransactionId(),
                                 KEY_WEIGHT
                         );
@@ -1635,7 +1646,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
                 long transactionId = Constants.insertTransaction(
-                        PayWithQrActivity.this,
+                        getApplicationContext(),
                         transactionDao,
                         "ONLINE",
                         "",
@@ -1676,7 +1687,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
                 long transactionId = Constants.insertTransaction(
-                        PayWithQrActivity.this,
+                        getApplicationContext(),
                         transactionDao,
                         "ONLINE",
                         "",
@@ -1739,7 +1750,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 String time = timeFormatter.format(System.currentTimeMillis());
 
                 TransactionDao transactionDao = AppDatabase.getInstance(PayWithQrActivity.this).transactionDao();
-                SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(PayWithQrActivity.this);
+                SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
 
                 TransactionEntity transaction = new TransactionEntity();
                 transaction.setUserName("");
@@ -1961,7 +1972,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
      * And after that screen automatically off
      * */
     void screenTimeOut() {
-        preferencesManager = SharedPreferencesManager.getInstance(this);
+        preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
         logError("timeOut", preferencesManager.get(ScreenTimeOutPref, "0").toString());
 
         Long screenTimeOut = Long.parseLong(preferencesManager.get(ScreenTimeOutPref, "0.0").toString());
@@ -2125,14 +2136,14 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-       //  Log.e(tag, message);
+         Log.e(tag, message);
     }
 
 
     @Override
     public void onBackPressed() {
         Log.e("BackButton", "User pressed the back button!");
-        Constants.saveLogs(PayWithQrActivity.this, "Back Pressed", "Back Pressed");
+        Constants.saveLogs(getApplicationContext(), "Back Pressed", "Back Pressed");
 
         Object transactionObj = preferencesManager.get(Constants.SavedTransaction, "");
         String transactionJson = transactionObj != null ? transactionObj.toString() : "";

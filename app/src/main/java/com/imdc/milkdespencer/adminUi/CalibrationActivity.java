@@ -49,7 +49,7 @@ public class CalibrationActivity extends AppCompatActivity {
     private ImageButton btnMinusMinWeight, btnMinusMaxWeight, btnPlusMinWeight,btnPlusMaxWeight;
 
     private MaterialButton startCalibrationBtn;
-    private TextView tvMessage, tvLblMessage;
+   private TextView tvLblMessage;
 
     private int minWeightInGram = 500;
 
@@ -80,7 +80,7 @@ public class CalibrationActivity extends AppCompatActivity {
 
         tieMaxWeight = findViewById(R.id.tieMaxWeight);
         startCalibrationBtn = findViewById(R.id.startCalibrationBtn);
-        tvMessage = findViewById(R.id.tv_Message);
+//        tvMessage = findViewById(R.id.tv_Message);
         tvLblMessage = findViewById(R.id.tv_lbl_Message);
 
         tilKnownWeight.setEnabled(true);
@@ -91,11 +91,10 @@ public class CalibrationActivity extends AppCompatActivity {
         tieMaxWeight.setText(String.valueOf(maxWeightInGram));
         tieKnownWeight.setText(String.valueOf(minWeightInGram));
 
-        String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
-                "Press Calibration button and follow the instructions.";
+        String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + " kg</b> weighment ready with you,\nboth weights are essential for calibration.";
 
         tvInstruction.setText(Html.fromHtml(instruction));
-
+        tvLblMessage.setText("Press Calibration button and follow the instructions.");
         clickListener();
 
         // Set up input validation for the known weight field
@@ -136,9 +135,11 @@ public class CalibrationActivity extends AppCompatActivity {
         startCalibrationBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+
+                startCalibrationBtn.setVisibility(View.GONE);
+
                 String knownWeightStr = tieKnownWeight.getText().toString();
                 String maxWeightStr = tieMaxWeight.getText().toString();
-
 
                 // Validate input
                 if (TextUtils.isEmpty(knownWeightStr) || TextUtils.isEmpty(maxWeightStr)) {
@@ -174,6 +175,7 @@ public class CalibrationActivity extends AppCompatActivity {
                         tilMaxWeight.setError("Value cannot be less then zero");
                         return;
                     }
+
                     if (!isSent) {
                         // Start calibration process
                         knownWeight = Double.parseDouble(knownWeightStr) / 1000;
@@ -201,8 +203,9 @@ public class CalibrationActivity extends AppCompatActivity {
                         @Override
                         public void onReadData(String data) {
 
-//                            Log.e(TAG, "onReadData: " + data);
+                            Log.e(TAG, "onReadData: " + data);
                             String message = "";
+                            String description = "";
                             switch (data) {
                                 case "0":
                                     message = "Calibration Done.";
@@ -223,49 +226,59 @@ public class CalibrationActivity extends AppCompatActivity {
                                     break;
                                 case "1":
 
-                                    tvMessage.setTextColor(Color.parseColor("#000000"));
-                                    tvMessage.setTypeface(null, Typeface.BOLD);
 
-                                    message = "Keep dispenser door open till the calibration process is complete.\n" +
-                                            "\n" +
-                                            "Ensure no any items on plate.";
+                                    tvInstruction.setTextColor(Color.parseColor("#000000"));
+                                    tvInstruction.setTypeface(null, Typeface.BOLD);
+
+                                    tvLblMessage.setTextColor(Color.parseColor("#ff0000"));
+                                    tvLblMessage.setTypeface(null, Typeface.BOLD);
+
+                                    message = "Keep dispenser door open till the calibration process is complete.";
+                                    description = "Ensure no any items on plate.";
                                     break;
                                 case "2":
-                                    tvMessage.setTextColor(Color.parseColor("#0000ff"));
-                                    tvMessage.setTypeface(null, Typeface.BOLD);
+                                    tvInstruction.setTextColor(Color.parseColor("#0000ff"));
+                                    tvInstruction.setTypeface(null, Typeface.BOLD);
+
                                     /// Put minimum dynamic value
 
-                                     message = "Put <" + minWeightInGram + "grams> weight on plate and wait";
-
-
+                                     message = "Put " + minWeightInGram + "grams weight on plate and wait";
+                                     description = "";
                                     break;
                                 case "3":
 
-                                    tvMessage.setTextColor(Color.parseColor("#ff0000"));
-                                    tvMessage.setTypeface(null, Typeface.BOLD);
+                                    tvInstruction.setTextColor(Color.parseColor("#ff0000"));
+                                    tvInstruction.setTypeface(null, Typeface.BOLD);
+
+                                    tvLblMessage.setTextColor(Color.parseColor("#ff0000"));
+                                    tvLblMessage.setTypeface(null, Typeface.BOLD);
 
                                     /// Put minimum dynamic value
-                                     message = "Tare Done !\n\nRemove <" + minWeightInGram + "grams> weight from plate and wait.";
-
+                                     message = "Tare Done !";
+                                     description = "Remove " + minWeightInGram + " grams weight from plate and wait.";
                                     break;
                                 case "4":
 
-                                    tvMessage.setTextColor(Color.parseColor("#0000ff"));
-                                    tvMessage.setTypeface(null, Typeface.BOLD);
+                                    tvInstruction.setTextColor(Color.parseColor("#0000ff"));
+                                    tvInstruction.setTypeface(null, Typeface.BOLD);
                                     /// Put maximum dynamic value
-                                    message = "Put <5 kg> weight on plate and wait.";
-                                     message = "Put <" + (maxWeightInGram/1000) + "kg> weight on plate and wait.";
+                                     message = "Put " + (maxWeightInGram/1000) + " kg weight on plate and wait.";
+                                     description = "";
                                     break;
                                 default:
                                     message = "Calibration Process";
                             }
-                            tvMessage.setText(message);
 
+                            tvInstruction.setText(message);
+                            tvLblMessage.setText(description);
                             /*strMessage.append("<<<<<<<<<<<< Calibration Start >>>>>>>>>>>>\n");
                             strMessage.append("\n");
                             strMessage.append(data);*/
                         }
                     });
+
+
+
 
                 }
             }
@@ -283,10 +296,10 @@ public class CalibrationActivity extends AppCompatActivity {
                     minWeightInGram = minWeightInGram - 100;
                     tieKnownWeight.setText(String.valueOf(minWeightInGram));
 
-                    String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
-                            "Press Calibration button and follow the instructions.";
+                    String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + " kg</b> weighment ready with you,\nboth weights are essential for calibration.";
 
                     tvInstruction.setText(Html.fromHtml(instruction));
+                    tvLblMessage.setText("Press Calibration button and follow the instructions.");
                 }
 
 
@@ -300,10 +313,10 @@ public class CalibrationActivity extends AppCompatActivity {
                 minWeightInGram = minWeightInGram + 100;
                 tieKnownWeight.setText(String.valueOf(minWeightInGram));
 
-                String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
-                        "Press Calibration button and follow the instructions.";
+                String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + " kg</b> weighment ready with you,\nboth weights are essential for calibration.";
 
                 tvInstruction.setText(Html.fromHtml(instruction));
+                tvLblMessage.setText("Press Calibration button and follow the instructions.");
             }
         });
 
@@ -317,10 +330,10 @@ public class CalibrationActivity extends AppCompatActivity {
                     maxWeightInGram = maxWeightInGram - 1000;
                     tieMaxWeight.setText(String.valueOf(maxWeightInGram));
 
-                    String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
-                            "Press Calibration button and follow the instructions.";
+                    String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + " kg</b> weighment ready with you,\nboth weights are essential for calibration.";
 
                     tvInstruction.setText(Html.fromHtml(instruction));
+                    tvLblMessage.setText("Press Calibration button and follow the instructions.");
                 }
 
 
@@ -334,10 +347,10 @@ public class CalibrationActivity extends AppCompatActivity {
                 maxWeightInGram = maxWeightInGram + 1000;
                 tieMaxWeight.setText(String.valueOf(maxWeightInGram));
 
-                String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + "kg</b> weighment ready with you, both weights are essential for calibration.<br>" +
-                        "Press Calibration button and follow the instructions.";
+                String instruction = "Please keep <b>" + String.valueOf(minWeightInGram) + " grams</b> and <b>" + String.valueOf(maxWeightInGram/1000) + " kg</b> weighment ready with you,\nboth weights are essential for calibration.";
 
                 tvInstruction.setText(Html.fromHtml(instruction));
+                tvLblMessage.setText("Press Calibration button and follow the instructions.");
 
 
             }
@@ -421,7 +434,7 @@ public class CalibrationActivity extends AppCompatActivity {
                         dialog.dismiss();
 
                         try {
-                            Constants.saveLogs(CalibrationActivity.this, "Calibration Done", KEY_CALIBRATION);
+                            Constants.saveLogs(getApplicationContext(), "Calibration Done", KEY_CALIBRATION);
                         } catch (Exception e) {
 
                         }

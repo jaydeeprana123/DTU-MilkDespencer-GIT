@@ -115,6 +115,7 @@
     <string name="next">NEXT</string>
     <string name="start">START</string>
     <string name="processing">PROCESSING...</string>
+    <string name="please_put_utensil">PLEASE PUT UTENSIL AND CLOSE THE DOOR BEFORE START</string>
     <string name="no_transaction_available">No Transaction Available On These Days</string>
     <string name="send_otp">Send OTP</string>
     <string name="enter_otp">Enter OTP</string>
