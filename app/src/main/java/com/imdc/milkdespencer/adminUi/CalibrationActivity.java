@@ -203,7 +203,7 @@ public class CalibrationActivity extends AppCompatActivity {
                         @Override
                         public void onReadData(String data) {
 
-                            Log.e(TAG, "onReadData: " + data);
+//                            Log.e(TAG, "onReadData: " + data);
                             String message = "";
                             String description = "";
                             switch (data) {
@@ -439,8 +439,8 @@ public class CalibrationActivity extends AppCompatActivity {
 
                         }
 
-                        Intent intent = new Intent(CalibrationActivity.this, MainActivity.class);
-                        startActivity(intent);
+//                        Intent intent = new Intent(CalibrationActivity.this, MainActivity.class);
+//                        startActivity(intent);
                         finish();
 
                         /*new Thread(new Runnable() {
