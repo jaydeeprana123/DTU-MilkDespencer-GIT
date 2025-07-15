@@ -1348,33 +1348,41 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             if (getChargingState && isUsbPermissionGranted && !inMilkDispenseProcessLevel) {
 
                 /// Low level will be handle by minimum volume limit
-//                if (remainingVolume <= minimumVolumeLimit) {
-//                    isLowLevel = true;
-//                    handleLowLevel();
-//                }else {
-//                    isLowLevel = false;
-//                    handleNormalLevel();
-//                }
+                if (remainingVolume <= minimumVolumeLimit) {
+                    isLowLevel = true;
+                    handleLowLevel();
 
-                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
-
-                    if (!isLowMilkLevel) {
-                        try {
-                            Constants.saveLogs(getApplicationContext(), "Low Level", KEY_LOW_LEVEL);
-                        } catch (Exception e) {
-                            logError("PaymentLog", "Logging failed: ${e.message}");
-                            // Don't crash, just log the error silently
-                        }
-
-                        isLowMilkLevel = true;
-
+                    try {
+                        Constants.saveLogs(getApplicationContext(), "Low Level", KEY_LOW_LEVEL);
+                    } catch (Exception e) {
+                        logError("Low Level", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
                     }
 
-
-                    handleLowLevel();
-                } else {
+                }else {
+                    isLowLevel = false;
                     handleNormalLevel();
                 }
+
+//                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
+//
+//                    if (!isLowMilkLevel) {
+//                        try {
+//                            Constants.saveLogs(getApplicationContext(), "Low Level", KEY_LOW_LEVEL);
+//                        } catch (Exception e) {
+//                            logError("PaymentLog", "Logging failed: ${e.message}");
+//                            // Don't crash, just log the error silently
+//                        }
+//
+//                        isLowMilkLevel = true;
+//
+//                    }
+//
+//
+//                    handleLowLevel();
+//                } else {
+//                    handleNormalLevel();
+//                }
             } else if (!getChargingState) {
                 logError(TAG, "Device is not charging");
                 cv_error.setVisibility(View.VISIBLE);
