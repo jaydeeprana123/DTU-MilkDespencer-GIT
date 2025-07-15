@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer;
 
+import android.app.admin.DevicePolicyManager;
 import static com.imdc.milkdespencer.DatabaseExporter.copyDatabase;
 import static com.imdc.milkdespencer.common.Constants.KEY_APP_STATUS;
 import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
@@ -25,6 +26,7 @@ import android.annotation.SuppressLint;
 import android.app.ActivityManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -73,6 +75,7 @@ import com.imdc.milkdespencer.common.UsbSerialCommunication;
 import com.imdc.milkdespencer.enums.ScreenEnum;
 import com.imdc.milkdespencer.models.ResponseTempStatus;
 import com.imdc.milkdespencer.models.SendToDeviceForCIP;
+import com.imdc.milkdespencer.receivers.MyDeviceAdminReceiver;
 import com.imdc.milkdespencer.roomdb.AppDatabase;
 import com.imdc.milkdespencer.roomdb.entities.LogEntity;
 import com.imdc.milkdespencer.roomdb.entities.TransactionEntity;
@@ -758,6 +761,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 //        }
 
 
+        kioskModeEnable();
+
+
         /// Start worker for api call on every 30 minutes for milk temperature send
         startWorkerForApiCallForTemperature();
 
@@ -776,6 +782,23 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         initializeDependencies();
         initializeUI();
         setupListeners();
+    }
+
+
+    /*For to enable kiosk mode*/
+    private void kioskModeEnable() {
+
+        DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
+        ComponentName admin = new ComponentName(this, MyDeviceAdminReceiver.class);
+
+        if (dpm.isDeviceOwnerApp(getPackageName())) {
+            String[] packages = {getPackageName()};
+            dpm.setLockTaskPackages(admin, packages); // whitelist kiosk app
+            startLockTask(); // start kiosk mode
+        } else {
+            // Not a device owner — can't start full kiosk
+        }
+
     }
 
 
