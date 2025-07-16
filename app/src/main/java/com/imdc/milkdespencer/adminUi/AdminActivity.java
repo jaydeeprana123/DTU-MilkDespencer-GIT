@@ -3,6 +3,8 @@ package com.imdc.milkdespencer.adminUi;
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 
 import static com.imdc.milkdespencer.common.Constants.GetConfigurationUrl;
+import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
+import static com.imdc.milkdespencer.common.Constants.KEY_LOGIN_STATUS;
 import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.doPostConfigurationData;
@@ -72,6 +74,14 @@ public class AdminActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_admin);
 
+        try {
+            Constants.saveLogs(getApplicationContext(), "Login Screen Accessed", KEY_LOGIN_STATUS);
+        } catch (Exception e) {
+           // Log.e("Login Screen", "Logging failed: ${e.message}");
+            // Don't crash, just log the error silently
+        }
+
+
 //        mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 //        // Log screen view event
 //        Bundle bundle = new Bundle();
@@ -136,7 +146,7 @@ public class AdminActivity extends AppCompatActivity {
             btnCIP.setVisibility(View.GONE);
             btnHistoryByDate.setVisibility(View.GONE);
             btnExportTransactions.setVisibility(View.GONE);
-            btnAddedVolume.setVisibility(View.GONE);
+            btnAddedVolume.setVisibility(View.VISIBLE);
         } else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
 
             btnLogs.setText("Show Logs");
@@ -148,10 +158,10 @@ public class AdminActivity extends AppCompatActivity {
             btnCIP.setVisibility(View.GONE);
             btnHistoryByDate.setVisibility(View.GONE);
             btnExportTransactions.setVisibility(View.GONE);
-            btnAddedVolume.setVisibility(View.GONE);
+            btnAddedVolume.setVisibility(View.VISIBLE);
         } else if (user.getUserType() == UserTypeEnum.END_USER.value()) {
             btnCIP.setVisibility(View.VISIBLE);
-            btnAddedVolume.setVisibility(View.GONE);
+            btnAddedVolume.setVisibility(View.VISIBLE);
             btnSetConfigurations.setText("View Configurations");
             btnLogs.setText("Show Transactions");
             btnHistoryByDate.setVisibility(View.VISIBLE);
@@ -168,7 +178,7 @@ public class AdminActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
-                showAddedVolumeDialog(getApplicationContext());
+                showAddedVolumeDialog(AdminActivity.this);
 
             }
         });

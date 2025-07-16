@@ -1,38 +1,32 @@
 package com.imdc.milkdespencer;
 
-import android.app.admin.DevicePolicyManager;
-
-import static com.imdc.milkdespencer.DatabaseExporter.copyDatabase;
+import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 import static com.imdc.milkdespencer.common.Constants.KEY_APP_STATUS;
 import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
 import static com.imdc.milkdespencer.common.Constants.KEY_LOW_LEVEL;
 import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_DATE;
 import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_TIME;
-import static com.imdc.milkdespencer.common.Constants.MinimumVolumeLimit;
-import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
-import static com.imdc.milkdespencer.common.UsbSerialCommunication.isLowLevel;
-
-import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
-import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
+import static com.imdc.milkdespencer.common.Constants.MinimumVolumeLimit;
 import static com.imdc.milkdespencer.common.Constants.RemainingVolumePref;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
 import static com.imdc.milkdespencer.common.Constants.doPostAsyncLogs;
 import static com.imdc.milkdespencer.common.Constants.doPostAsyncTransactions;
 import static com.imdc.milkdespencer.common.Constants.isNetworkAvailable;
 import static com.imdc.milkdespencer.common.Constants.remainingVolume;
+import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
+import static com.imdc.milkdespencer.common.UsbSerialCommunication.isLowLevel;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isSendDataStop;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.app.PendingIntent;
+import android.app.admin.DevicePolicyManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.BatteryManager;
 import android.os.Build;
@@ -44,7 +38,6 @@ import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -64,7 +57,6 @@ import androidx.work.WorkManager;
 import com.airbnb.lottie.LottieAnimationView;
 import com.airbnb.lottie.LottieDrawable;
 import com.google.android.material.button.MaterialButton;
-
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.crashlytics.FirebaseCrashlytics;
 import com.google.gson.Gson;
@@ -94,7 +86,7 @@ import java.util.Locale;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-public class MainActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener, UsbSerialCommunication.ReadDataForCIPListener {
+public class MainActivity_16_7 extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener, UsbSerialCommunication.ReadDataForCIPListener {
 
     //    private FirebaseAnalytics mFirebaseAnalytics;
     private boolean inMilkDispenseProcessLevel = false;
@@ -111,17 +103,17 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private boolean isScreenVisible = true;
 
 
-    private static MainActivity instance = null;
+    private static MainActivity_16_7 instance = null;
     private boolean isLowMilkLevel = false;
 
-    public static MainActivity getInstance() {
+    public static MainActivity_16_7 getInstance() {
 
         return instance;
     }
 
 
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
-    private static final String TAG = MainActivity.class.getSimpleName();
+    private static final String TAG = MainActivity_16_7.class.getSimpleName();
     private static final int DELAY_TIME_MILLIS = 16000; // 16 seconds
     static SharedPreferencesManager preferencesManager;
     private final Handler handler = new Handler();
@@ -233,7 +225,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 long currentTime = System.currentTimeMillis();
 
-                if (isDetachCalled) {
+                // Debounce: Skip if within debounce window (but allow first call even if electricity was already lost)
+                if (isDetachDebounced && currentTime - lastDetachTimestamp < DETACH_DEBOUNCE_TIME_MS) {
+                    logError(TAG, "USB detach ignored - debounce active");
                     return;
                 }
 
@@ -241,16 +235,39 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 if (device != null && device.getProductName() != null &&
                         device.getProductName().contains("CP2102")) {
 
-                    if (!isDetachCalled) {
-                        isDetachCalled = true;
-                    }
+                    logError("USB", "USB disconnected (Electricity GONE)");
+
+                    // Mark electricity lost (this has its own protection against duplicates)
+                    markElectricityLost();
+
+                    // Set debounce AFTER calling markElectricityLost
+                    isDetachDebounced = true;
+                    lastDetachTimestamp = currentTime;
+
+                    // Reset flags
+                    hasReceivedElectricityData = false;
+                    isRunnableScheduled = false;
+
+                    // Cancel any existing callbacks and set fallback
+                    handlerElectricity.removeCallbacks(electricityLostRunnable);
+                    handlerElectricity.postDelayed(electricityLostRunnable, 3000);
+                    isRunnableScheduled = true;
+
+                    // Reset debounce after time
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                        isDetachDebounced = false;
+                        logError(TAG, "Debounce reset");
+                    }, DETACH_DEBOUNCE_TIME_MS);
                 }
-            } else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
+            }
+
+                else if (UsbManager.ACTION_USB_DEVICE_ATTACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null) {
                     logError("USB", "USB connected (Electricity BACK)");
                     // Only reset debounce flag, NOT electricity state
                     // Electricity state should only be reset when actual data with electricity=true is received
+                    isDetachDebounced = false;
                     checkAndRequestUsbPermission(); // see below
                 }
             }
@@ -272,7 +289,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         HashMap<String, UsbDevice> deviceList = usbManager.getDeviceList();
 
         if (deviceList.isEmpty()) {
-            Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(MainActivity_16_7.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -286,6 +303,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             logError("getProductName", device.getProductName() + " " + usbManager.hasPermission(device));
             logError("product id", String.valueOf(device.getProductId()) + " " + usbManager.hasPermission(device));
 
+            if (!usbManager.hasPermission(device)) {
+                logError("permission", device.getProductName());
+            }
 
             // FT232R USB UART
 
@@ -299,14 +319,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                     registerReceiver(usbPermissionReceiver, filter);
                 } catch (IllegalArgumentException e) {
                     Log.w("USB", "Receiver was already registered.");
-                }
-
-                // Log electricity lost only once
-                if (!isElectricityAlreadyLost && isDetachCalled) {
-                    logError("ELECTRICITY_LOST", "Electricity lost due to USB detach or permission revoked");
-                    isElectricityAlreadyLost = true;
-
-                    markElectricityLost();
                 }
 
 
@@ -406,7 +418,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         // Request USB permission
         PendingIntent permissionIntent = PendingIntent.getBroadcast(
-                MainActivity.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
+                MainActivity_16_7.this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
         );
         usbManager.requestPermission(device, permissionIntent);
     }
@@ -666,30 +678,61 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 //    };
 
 
-    private boolean isDetachCalled = false;
+    private Handler handlerElectricity = new Handler(Looper.getMainLooper());
+    private final Runnable electricityLostRunnable = new Runnable() {
+        @Override
+        public void run() {
+
+            isRunnableScheduled = false; // allow next scheduling
+
+            if (!hasReceivedElectricityData) {
+                logError(TAG, "Runnable: No electricity data received, marking as lost");
+                markElectricityLost();
+            } else {
+                logError(TAG, "Runnable: Electricity data received, skipping lost marking");
+            }
+        }
+    };
+
+
+
+    private boolean isRunnableScheduled = false;
+    private boolean hasReceivedElectricityData = false;
     private boolean isElectricityAlreadyLost = false;
+    private long lastDetachTimestamp = 0;
+    private static final long DETACH_DEBOUNCE_TIME_MS = 5000;
+    private boolean isDetachDebounced = false;
+
+
+
+
+
+
 
 
     private void markElectricityLost() {
-        logError(TAG, "Electricity lost detected, saving log...");
-        isElectricityAlreadyLost = true;
-        getChargingState = false;
-        isDischargeState = true;
-        inMilkDispenseProcessLevel = false;
-        getUsbShowState = false;
-        isUsbPermissionGranted = false;
+        if (!isElectricityAlreadyLost) {
+            logError(TAG, "Electricity lost detected, saving log...");
+            isElectricityAlreadyLost = true;
+            getChargingState = false;
+            isDischargeState = true;
+            inMilkDispenseProcessLevel = false;
+            getUsbShowState = false;
+            isUsbPermissionGranted = false;
 
-        try {
-            Constants.saveLogs(getApplicationContext(), "Lost Electricity", KEY_ELECTRICITY);
-        } catch (Exception e) {
-            logError("LostElectricity", "Logging failed: " + e.getMessage());
+            try {
+                Constants.saveLogs(getApplicationContext(), "Lost Electricity", KEY_ELECTRICITY);
+            } catch (Exception e) {
+                logError("LostElectricity", "Logging failed: " + e.getMessage());
+            }
+        } else {
+            logError(TAG, "Electricity already marked as lost. Skipping duplicate.");
         }
-
 
     }
 
 
-    private final Handler handlerNoData = new Handler(Looper.getMainLooper());
+        private final Handler handlerNoData = new Handler(Looper.getMainLooper());
     private boolean isNoDataRunnableScheduled = false;
 
     private final Runnable noDataRunnable = new Runnable() {
@@ -752,7 +795,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             dpm.setLockTaskPackages(admin, packages); // whitelist kiosk app
             startLockTask(); // start kiosk mode
         } else {
-            logError(TAG, "Not a device owner");
+            // Not a device owner — can't start full kiosk
         }
 
     }
@@ -810,7 +853,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         appDatabase = AppDatabase.getInstance(this);
 
 
-        if (isNetworkAvailable(MainActivity.this)) {
+        if (isNetworkAvailable(MainActivity_16_7.this)) {
             new Thread(() -> {
                 try {
                     TransactionDao transactionDao = appDatabase.transactionDao();
@@ -1098,7 +1141,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             //  mFirebaseAnalytics.logEvent("login_event", bundle);
 
             // Handle edit action
-            Constants.showLoginDialog(MainActivity.this, appDatabase);
+            Constants.showLoginDialog(MainActivity_16_7.this, appDatabase);
 
             return true;
         }
@@ -1290,12 +1333,19 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             // If electricity is present, mark flag and cancel electricity lost check
             if (Boolean.TRUE.equals(responseTempStatus.getElectricity())) {
                 // If electricity is present, mark flag and cancel electricity lost check
+                if (!hasReceivedElectricityData) {
+                    logError(TAG, "Electricity data received. Marking power as back.");
+                    hasReceivedElectricityData = true;
 
-                isDetachCalled = false;
-                // Reset electricity lost state when we receive electricity data
-                if (isElectricityAlreadyLost) {
-                    logError(TAG, "Resetting electricity lost state");
-                    isElectricityAlreadyLost = false;
+                    // Reset electricity lost state when we receive electricity data
+                    if (isElectricityAlreadyLost) {
+                        logError(TAG, "Resetting electricity lost state");
+                        isElectricityAlreadyLost = false;
+                    }
+
+                    // Cancel any pending electricity lost callbacks
+                    handlerElectricity.removeCallbacks(electricityLostRunnable);
+                    isRunnableScheduled = false;
                 }
 
                 getChargingState = true;
@@ -1305,6 +1355,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 // Let the timeout mechanism handle it
                 getChargingState = false;
 
+                // Only start the electricity lost timer if not already scheduled
+                if (!isRunnableScheduled && !isElectricityAlreadyLost) {
+                    handlerElectricity.postDelayed(electricityLostRunnable, 10000); // 10 second timeout
+                    isRunnableScheduled = true;
+                    logError(TAG, "Electricity false in data - starting timeout");
+                }
             }
 
             updateTemperatureAndPrice(responseTempStatus);
@@ -1313,38 +1369,42 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
             if (getChargingState && isUsbPermissionGranted && !inMilkDispenseProcessLevel) {
 
+                /// Low level will be handle by minimum volume limit
+                if (remainingVolume <= minimumVolumeLimit) {
+                    isLowLevel = true;
+                    handleLowLevel();
 
-
-                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
-
-                    Log.e(TAG, "minimumVolumeLimit: " + minimumVolumeLimit);
-                    Log.e(TAG, "remainingVolume: " + remainingVolume);
-                    /// Low level will be handle by minimum volume limit
-                    if (remainingVolume <= minimumVolumeLimit) {
-                        isLowLevel = true;
-                        handleLowLevel();
-
-                        if (!isLowMilkLevel) {
-                            try {
-                                Constants.saveLogs(getApplicationContext(), "Low Level", KEY_LOW_LEVEL);
-                            } catch (Exception e) {
-                                logError("PaymentLog", "Logging failed: ${e.message}");
-                                // Don't crash, just log the error silently
-                            }
-
-                            isLowMilkLevel = true;
-
-                        }
-
-                    } else {
-                        isLowLevel = false;
-                        handleNormalLevel();
+                    try {
+                        Constants.saveLogs(getApplicationContext(), "Low Level", KEY_LOW_LEVEL);
+                    } catch (Exception e) {
+                        logError("Low Level", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
                     }
 
-                } else {
+                }else {
                     isLowLevel = false;
                     handleNormalLevel();
                 }
+
+//                if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
+//
+//                    if (!isLowMilkLevel) {
+//                        try {
+//                            Constants.saveLogs(getApplicationContext(), "Low Level", KEY_LOW_LEVEL);
+//                        } catch (Exception e) {
+//                            logError("PaymentLog", "Logging failed: ${e.message}");
+//                            // Don't crash, just log the error silently
+//                        }
+//
+//                        isLowMilkLevel = true;
+//
+//                    }
+//
+//
+//                    handleLowLevel();
+//                } else {
+//                    handleNormalLevel();
+//                }
             } else if (!getChargingState) {
                 logError(TAG, "Device is not charging");
                 cv_error.setVisibility(View.VISIBLE);
@@ -1595,7 +1655,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-       //  Log.e(tag, message);
+       // Log.e(tag, message);
     }
 
     private void toastMessage(String message) {

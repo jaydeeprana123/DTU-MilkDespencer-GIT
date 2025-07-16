@@ -136,6 +136,9 @@ public class Constants {
 
     public static final String KEY_APP_STATUS = "App Status";
     public static final String KEY_CALIBRATION = "Calibration";
+
+    public static final String KEY_LOGIN_STATUS = "Login Status";
+
     public static final String KEY_ELECTRICITY = "Electricity";
     public static final String KEY_TEMPERATURE = "Temperature";
     public static final String KEY_LOW_LEVEL = "Low Level";
