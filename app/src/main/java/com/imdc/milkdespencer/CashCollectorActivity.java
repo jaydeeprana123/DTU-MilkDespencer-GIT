@@ -1,6 +1,5 @@
 package com.imdc.milkdespencer;
 
-import static com.imdc.milkdespencer.MainActivity.getInstance;
 import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
 import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_DATE;
 import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_TIME;
@@ -337,7 +336,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 //        return instance;
 //    }
 
-    public static void DisplaySetUp(SSPDevice dev) {
+    public void DisplaySetUp(SSPDevice dev) {
 
         sspDevice = dev;
 
@@ -349,13 +348,13 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
         // check for type comapable
         if (dev.type != SSPDeviceType.BillValidator) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(getInstance());
+            AlertDialog.Builder builder = new AlertDialog.Builder(CashCollectorActivity.this);
             // 2. Chain together various setter methods to set the dialog characteristics
             builder.setMessage("Connected device is not BNV (" + dev.type.toString() + ")").setTitle("BNV");
             builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    getInstance().finish();
+                    finish();
                 }
             });
 

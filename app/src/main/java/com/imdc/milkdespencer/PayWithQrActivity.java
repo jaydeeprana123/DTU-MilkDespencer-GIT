@@ -362,6 +362,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     private final AtomicBoolean isTransactionHandled = new AtomicBoolean(false);
 
+    private boolean isNavigated = false;
 
 
     @SuppressLint("UnspecifiedRegisterReceiverFlag")
@@ -1992,6 +1993,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
      * It will redirect to the home screen
      * */
     void goToHomeScreen() {
+
+        /// Here if function is already called then do not call again
+        if (isNavigated) return; // Prevent double execution
+        isNavigated = true;
 
         /// Here if handler and runnable remove
         if (handler != null && runnable != null) {

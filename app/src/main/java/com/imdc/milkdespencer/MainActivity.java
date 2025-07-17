@@ -114,12 +114,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private static MainActivity instance = null;
     private boolean isLowMilkLevel = false;
 
-    public static MainActivity getInstance() {
-
-        return instance;
-    }
-
-
     private static final String ACTION_USB_PERMISSION = "com.imdc.milkdespencer.USB_PERMISSION";
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final int DELAY_TIME_MILLIS = 16000; // 16 seconds
@@ -1116,11 +1110,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         hideSystemUI();
         //  registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         checkAndRequestUsbPermission();
-        // Register it in onCreate
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        registerReceiver(usbReceiver, filter);
+
 
 
 //        registerReceiver(usbPermissionReceiver, filter);
@@ -1153,10 +1143,23 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         DecimalFormat df = new DecimalFormat("0.00");
         String formattedRemainingVolume = df.format(remainingVolume);
         tvRemainingVolume.setText(formattedRemainingVolume + "L");
+
+        // Ensure preferencesManager is initialized (do this in onCreate if possible)
+        if (preferencesManager == null) {
+            preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
+        }
+
         minimumVolumeLimit = Double.parseDouble(preferencesManager.get(MinimumVolumeLimit, "6.0").toString());
 
         // Delay the USB check slightly to ensure the device is fully ready
         new Handler(Looper.getMainLooper()).postDelayed(this::checkAndConnectUsbDevice, 700);
+
+
+        // Register it in onCreate
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        registerReceiver(usbReceiver, filter);
 
     }
 
@@ -1206,6 +1209,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         super.onPause();
 
         isScreenVisible = false;
+
+        try {
+            unregisterReceiver(usbReceiver);
+        } catch (IllegalArgumentException e) {
+            Log.e("usbReceiver", "Receiver not registered or already unregistered");
+        }
 
     }
 

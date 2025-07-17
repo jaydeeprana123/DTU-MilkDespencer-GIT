@@ -1,6 +1,5 @@
 package com.imdc.milkdespencer.common;
 
-import static com.imdc.milkdespencer.MainActivity.getInstance;
 import static com.imdc.milkdespencer.common.Constants.PREF_PERMISSION_GRANTED;
 
 import android.app.PendingIntent;
@@ -132,7 +131,7 @@ public class UsbSerialCommunication {
         } else {
             logError(TAG, "Connected: " + device.getProductId() + " <---> " + device.getVendorId() + "\n " + device);
 
-            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(getInstance());
+            SharedPreferencesManager preferencesManager = SharedPreferencesManager.getInstance(context);
 
             if (preferencesManager.hasValue(Constants.ResponseTempStatus)) {
                 try {
