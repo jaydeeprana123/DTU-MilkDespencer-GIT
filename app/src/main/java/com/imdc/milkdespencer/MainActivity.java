@@ -1,8 +1,8 @@
 package com.imdc.milkdespencer;
 
+import android.app.ActivityManager;
 import android.app.admin.DevicePolicyManager;
 
-import static com.imdc.milkdespencer.DatabaseExporter.copyDatabase;
 import static com.imdc.milkdespencer.common.Constants.KEY_APP_STATUS;
 import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
 import static com.imdc.milkdespencer.common.Constants.KEY_LOW_LEVEL;
@@ -13,7 +13,6 @@ import static com.imdc.milkdespencer.common.UsbSerialCommunication.isCipOn;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isLowLevel;
 
 import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
-import static com.imdc.milkdespencer.common.Constants.FromScreen;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
 import static com.imdc.milkdespencer.common.Constants.RemainingVolumePref;
 import static com.imdc.milkdespencer.common.Constants.TemperatureOffSet;
@@ -24,7 +23,6 @@ import static com.imdc.milkdespencer.common.Constants.remainingVolume;
 import static com.imdc.milkdespencer.common.UsbSerialCommunication.isSendDataStop;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityManager;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -32,21 +30,21 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.usb.UsbDevice;
-import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.InputType;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -703,15 +701,14 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
         /// Kiosk mode on
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-//            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-//            if (!am.isInLockTaskMode()) {
-//                startLockTask();
-//            }
-//        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (am.getLockTaskModeState() == ActivityManager.LOCK_TASK_MODE_NONE) {
+                startLockTask();
+            }
+        }
 
 
-        kioskModeEnable();
 
 
         /// Start worker for api call on every 30 minutes for milk temperature send
@@ -736,7 +733,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     /*For to enable kiosk mode*/
-    private void kioskModeEnable() {
+    private void kioskModeEnableForDeviceOwner() {
 
         DevicePolicyManager dpm = (DevicePolicyManager) getSystemService(Context.DEVICE_POLICY_SERVICE);
         ComponentName admin = new ComponentName(this, MyDeviceAdminReceiver.class);
@@ -1110,9 +1107,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         hideSystemUI();
         //  registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         checkAndRequestUsbPermission();
-
-
-
+        
 //        registerReceiver(usbPermissionReceiver, filter);
 //        registerReceiver(usbPermissionReceiver, filter);
 
@@ -1128,6 +1123,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             handlerProcessScreen.removeCallbacks(runnableProcessScreen);
         }
 
+        try {
+            unregisterReceiver(usbPermissionReceiver);
+        } catch (IllegalArgumentException ignored) {}
 
 //        unregisterReceiver(batteryReceiver);
 
@@ -1645,4 +1643,36 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             return false;
         }
     }
+
+    @Override
+    public void onBackPressed() {
+        showExitPinDialog(); // custom method
+    }
+
+    private void showExitPinDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Enter PIN to Exit");
+
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        builder.setView(input);
+
+        builder.setPositiveButton("OK", (dialog, which) -> {
+            String enteredPin = input.getText().toString();
+            if (enteredPin.equals("1234")) { // Your actual PIN
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    stopLockTask(); // Exit kiosk
+                }
+                finish(); // Or navigate out
+            } else {
+                Toast.makeText(this, "Incorrect PIN", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        builder.show();
+    }
+
+
 }

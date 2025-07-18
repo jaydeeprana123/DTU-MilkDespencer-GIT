@@ -145,54 +145,60 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null && device.getProductName() != null && device.getProductName().contains("CP2102")) {
-                    logError("USB", "USB disconnected (Electricity GONE)");
-                    // Stop communication, update UI
 
-                    if (!isElectricityLost) {
-                        isElectricityLost = true;
+                    UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+                    // ✅ Check if permission is actually revoked
+                    if(usbManager != null && !usbManager.hasPermission(device)) {
 
-                        /// If QR code dialog is showing or null.. Dismiss the dialog
-                        if (dialog.get() != null && dialog.get().isShowing()) {
-                            dialog.get().dismiss();
-                        }
+                        logError("USB", "USB disconnected (Electricity GONE)");
+                        // Stop communication, update UI
 
-                        if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
-                            milkDispensingDialog.dismiss();
-                        }
+                        if (!isElectricityLost) {
+                            isElectricityLost = true;
 
-
-                        try {
-                            Constants.saveLogs(getApplicationContext(), "Lost Electricity", KEY_ELECTRICITY);
-                        } catch (Exception e) {
-                            logError("PaymentLog", "Logging failed: ${e.message}");
-                            // Don't crash, just log the error silently
-                        }
-
-                        tvProcessing.setText("Sorry. No Electricity, please try after some time!");
-
-                        String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
-                        String paymentJson = (preferencesManager.get(Constants.PaymentReceived, "")).toString();
-
-                        if (!transactionJson.isEmpty()) {
-                            TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
-
-                            logError("ElectricityLost transactionJson ", transactionJson);
-
-                            updateTransactionIfElectricityLost(transactionEntity);
-                        } else if (!paymentJson.isEmpty()) {
-                            Payment payment = new Gson().fromJson(paymentJson, Payment.class);
-                            if (payment != null && payment.get("amount") != null) {
-                                try {
-                                    float amount = Float.parseFloat(payment.get("amount").toString());
-                                    float amt = amount / 100;
-                                    insertTransactionIfElectricityLost(amt, payment, 0);
-                                } catch (NumberFormatException e) {
-                                    e.printStackTrace();
-                                    // Optional: log or handle parse error
-                                }
+                            /// If QR code dialog is showing or null.. Dismiss the dialog
+                            if (dialog.get() != null && dialog.get().isShowing()) {
+                                dialog.get().dismiss();
                             }
-                        } else {
-                            goToHomeScreen();
+
+                            if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
+                                milkDispensingDialog.dismiss();
+                            }
+
+
+                            try {
+                                Constants.saveLogs(getApplicationContext(), "Lost Electricity", KEY_ELECTRICITY);
+                            } catch (Exception e) {
+                                logError("PaymentLog", "Logging failed: ${e.message}");
+                                // Don't crash, just log the error silently
+                            }
+
+                            tvProcessing.setText("Sorry. No Electricity, please try after some time!");
+
+                            String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
+                            String paymentJson = (preferencesManager.get(Constants.PaymentReceived, "")).toString();
+
+                            if (!transactionJson.isEmpty()) {
+                                TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
+
+                                logError("ElectricityLost transactionJson ", transactionJson);
+
+                                updateTransactionIfElectricityLost(transactionEntity);
+                            } else if (!paymentJson.isEmpty()) {
+                                Payment payment = new Gson().fromJson(paymentJson, Payment.class);
+                                if (payment != null && payment.get("amount") != null) {
+                                    try {
+                                        float amount = Float.parseFloat(payment.get("amount").toString());
+                                        float amt = amount / 100;
+                                        insertTransactionIfElectricityLost(amt, payment, 0);
+                                    } catch (NumberFormatException e) {
+                                        e.printStackTrace();
+                                        // Optional: log or handle parse error
+                                    }
+                                }
+                            } else {
+                                goToHomeScreen();
+                            }
                         }
                     }
 
@@ -1318,10 +1324,6 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         super.onStart();
 
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        registerReceiver(usbReceiver, filter);
 
         /*Intent serviceIntent = new Intent(this, PaymentStatusService.class);
         startService(serviceIntent);*/
@@ -2187,7 +2189,19 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     protected void onResume() {
         super.onResume();
 
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        registerReceiver(usbReceiver, filter);
+
         logError(TAG, "on resume called");
 
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        unregisterReceiver(usbReceiver);
     }
 }

@@ -112,6 +112,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     //}
 
 
+    private boolean isNavigated = false;
+
+    boolean isDataSent = false;
+
     private boolean shouldContinueSending = false;
 
     private boolean isStopConditionMet = false;
@@ -189,50 +193,56 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
             if (UsbManager.ACTION_USB_DEVICE_DETACHED.equals(action)) {
                 UsbDevice device = intent.getParcelableExtra(UsbManager.EXTRA_DEVICE);
                 if (device != null && device.getProductName() != null && device.getProductName().contains("CP2102")) {
-                    logError("USB", "USB disconnected (Electricity GONE)");
-                    // Stop communication, update UI
 
-                    if (!isElectricityLost) {
-                        isElectricityLost = true;
+                    UsbManager usbManager = (UsbManager) context.getSystemService(Context.USB_SERVICE);
+                    // ✅ Check if permission is actually revoked
+                    if (usbManager != null && !usbManager.hasPermission(device)) {
 
-                        if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
-                            milkDispensingDialog.dismiss();
-                        }
+                        logError("USB", "USB disconnected (Electricity GONE)");
+                        // Stop communication, update UI
 
-                        Constants.saveLogs(getApplicationContext(), "Lost Electricity",KEY_ELECTRICITY);
-                        tvProcessing.setText("Sorry. No Electricity, please try after some time!");
+                        if (!isElectricityLost) {
+                            isElectricityLost = true;
 
-                        String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
-                        String paymentJson = (preferencesManager.get(Constants.PaymentCashReceived, "")).toString();
-
-                        if (!transactionJson.isEmpty()) {
-                            TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
-
-                            Log.e("ElectricityLost transactionJson ", transactionJson);
-
-                            updateTransactionIfElectricityLost(transactionEntity);
-                        } else if (!paymentJson.isEmpty()) {
-
-                            try {
-                                JSONObject paymentObject = new JSONObject(paymentJson);
-
-                                if (paymentObject.has("amount")) {
-                                    // Safely parse the amount as a float
-                                    double amount = paymentObject.optDouble("amount", 0.0);
-
-                                    insertTransactionIfElectricityLost(amount);
-                                }
-
-
-                            } catch (JSONException e) {
-                                throw new RuntimeException(e);
+                            if (milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
+                                milkDispensingDialog.dismiss();
                             }
 
-                        }else {
-                            goToHomeScreen();
-                        }
-                    }
+                            Constants.saveLogs(getApplicationContext(), "Lost Electricity", KEY_ELECTRICITY);
+                            tvProcessing.setText("Sorry. No Electricity, please try after some time!");
 
+                            String transactionJson = (preferencesManager.get(Constants.SavedTransaction, "")).toString();
+                            String paymentJson = (preferencesManager.get(Constants.PaymentCashReceived, "")).toString();
+
+                            if (!transactionJson.isEmpty()) {
+                                TransactionEntity transactionEntity = new Gson().fromJson(transactionJson, TransactionEntity.class);
+
+                                Log.e("ElectricityLost transactionJson ", transactionJson);
+
+                                updateTransactionIfElectricityLost(transactionEntity);
+                            } else if (!paymentJson.isEmpty()) {
+
+                                try {
+                                    JSONObject paymentObject = new JSONObject(paymentJson);
+
+                                    if (paymentObject.has("amount")) {
+                                        // Safely parse the amount as a float
+                                        double amount = paymentObject.optDouble("amount", 0.0);
+
+                                        insertTransactionIfElectricityLost(amount);
+                                    }
+
+
+                                } catch (JSONException e) {
+                                    throw new RuntimeException(e);
+                                }
+
+                            } else {
+                                goToHomeScreen();
+                            }
+                        }
+
+                    }
 
 
                 }
@@ -247,8 +257,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     };
 
 
-
-//    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
+    //    private final BroadcastReceiver batteryReceiver = new BroadcastReceiver() {
 //        @Override
 //        public void onReceive(Context context, Intent intent) {
 //            // Get the current battery status
@@ -594,6 +603,25 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 shouldContinueSending = true;
 //                usbSerialCommunication.sendData(commandJson);
 
+
+                if (!isDataSent) {
+                    isDataSent = true;
+
+                    try {
+                        Constants.saveLogs(getApplicationContext(),
+                                "Sent Weight - " + sendToDevice.getWeight() + " TransactionId: " + transaction.getUniqueTransactionId(),
+                                KEY_WEIGHT
+
+                        );
+                    } catch (Exception e) {
+                        logError("PaymentLog", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
+                    }
+
+
+                }
+
+
                 sendDataRepeatedly(commandJson);
 
                 // Set the listener and handle in a different method
@@ -655,7 +683,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     /// Read serial data from USB
-    private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity, float milkSellingPrice, TransactionEntity transaction, float setWeight ) {
+    private void handleSerialReadingResponse(String data, double currentSavedTemp, float milkDensity, float milkSellingPrice, TransactionEntity transaction, float setWeight) {
         logError("TAG", "onReadData: " + data);
         logError(TAG, "DisplayEvents:onReadData: " + data + "\n status " + data.contains("status"));
 
@@ -667,8 +695,23 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
             logError("Cashcollector status outside", String.valueOf(milkDispense.getStatus()));
 
-            if (data.contains("status")){
-                isStopConditionMet = true;
+            if (data.contains("status")) {
+                if (!isStopConditionMet) {
+
+                    try {
+                        Constants.saveLogs(getApplicationContext(),
+                                "Pump Started - " + "  TransactionId: " + transaction.getUniqueTransactionId(),
+                                KEY_WEIGHT
+                        );
+                    } catch (Exception e) {
+                        logError("PaymentLog", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
+                    }
+
+
+                    isStopConditionMet = true;
+                }
+
             }
 
             if (milkDispense.getStatus() && milkDispensingDialog != null && milkDispensingDialog.isShowing()) {
@@ -676,9 +719,9 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 logError("VOLUME OF MILK", String.valueOf(volumeOfMilk));
 
                 /// Here check that if volume is negative then, get weight as a set weight
-                if(volumeOfMilk < 0){
+                if (volumeOfMilk < 0) {
 
-                    logError("VOLUME OF MILK" , "IS MINUS");
+                    logError("VOLUME OF MILK", "IS MINUS");
                     volumeOfMilk = (float) (setWeight / milkDensity);
                 }
 
@@ -697,6 +740,15 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 if (!isDatabaseOperationStarted) {
                     isDatabaseOperationStarted = true;
 
+                    try {
+                        Constants.saveLogs(getApplicationContext(),
+                                "Get Weight - " + milkDispense.getCurrentWeight() + " TransactionId: " + transaction.getUniqueTransactionId(),
+                                KEY_WEIGHT
+                        );
+                    } catch (Exception e) {
+                        logError("PaymentLog", "Logging failed: ${e.message}");
+                        // Don't crash, just log the error silently
+                    }
 
                     updateDataInDatabaseWhenProcessDone(volumeOfMilk, transaction, milkDispense.getDoorstatus());
                 }
@@ -839,7 +891,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     float milkTemp = Float.parseFloat(transaction.getMilkTemperature());
                     String strMilkTemperature = String.format("%.3f", milkTemp);
 
-                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), doorStatus?"DOOR OPEN":"SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
+                    Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), doorStatus ? "DOOR OPEN" : "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
 
                     // Now show dialog on UI thread
                     runOnUiThread(() -> {
@@ -1134,7 +1186,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                                     transaction.setMachineId((preferencesManager.get(MachineId, "")).toString());
 
                                     // Add field on 28-6-2025
-                                    transaction.setTransactionStartTime(transactionStartDate +" || "+transactionStartTime);
+                                    transaction.setTransactionStartTime(transactionStartDate + " || " + transactionStartTime);
 
                                     String uniqueId = generateSafeUniqueTransactionId(transactionDao);
                                     transaction.setUniqueTransactionId(uniqueId);
@@ -1196,7 +1248,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     dialog.show();
 
 
-                    Log.e(TAG, "DisplayEvents: dialog.show()" );
+                    Log.e(TAG, "DisplayEvents: dialog.show()");
 
                 } else {
                     Constants.showAlertDialog(cashCollectorActivity, "Please Select the Amount", "Please select the amount before inserting the currency!");
@@ -1453,7 +1505,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         screenTimeOut();
 
 
-
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         grdCurrencyView = findViewById(R.id.gridViewCurrency);
@@ -1591,8 +1642,8 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                 btnBackToHome.setVisibility(View.GONE);
                 tvProcessing.setVisibility(View.VISIBLE);
 
-                if(!usbSerialCommunication.connected){
-                    Constants.showUSBConnectionErrorMessageDialog(CashCollectorActivity.this, "Alert", "Usb is not connected properly!",(dialog1, which) -> {
+                if (!usbSerialCommunication.connected) {
+                    Constants.showUSBConnectionErrorMessageDialog(CashCollectorActivity.this, "Alert", "Usb is not connected properly!", (dialog1, which) -> {
                         goToHomeScreen();
                     });
                     return;
@@ -1692,11 +1743,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     protected void onStart() {
         super.onStart();
 
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
-        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
-        registerReceiver(usbReceiver, filter);
+    }
 
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        unregisterReceiver(usbReceiver);
     }
 
     @Override
@@ -1704,6 +1758,11 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         super.onResume();
 //        openDevice();
         connectToDevices();
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
+        filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
+        registerReceiver(usbReceiver, filter);
 
     }
 
@@ -1896,9 +1955,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
 
-
-
-
     private void openDevice() {
 
         if (ftDev != null) {
@@ -1941,13 +1997,13 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
         if (ftDev == null) {
 //            openDevice();
 
-            if(ftD2xx.getDeviceInfoListDetail(0).serialNumber == null){
+            if (ftD2xx.getDeviceInfoListDetail(0).serialNumber == null) {
                 logError("FTDI123", "Serial number is null. Reconnecting...");
-              //  resetAndReconnectUSB();
+                //  resetAndReconnectUSB();
                 Toast.makeText(CashCollectorActivity.this, "Cash collector is not working", Toast.LENGTH_SHORT).show();
                 showCashMachineNotWorkingDialog(CashCollectorActivity.this);
                 return;
-            }else {
+            } else {
                 logError("serialNumber", ftD2xx.getDeviceInfoListDetail(0).serialNumber);
                 ftDev = ftD2xx.openByIndex(this, 0);
             }
@@ -2048,7 +2104,6 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     }
 
 
-
     @Override
     public void OnDeviceEvent(DeviceEvent deviceEvent) {
         runOnUiThread(() -> DisplayEvents(deviceEvent));
@@ -2107,6 +2162,10 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
      * */
     void goToHomeScreen() {
 
+        /// Here if function is already called then do not call again
+        if (isNavigated) return; // Prevent double execution
+        isNavigated = true;
+
         /// Here if handler and runnable remove
         if (handler != null && runnable != null) {
             handler.removeCallbacks(runnable);
@@ -2155,14 +2214,14 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
 
 
     private void logError(String tag, String message) {
-       // Log.e(tag, message);
+        // Log.e(tag, message);
     }
 
 
     @Override
     public void onBackPressed() {
         // This runs when the user clicks the back button
-      //  Log.e("BackButton", "User pressed the back button!");
+        //  Log.e("BackButton", "User pressed the back button!");
 
         // Your logic here
         Constants.saveLogs(getApplicationContext(), "Back Pressed", "Back Pressed");
