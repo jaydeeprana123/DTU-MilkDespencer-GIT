@@ -11,9 +11,6 @@
     <uses-feature android:name="android.hardware.usb.host" />
     <uses-permission android:name="android.permission.USB_PERMISSION" tools:ignore="ProtectedPermissions" />
 
-    <uses-permission android:name="android.permission.DISABLE_KEYGUARD"/>
-
-
 
     <application
         android:allowBackup="true"
@@ -40,13 +37,11 @@
         </receiver>
 
         <!-- Boot Receiver -->
-        <receiver android:name=".BootReceiver">
+        <receiver android:name=".receivers.BootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
-
-
 
 
         <meta-data

@@ -701,12 +701,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
         /// Kiosk mode on
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-            if (am.getLockTaskModeState() == ActivityManager.LOCK_TASK_MODE_NONE) {
-                startLockTask();
-            }
-        }
+//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+//            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+//            if (am.getLockTaskModeState() == ActivityManager.LOCK_TASK_MODE_NONE) {
+//                startLockTask();
+//            }
+//        }
 
 
 
@@ -1007,7 +1007,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             handlerProcessScreen = new Handler(Looper.getMainLooper());
             runnableProcessScreen = () -> {
 
-                btnStart.setVisibility(View.VISIBLE);
+
+                if(getChargingState && isUsbPermissionGranted){
+                    btnStart.setVisibility(View.VISIBLE);
+                }
+
 //                llCash.setVisibility(View.GONE);
 //                llQr.setVisibility(View.GONE);
                 cvPayWithQr.setVisibility(View.GONE);
@@ -1107,7 +1111,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         hideSystemUI();
         //  registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         checkAndRequestUsbPermission();
-        
+
 //        registerReceiver(usbPermissionReceiver, filter);
 //        registerReceiver(usbPermissionReceiver, filter);
 
@@ -1173,7 +1177,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         for (UsbDevice device : deviceList.values()) {
             if (device.getVendorId() == 4292 && device.getProductId() == 60000) {
                 if (usbManager.hasPermission(device)) {
-                    Log.d(TAG, "USB permission granted, connecting...");
+                    logError(TAG, "USB permission granted, connecting...");
                     try {
                         usbSerialCommunication.connect();
 
@@ -1185,7 +1189,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                         Log.e(TAG, "Error connecting to USB device: " + e.getMessage(), e);
                     }
                 } else {
-                    Log.d(TAG, "Requesting USB permission...");
+                    logError(TAG, "Requesting USB permission...");
                     PendingIntent permissionIntent = PendingIntent.getBroadcast(
                             this, 0, new Intent(ACTION_USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
                     );
@@ -1319,7 +1323,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             updateIndicator(ivCompressor, responseTempStatus.getCompressor());
 
             if (getChargingState && isUsbPermissionGranted && !inMilkDispenseProcessLevel) {
-
 
 
                 if (Boolean.TRUE.equals(responseTempStatus.getLowlevel())) {
@@ -1580,7 +1583,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             // Retrieve the data from the intent
 
             logError(TAG + " Here I come", "in Main Activity");
-            btnStart.setVisibility(View.VISIBLE);
+
+            if(getChargingState && isUsbPermissionGranted){
+                btnStart.setVisibility(View.VISIBLE);
+            }
+
 //            llCash.setVisibility(View.GONE);
 //            llQr.setVisibility(View.GONE);
             cvPayWithQr.setVisibility(View.GONE);
@@ -1602,7 +1609,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-       //  Log.e(tag, message);
+        // Log.e(tag, message);
     }
 
     private void toastMessage(String message) {
@@ -1644,10 +1651,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        showExitPinDialog(); // custom method
-    }
 
     private void showExitPinDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);

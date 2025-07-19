@@ -896,7 +896,7 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
                     // Now show dialog on UI thread
                     runOnUiThread(() -> {
 
-                        tvProcessing.setText("Thank You!");
+                        tvProcessing.setText("PROCESSING...");
 
                         logError(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
 

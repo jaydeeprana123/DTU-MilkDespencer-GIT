@@ -2051,7 +2051,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                     // Now show dialog on UI thread
                     runOnUiThread(() -> {
                         logError(TAG, "onCreate: " + new Gson().toJson(transactionDao.getAllTransactions()));
-                        tvProcessing.setText("Thank You!");
+                        tvProcessing.setText("PROCESSING...");
 
 
                         // Delay the call to show dialog by 5 seconds
@@ -2143,7 +2143,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-       //  Log.e(tag, message);
+        // Log.e(tag, message);
     }
 
 
