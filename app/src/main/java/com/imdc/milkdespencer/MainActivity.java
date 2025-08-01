@@ -1426,6 +1426,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 usbSerialCommunication.setBaudRate(115200);
 
             } else {
+                usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
                 usbSerialCommunication.connect();
                 usbSerialCommunication.setBaudRate(115200);
             }
@@ -1436,7 +1437,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     }
 
 
-    /// Check that temperature value should not null
+    // Check that temperature value should not null
     private void updateTemperatureAndPrice(ResponseTempStatus responseTempStatus) {
         // Get the base price for milk
         String milkBasePrice = "₹ " + preferencesManager.get(MilkBasePrice, "0.0").toString() + "/Ltr";
@@ -1500,8 +1501,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     /*If Level is low then
      * Low Milk level Screen Will be Visible */
     private void handleLowLevel() {
-
-
         logError(TAG, "low level");
         cv_error.setVisibility(View.VISIBLE);
         btnDone.setVisibility(View.GONE);

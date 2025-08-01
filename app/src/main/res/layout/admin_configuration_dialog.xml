@@ -147,7 +147,7 @@
             android:layout_height="wrap_content"
             android:hint="@string/temperature_offset"
             android:imeOptions="actionNext"
-            android:inputType="numberDecimal" />
+            android:inputType="text" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
