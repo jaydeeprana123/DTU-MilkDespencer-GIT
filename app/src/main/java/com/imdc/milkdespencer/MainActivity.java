@@ -1,7 +1,7 @@
 package com.imdc.milkdespencer;
 
-import android.app.ActivityManager;
 import android.app.admin.DevicePolicyManager;
+
 
 import static com.imdc.milkdespencer.common.Constants.KEY_APP_STATUS;
 import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
@@ -55,6 +55,7 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.cardview.widget.CardView;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
@@ -95,6 +96,16 @@ import java.util.concurrent.TimeUnit;
 public class MainActivity extends AppCompatActivity implements UsbSerialCommunication.ReadDataListener, UsbSerialCommunication.ReadDataForCIPListener {
 
     //    private FirebaseAnalytics mFirebaseAnalytics;
+
+    private static final long MULTI_TAP_WINDOW_MS = 3000;
+
+    private ConstraintLayout root;
+
+    private int tapCount = 0;
+    private final Handler tapWindowHandler = new Handler();
+    private final Runnable resetTaps = () -> tapCount = 0;
+
+
     private boolean inMilkDispenseProcessLevel = false;
 
     private boolean isUsbPermissionGranted = false; // Flag for USB permission
@@ -722,11 +733,31 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         //   mFirebaseAnalytics = FirebaseAnalytics.getInstance(this);
 
         keepScreenOn();
-        hideSystemUI();
+       // hideSystemUI();
         setContentView(R.layout.activity_main2);
 
+        root = findViewById(R.id.root);
+
+        if(savedInstanceState == null){
+            // Apply immersive sticky immediately
+            enterImmersiveSticky();
+
+            // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
+            root.setOnSystemUiVisibilityChangeListener(visibility -> {
+                // If bars became visible, re-hide them after a tiny delay
+                if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                    root.postDelayed(this::enterImmersiveSticky, 200);
+                }
+            });
+
+
+            // (Optional) Try to start Lock Task / Screen Pinning
+            tryStartLockTask();
+        }
+
+
         instance = this;
-        initializeDependencies();
+        initializeDependencies(savedInstanceState);
         initializeUI();
         setupListeners();
     }
@@ -792,7 +823,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     Register Battery Receiver Broadcast,
     SQLite Database,
     Alert Dialog of Electricity*/
-    private void initializeDependencies() {
+    private void initializeDependencies(Bundle savedInstanceState) {
         preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
         remainingVolume = Float.parseFloat(preferencesManager.get(RemainingVolumePref, "0").toString());
 
@@ -800,8 +831,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         appDatabase = AppDatabase.getInstance(this);
 
-
-        if (isNetworkAvailable(MainActivity.this)) {
+        if (savedInstanceState == null && isNetworkAvailable(MainActivity.this)) {
             new Thread(() -> {
                 try {
                     TransactionDao transactionDao = appDatabase.transactionDao();
@@ -913,7 +943,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         startBtnClickTime = timeFormatter.format(System.currentTimeMillis());
 
         btnStart.setVisibility(View.GONE);
-        hideSystemUI();
+//        hideSystemUI();
         inMilkDispenseProcessLevel = true;
         tvPleasePutUtensil.setVisibility(View.GONE);
         tvProcessing.setVisibility(View.VISIBLE);
@@ -1108,7 +1138,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         inMilkDispenseProcessLevel = false;
         tvProcessing.setVisibility(View.GONE);
         tvPleasePutUtensil.setVisibility(View.VISIBLE);
-        hideSystemUI();
+      //  hideSystemUI();
         //  registerReceiver(batteryReceiver, new IntentFilter(Intent.ACTION_BATTERY_CHANGED));
         checkAndRequestUsbPermission();
 
@@ -1674,6 +1704,42 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         builder.show();
+    }
+
+
+
+
+
+
+    private void enterImmersiveSticky() {
+        int flags =
+                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+
+        root.setSystemUiVisibility(flags);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) {
+            enterImmersiveSticky();
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        // Block back in kiosk mode
+        // super.onBackPressed(); // Intentionally disabled
+    }
+
+    private void tryStartLockTask() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                // If your app is device owner or whitelisted, this will silently start.
+                // Otherwise Android will show the “Start screen pinning?” prompt to the user.
+                startLockTask();
+            } catch (Exception ignored) { }
+        }
     }
 
 

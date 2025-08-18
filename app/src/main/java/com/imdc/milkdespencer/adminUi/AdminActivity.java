@@ -20,17 +20,25 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.InputType;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.EditText;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -60,14 +68,26 @@ import java.util.Locale;
 
 public class AdminActivity extends AppCompatActivity {
     //    private FirebaseAnalytics mFirebaseAnalytics;
+
+
+    private static final String EXIT_PIN = "4432"; // TODO: store securely!
+    private static final int REQUIRED_MULTI_TAPS = 5;
     SharedPreferencesManager preferencesManager;
     Button btnSetConfigurations, btnApiConfiguration, btnCIP,
             btnCustomerAdmin, btnLogs, btnCalibration, btnCashButtonOnOff,
-            btnAddEndUser, btnHistoryByDate, btnExportTransactions,btnAddedVolume;
+            btnAddEndUser, btnHistoryByDate, btnExportTransactions,btnAddedVolume,btnExit;
     AppDatabase appDatabase;
     User user;
     private RecyclerView recyclerView;
     private UserAdapter userAdapter;
+
+    private static final long MULTI_TAP_WINDOW_MS = 3000;
+
+    private ConstraintLayout root;
+
+    private int tapCount = 0;
+    private final Handler tapWindowHandler = new Handler();
+    private final Runnable resetTaps = () -> tapCount = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,6 +108,34 @@ public class AdminActivity extends AppCompatActivity {
 //        bundle.putString(FirebaseAnalytics.Param.SCREEN_NAME, "Admin_Screen");
 //        bundle.putString(FirebaseAnalytics.Param.SCREEN_CLASS, "AdminActivity");
 //        mFirebaseAnalytics.logEvent(FirebaseAnalytics.Event.SCREEN_VIEW, bundle);
+
+
+        root = findViewById(R.id.root);
+        btnExit= findViewById(R.id.btnExit);
+
+        ///  For kiosk mode
+
+        // Apply immersive sticky immediately
+        enterImmersiveSticky();
+
+        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
+        root.setOnSystemUiVisibilityChangeListener(visibility -> {
+            // If bars became visible, re-hide them after a tiny delay
+            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                root.postDelayed(this::enterImmersiveSticky, 200);
+            }
+        });
+
+        // Also re-apply when window gains focus
+        // (covers cases like dialog dismiss, activity resume, etc.)
+        // See onWindowFocusChanged below
+
+        // Hidden exit triggers
+        setupHiddenExitTriggers();
+
+        // (Optional) Try to start Lock Task / Screen Pinning
+        tryStartLockTask();
+
 
         doPostConfigurationData(AdminActivity.this,GetConfigurationUrl);
         preferencesManager = SharedPreferencesManager.getInstance(getApplicationContext());
@@ -127,6 +175,7 @@ public class AdminActivity extends AppCompatActivity {
         btnAddedVolume = findViewById(R.id.btnAddedVolume);
         btnCalibration = findViewById(R.id.btnCalibration);
         btnCashButtonOnOff = findViewById(R.id.btnCashButtonOnOff);
+
 
 
         if (preferencesManager.get(CashTransactionMode, "0").equals("0")) {
@@ -363,5 +412,101 @@ public class AdminActivity extends AppCompatActivity {
     }
 
 
+    private void showPinDialog() {
+        // Keep UI hidden behind the dialog as much as possible
+        enterImmersiveSticky();
+
+        final EditText input = new EditText(this);
+        input.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_VARIATION_PASSWORD);
+        input.setHint("Enter PIN");
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Secure Exit")
+                .setView(input)
+                .setCancelable(false)
+                .setPositiveButton("Unlock", (d, which) -> {
+                    String pin = input.getText().toString().trim();
+                    if (EXIT_PIN.equals(pin)) {
+                        safeExitKiosk();
+                    } else {
+                        // Re-hide UI and ignore
+                        enterImmersiveSticky();
+                    }
+                })
+                .setNegativeButton("Cancel", (d, which) -> {
+                    d.dismiss();
+                    enterImmersiveSticky();
+                })
+                .create();
+
+        // Ensure dialog itself can’t trigger soft buttons revealing too long
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
+                    WindowManager.LayoutParams.FLAG_SECURE);
+        }
+        dialog.show();
+    }
+
+
+    private void enterImmersiveSticky() {
+        int flags =
+                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+
+        root.setSystemUiVisibility(flags);
+    }
+
+
+    private void setupHiddenExitTriggers() {
+        // Long-press on hotspot opens PIN dialog
+
+        btnExit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showPinDialog();
+            }
+        });
+    }
+
+    private void registerTap() {
+        tapCount++;
+        tapWindowHandler.removeCallbacks(resetTaps);
+        tapWindowHandler.postDelayed(resetTaps, MULTI_TAP_WINDOW_MS);
+        if (tapCount >= REQUIRED_MULTI_TAPS) {
+            tapCount = 0;
+            showPinDialog();
+        }
+    }
+
+
+    private void safeExitKiosk() {
+        // Stop Lock Task if running
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try { stopLockTask(); } catch (Exception ignored) {}
+        }
+        finish(); // or navigate to an admin screen
+    }
+
+
+    private void tryStartLockTask() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                // If your app is device owner or whitelisted, this will silently start.
+                // Otherwise Android will show the “Start screen pinning?” prompt to the user.
+                startLockTask();
+            } catch (Exception ignored) { }
+        }
+    }
+
+
+    @Override
+    public void onBackPressed() {
+        // Block back in kiosk mode
+        // super.onBackPressed(); // Intentionally disabled
+    }
 
 }

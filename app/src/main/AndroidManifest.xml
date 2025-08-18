@@ -126,10 +126,10 @@
             android:exported="false"
             android:screenOrientation="landscape" />
 
-        <activity
-            android:name=".CashCollectorActivity_10_4"
-            android:exported="false"
-            android:screenOrientation="landscape" />
+<!--        <activity-->
+<!--            android:name=".CashCollectorActivity_10_4"-->
+<!--            android:exported="false"-->
+<!--            android:screenOrientation="landscape" />-->
 
         <service
             android:name=".Workers.PaymentStatusService"
