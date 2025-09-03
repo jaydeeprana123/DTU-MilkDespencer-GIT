@@ -554,11 +554,13 @@ public class CashCollectorActivity extends AppCompatActivity implements DeviceSe
     private void sendForMilkVending(DeviceEvent ev, TransactionEntity transaction) {
         double expectedAmount = Double.parseDouble(selectedCurrency.replace("₹", ""));
         if (ev.value != expectedAmount) {
-            Constants.showAlertDialog(
+            Constants.showAlertDialogForWrongNote(
                     cashCollectorActivity,
                     "Please insert correct note",
-                    "Selected note didn't match! Please insert correct note!"
-            );
+                    "Selected note didn't match! Please insert correct note!", (dialog, which) -> {
+                        goToHomeScreen();
+
+                    });
             deviceCom.SetEscrowAction(SSPSystem.BillAction.Reject);
             return;
         }

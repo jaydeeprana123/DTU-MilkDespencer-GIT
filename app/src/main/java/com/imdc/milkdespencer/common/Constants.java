@@ -18,6 +18,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.MediaStore;
 import android.text.InputFilter;
+import android.text.SpannableString;
+import android.text.Spanned;
+import android.text.style.RelativeSizeSpan;
+import android.text.style.StyleSpan;
 import android.util.Base64;
 import android.util.Log;
 import android.view.Gravity;
@@ -270,6 +274,61 @@ public class Constants {
 //                dialog.dismiss();
 //            }
 //        }).show();
+    }
+
+    public static void showAlertDialogForWrongNote(Context context, String title, String message,
+                                                   DialogInterface.OnClickListener okCallback) {
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        AlertDialog dialog = builder.create();
+
+        // Set custom title
+        TextView titleView = new TextView(context);
+        titleView.setText(title);
+        titleView.setTextSize(36); // Increase title font size
+        titleView.setTypeface(null, Typeface.BOLD);
+        titleView.setTextColor(Color.parseColor("#000000"));
+        titleView.setPadding(40, 30, 40, 30);
+        titleView.setGravity(Gravity.CENTER);
+        dialog.setCustomTitle(titleView);
+
+        // Set custom message
+        TextView messageView = new TextView(context);
+        messageView.setText(message);
+        messageView.setTextSize(30);
+        messageView.setPadding(50, 30, 50, 30);
+        messageView.setGravity(Gravity.CENTER);
+        messageView.setTypeface(null, Typeface.BOLD);
+        messageView.setTextColor(Color.parseColor("#000000"));
+
+        ScrollView scrollView = new ScrollView(context);
+        scrollView.addView(messageView);
+        dialog.setView(scrollView);
+
+        // Custom positive button with callback
+        dialog.setButton(AlertDialog.BUTTON_POSITIVE, "OK", (d, which) -> {
+            if (okCallback != null) {
+                okCallback.onClick(d, which);
+            }
+            d.dismiss();
+        });
+
+        dialog.show();
+
+        // Set custom width
+        WindowManager.LayoutParams layoutParams = new WindowManager.LayoutParams();
+        layoutParams.copyFrom(dialog.getWindow().getAttributes());
+        layoutParams.width = (int) (context.getResources().getDisplayMetrics().widthPixels * 0.9);
+        dialog.getWindow().setAttributes(layoutParams);
+
+        // Customize button style
+        Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+        if (positiveButton != null) {
+            positiveButton.setTextSize(26);
+            positiveButton.setPadding(30, 20, 30, 20);
+            positiveButton.setTypeface(null, Typeface.BOLD);
+            positiveButton.setTextColor(Color.parseColor("#000000"));
+        }
     }
 
     public static void showAcceptDialog(Context context, String title, String message, DialogInterface.OnClickListener yesClickListener, DialogInterface.OnClickListener noClickListener) {
@@ -803,59 +862,91 @@ public class Constants {
                     Toast.makeText(context, "Enter Valid Value", Toast.LENGTH_SHORT).show();
                 } else {
 
+
                     float tempRemainVolume = remainingVolume + Float.parseFloat(tieVolume.getText().toString());
                     if (tempRemainVolume > maximumVolumeLimit) {
                         Toast.makeText(context, "Enter Valid Value", Toast.LENGTH_SHORT).show();
                     } else {
-                        remainingVolume += Float.parseFloat(tieVolume.getText().toString());
-
-                        preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
-
-                        new Thread(() -> {
-                            try {
-                                String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
-                                String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
-                                TransactionDao transactionDao = AppDatabase.getInstance(context).transactionDao();
-                                TransactionEntity transaction = new TransactionEntity();
-                                transaction.setUserName("");
-                                transaction.setPassword("");
-                                transaction.setTransactionType("");
-                                transaction.setBankTransactionNo("");
-                                transaction.setRemainingvolume(remainingVolume);
-                                transaction.setTransactionDate(date);
-                                transaction.setTransactionTime(time);
-                                transaction.setAmount(0);
-                                transaction.setUploadToServer(0);
-                                transaction.setVolume(Float.parseFloat(tieVolume.getText().toString()));
-                                transaction.setTransactionStatus("REFILLED");
-                                transaction.setUpiId("");
-
-                                String uniqueId = generateSafeUniqueTransactionId(transactionDao);
-                                transaction.setUniqueTransactionId(uniqueId);
-
-                                /// Added new on 4-1-2025
-                                transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
-                                transaction.setMilkTemperature("222");
-
-                                /// Added on 1-1 2025
-                                transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
-
-                                /// Insert into Sqlite database
-                                long transactionId = transactionDao.insert(transaction);
-                                transaction.setId(transactionId);
-
-                                if (isNetworkAvailable(context)) {
-                                    doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
-                                } else {
-                                    Constants.saveLogs(context, "Internet Connection Error", KEY_API_CALL);
-                                    //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
-                                }
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
-                        }).start();
 
                         dialog.dismiss();
+
+                        String enteredVolumeStr = tieVolume.getText().toString() + " L";
+
+// Full message text
+                        String message = "Are you sure you want to add " + enteredVolumeStr + " volume?";
+
+// Make the volume part bigger
+                        SpannableString spannable = new SpannableString(message);
+
+// Find start & end of the number
+                        int start = message.indexOf(enteredVolumeStr);
+                        int end = start + enteredVolumeStr.length();
+
+// Apply styling (2.0 = 200% bigger, also make it bold)
+                        spannable.setSpan(new RelativeSizeSpan(1.8f), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        spannable.setSpan(new StyleSpan(Typeface.BOLD), start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+
+                        new AlertDialog.Builder(context)
+                                .setTitle("Confirm")
+                                .setMessage(spannable)
+                                .setPositiveButton("OK", (dialogInterface, which) -> {
+
+                                    remainingVolume += Float.parseFloat(tieVolume.getText().toString());
+
+                                    preferencesManager.save(RemainingVolumePref, String.valueOf(remainingVolume));
+
+                                    new Thread(() -> {
+                                        try {
+                                            String date = new SimpleDateFormat("yyyy-MM-dd").format(System.currentTimeMillis());
+                                            String time = new SimpleDateFormat("HH:mm:ss").format(System.currentTimeMillis());
+                                            TransactionDao transactionDao = AppDatabase.getInstance(context).transactionDao();
+                                            TransactionEntity transaction = new TransactionEntity();
+                                            transaction.setUserName("");
+                                            transaction.setPassword("");
+                                            transaction.setTransactionType("");
+                                            transaction.setBankTransactionNo("");
+                                            transaction.setRemainingvolume(remainingVolume);
+                                            transaction.setTransactionDate(date);
+                                            transaction.setTransactionTime(time);
+                                            transaction.setAmount(0);
+                                            transaction.setUploadToServer(0);
+                                            transaction.setVolume(Float.parseFloat(tieVolume.getText().toString()));
+                                            transaction.setTransactionStatus("REFILLED");
+                                            transaction.setUpiId("");
+
+                                            String uniqueId = generateSafeUniqueTransactionId(transactionDao);
+                                            transaction.setUniqueTransactionId(uniqueId);
+
+                                            /// Added new on 4-1-2025
+                                            transaction.setMilkPrice(preferencesManager.get(MilkBasePrice, "").toString());
+                                            transaction.setMilkTemperature("222");
+
+                                            /// Added on 1-1 2025
+                                            transaction.setMachineId(preferencesManager.get(MachineId, "").toString());
+
+                                            /// Insert into Sqlite database
+                                            long transactionId = transactionDao.insert(transaction);
+                                            transaction.setId(transactionId);
+
+                                            if (isNetworkAvailable(context)) {
+                                                doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
+                                            } else {
+                                                Constants.saveLogs(context, "Internet Connection Error", KEY_API_CALL);
+                                                //   Toast.makeText(activity, "Internet not available", Toast.LENGTH_SHORT).show();
+                                            }
+                                        } catch (Exception e) {
+                                            e.printStackTrace();
+                                        }
+                                    }).start();
+
+                                    dialogInterface.dismiss();
+                                })
+                                .setNegativeButton("Cancel", (dialogInterface, which) -> {
+                                    dialogInterface.dismiss(); // just close
+                                })
+                                .show();
+
+
                     }
 
 
@@ -2125,6 +2216,7 @@ public class Constants {
     public static void doPostConfigurationData(Context activity, String url) {
         preferencesManager = SharedPreferencesManager.getInstance(activity);
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
+        String machineId = preferencesManager.get(Constants.MachineId, "").toString();
         //    Log.e("Base URL", baseUrl + url);
 
         Retrofit retrofit = new Retrofit.Builder()
@@ -2140,6 +2232,7 @@ public class Constants {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("Key", KeyForApi);
         jsonObject.addProperty("value", ValueForApi);
+        jsonObject.addProperty("MachineId", machineId);
 
         String request = new Gson().toJson(jsonObject);
         //   Log.e(TAG, "doPostLog: " + request);

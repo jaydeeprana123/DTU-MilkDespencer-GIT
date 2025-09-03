@@ -450,12 +450,7 @@ public class AdminActivity extends AppCompatActivity {
 
     private void enterImmersiveSticky() {
         int flags =
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
 
         root.setSystemUiVisibility(flags);
     }
@@ -483,12 +478,31 @@ public class AdminActivity extends AppCompatActivity {
     }
 
 
+//    private void safeExitKiosk() {
+//        // Stop Lock Task if running
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            try { stopLockTask(); } catch (Exception ignored) {}
+//        }
+//        finishAffinity();   // closes all activities
+//        System.exit(0);   // or navigate to an admin screen
+//    }
+
+
     private void safeExitKiosk() {
         // Stop Lock Task if running
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            try { stopLockTask(); } catch (Exception ignored) {}
+            try {
+                stopLockTask();
+            } catch (Exception ignored) {}
         }
-        finish(); // or navigate to an admin screen
+
+        // Restore system UI (show back, home, status bar)
+        root.setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_VISIBLE
+        );
+
+        // Optionally finish activity if you want to exit app
+        // finish();
     }
 
 
