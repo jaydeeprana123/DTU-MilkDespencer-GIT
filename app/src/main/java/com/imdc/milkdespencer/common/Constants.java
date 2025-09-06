@@ -144,6 +144,9 @@ public class Constants {
     public static final String KEY_LOGIN_STATUS = "Login Status";
 
     public static final String KEY_ELECTRICITY = "Electricity";
+
+    public static final String KEY_KIOSK = "Kiosk";
+
     public static final String KEY_TEMPERATURE = "Temperature";
     public static final String KEY_LOW_LEVEL = "Low Level";
     public static final String KEY_USB = "Usb";
@@ -2217,7 +2220,7 @@ public class Constants {
         preferencesManager = SharedPreferencesManager.getInstance(activity);
         String baseUrl = preferencesManager.get(ApiBaseUrl, "https://portal.idmc.coop:5151/").toString();
         String machineId = preferencesManager.get(Constants.MachineId, "").toString();
-        //    Log.e("Base URL", baseUrl + url);
+         //   Log.e("Base URL", baseUrl + url);
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(baseUrl)
@@ -2235,7 +2238,7 @@ public class Constants {
         jsonObject.addProperty("MachineId", machineId);
 
         String request = new Gson().toJson(jsonObject);
-        //   Log.e(TAG, "doPostLog: " + request);
+         //  Log.e(TAG, "doPostLog: " + request);
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 

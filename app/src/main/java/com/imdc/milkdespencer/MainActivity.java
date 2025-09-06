@@ -5,6 +5,7 @@ import android.app.admin.DevicePolicyManager;
 
 import static com.imdc.milkdespencer.common.Constants.KEY_APP_STATUS;
 import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
+import static com.imdc.milkdespencer.common.Constants.KEY_KIOSK;
 import static com.imdc.milkdespencer.common.Constants.KEY_LOW_LEVEL;
 import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_DATE;
 import static com.imdc.milkdespencer.common.Constants.KEY_TRANSACTION_START_TIME;
@@ -109,6 +110,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private boolean inMilkDispenseProcessLevel = false;
 
     private boolean isUsbPermissionGranted = false; // Flag for USB permission
+
+    private boolean isKioskModeEnable = true; // Flag for USB permission
+
     private boolean getChargingState = true;
 
     private boolean getSerialData = false;
@@ -276,6 +280,8 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         if (deviceList.isEmpty()) {
             Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
+            enableKioskMode();
+
             return;
         }
 
@@ -289,10 +295,11 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
             logError("getProductName", device.getProductName() + " " + usbManager.hasPermission(device));
             logError("product id", String.valueOf(device.getProductId()) + " " + usbManager.hasPermission(device));
 
-
             // FT232R USB UART
 
             if (!usbManager.hasPermission(device)) {
+
+                safeExitKiosk();
 
                 btnStart.setVisibility(View.GONE);
                 getChargingState = false;
@@ -321,6 +328,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
         if (permissionGrantedForTargetDevice) {
+
+            if(!isKioskModeEnable){
+                enableKioskMode();
+            }
+
+
             logError("permissionGrantedForTargetDevice", "true");
             // toastMessage("permissionGrantedForTargetDevice");
             isUsbPermissionGranted = true;
@@ -738,22 +751,22 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         root = findViewById(R.id.root);
 
-        if(savedInstanceState == null){
-            // Apply immersive sticky immediately
-            enterImmersiveSticky();
-
-            // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
-            root.setOnSystemUiVisibilityChangeListener(visibility -> {
-                // If bars became visible, re-hide them after a tiny delay
-                if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-                    root.postDelayed(this::enterImmersiveSticky, 200);
-                }
-            });
-
-
-            // (Optional) Try to start Lock Task / Screen Pinning
-            tryStartLockTask();
-        }
+//        if(savedInstanceState == null){
+//            // Apply immersive sticky immediately
+//            enterImmersiveSticky();
+//
+//            // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
+//            root.setOnSystemUiVisibilityChangeListener(visibility -> {
+//                // If bars became visible, re-hide them after a tiny delay
+//                if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+//                    root.postDelayed(this::enterImmersiveSticky, 200);
+//                }
+//            });
+//
+//
+//            // (Optional) Try to start Lock Task / Screen Pinning
+//            tryStartLockTask();
+//        }
 
 
         instance = this;
@@ -761,6 +774,28 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         initializeUI();
         setupListeners();
     }
+
+
+    private void safeExitKiosk() {
+
+        isKioskModeEnable = false;
+
+        // Stop Lock Task if running
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            try {
+                stopLockTask();
+            } catch (Exception ignored) {}
+        }
+
+        // Restore system UI (show back, home, status bar)
+//        root.setSystemUiVisibility(
+//                View.SYSTEM_UI_FLAG_VISIBLE
+//        );
+
+        // Optionally finish activity if you want to exit app
+        // finish();
+    }
+
 
 
     /*For to enable kiosk mode*/
@@ -1740,6 +1775,34 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
                 startLockTask();
             } catch (Exception ignored) { }
         }
+    }
+
+
+    private void enableKioskMode(){
+
+        isKioskModeEnable = true;
+        // Apply immersive sticky immediately
+        enterImmersiveSticky();
+
+        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
+        root.setOnSystemUiVisibilityChangeListener(visibility -> {
+            // If bars became visible, re-hide them after a tiny delay
+            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                root.postDelayed(this::enterImmersiveSticky, 200);
+            }
+        });
+
+
+        // (Optional) Try to start Lock Task / Screen Pinning
+        tryStartLockTask();
+
+        try {
+            Constants.saveLogs(getApplicationContext(), "Entered Kisok Mode", KEY_KIOSK);
+        } catch (Exception e) {
+//            logError("PaymentLog", "Logging failed: ${e.message}");
+            // Don't crash, just log the error silently
+        }
+
     }
 
 

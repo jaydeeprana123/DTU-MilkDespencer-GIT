@@ -4,6 +4,7 @@ import static com.imdc.milkdespencer.common.Constants.CashTransactionMode;
 
 import static com.imdc.milkdespencer.common.Constants.GetConfigurationUrl;
 import static com.imdc.milkdespencer.common.Constants.KEY_ELECTRICITY;
+import static com.imdc.milkdespencer.common.Constants.KEY_KIOSK;
 import static com.imdc.milkdespencer.common.Constants.KEY_LOGIN_STATUS;
 import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.MilkBasePrice;
@@ -134,7 +135,7 @@ public class AdminActivity extends AppCompatActivity {
         setupHiddenExitTriggers();
 
         // (Optional) Try to start Lock Task / Screen Pinning
-        tryStartLockTask();
+//        tryStartLockTask();
 
 
         doPostConfigurationData(AdminActivity.this,GetConfigurationUrl);
@@ -500,6 +501,14 @@ public class AdminActivity extends AppCompatActivity {
         root.setSystemUiVisibility(
                 View.SYSTEM_UI_FLAG_VISIBLE
         );
+
+
+        try {
+            Constants.saveLogs(getApplicationContext(), "Exit Kisok Mode", KEY_KIOSK);
+        } catch (Exception e) {
+//            logError("PaymentLog", "Logging failed: ${e.message}");
+            // Don't crash, just log the error silently
+        }
 
         // Optionally finish activity if you want to exit app
         // finish();
