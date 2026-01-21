@@ -114,25 +114,27 @@ public class AdminActivity extends AppCompatActivity {
         root = findViewById(R.id.root);
         btnExit= findViewById(R.id.btnExit);
 
+        /// Exit kiosk mode
+        safeExitKiosk();
+
         ///  For kiosk mode
-
         // Apply immersive sticky immediately
-        enterImmersiveSticky();
-
-        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
-        root.setOnSystemUiVisibilityChangeListener(visibility -> {
-            // If bars became visible, re-hide them after a tiny delay
-            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-                root.postDelayed(this::enterImmersiveSticky, 200);
-            }
-        });
-
-        // Also re-apply when window gains focus
-        // (covers cases like dialog dismiss, activity resume, etc.)
-        // See onWindowFocusChanged below
-
-        // Hidden exit triggers
-        setupHiddenExitTriggers();
+//        enterImmersiveSticky();
+//
+//        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
+//        root.setOnSystemUiVisibilityChangeListener(visibility -> {
+//            // If bars became visible, re-hide them after a tiny delay
+//            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+//                root.postDelayed(this::enterImmersiveSticky, 200);
+//            }
+//        });
+//
+//        // Also re-apply when window gains focus
+//        // (covers cases like dialog dismiss, activity resume, etc.)
+//        // See onWindowFocusChanged below
+//
+//        // Hidden exit triggers
+//        setupHiddenExitTriggers();
 
         // (Optional) Try to start Lock Task / Screen Pinning
 //        tryStartLockTask();
@@ -193,9 +195,9 @@ public class AdminActivity extends AppCompatActivity {
             btnCustomerAdmin.setVisibility(View.VISIBLE);
             btnAddEndUser.setVisibility(View.VISIBLE);
             btnApiConfiguration.setVisibility(View.VISIBLE);
-            btnCIP.setVisibility(View.GONE);
-            btnHistoryByDate.setVisibility(View.GONE);
-            btnExportTransactions.setVisibility(View.GONE);
+            btnCIP.setVisibility(View.VISIBLE);
+            btnHistoryByDate.setVisibility(View.VISIBLE);
+            btnExportTransactions.setVisibility(View.VISIBLE);
             btnAddedVolume.setVisibility(View.VISIBLE);
         } else if (user.getUserType() == UserTypeEnum.CUSTOMER_ADMIN.value()) {
 

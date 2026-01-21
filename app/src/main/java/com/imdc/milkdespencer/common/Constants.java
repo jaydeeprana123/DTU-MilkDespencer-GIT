@@ -998,7 +998,7 @@ public class Constants {
             public void onClick(View v) {
                 if (stopClickListener != null) {
                     stopClickListener.onClick(cipDialog, DialogInterface.BUTTON_NEGATIVE);
-                    cipDialog.dismiss();
+
                 }
             }
         });
@@ -1738,6 +1738,33 @@ public class Constants {
 //                }
 
 
+
+                /// Delete after done
+                List<TransactionEntity> transactionList = new ArrayList<>();
+                transactionList.add(transaction);
+
+                // Create JSON Array
+                // And add Key And Value in the request
+                JsonArray jsonArray = new JsonArray();
+
+                for (TransactionEntity transactionEntity : transactionList) {
+                    JsonObject jsonObject = new Gson().toJsonTree(transactionEntity).getAsJsonObject();
+                    jsonObject.addProperty("Key", KeyForApi);
+                    jsonObject.addProperty("value", ValueForApi);
+                    jsonArray.add(jsonObject);
+                }
+
+                String request = new Gson().toJson(jsonArray);
+                // Log.e(TAG, "doPostTransaction: " + request);
+
+                try {
+                    Constants.saveLogs(activity, "API REQUEST = " +  request, "API REQUEST");
+                } catch (Exception e) {
+//            logError("PaymentLog", "Logging failed: ${e.message}");
+                    // Don't crash, just log the error silently
+                }
+
+
                 doPostTransaction(preferencesManager, "/api/Transaction/PostTransaction", transaction, transactionDao);
             });
 
@@ -1810,6 +1837,7 @@ public class Constants {
 
         String request = new Gson().toJson(jsonArray);
         // Log.e(TAG, "doPostTransaction: " + request);
+
 
         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), request);
 

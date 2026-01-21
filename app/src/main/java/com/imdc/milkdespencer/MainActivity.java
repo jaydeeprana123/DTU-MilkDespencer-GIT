@@ -738,7 +738,6 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         /// Start worker for api call on every 30 minutes for milk temperature send
         startWorkerForApiCallForTemperature();
 
-        clearAllCache(getApplicationContext());
 
         FirebaseApp.initializeApp(this);
         FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(true);
@@ -1204,6 +1203,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     @Override
     protected void onResume() {
         super.onResume();
+
+        clearAllCache(getApplicationContext());
+
         isScreenVisible = true;
         isSendDataStop = false;
         isCipOn = false;

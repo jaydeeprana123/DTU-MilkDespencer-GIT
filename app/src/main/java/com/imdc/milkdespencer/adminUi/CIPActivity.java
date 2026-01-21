@@ -149,8 +149,8 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
 //                isCipOn = true;
                 showCIPRunningDialog(CIPActivity.this, (dialog, which) -> {
                     sendDataForCIP(false, false, false, false);
-
                     addCIPDataINtoDatabase("CIP");
+                    dialog.dismiss();
 
                 }, "CIP IS RUNNING");
 

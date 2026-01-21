@@ -1022,6 +1022,13 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                 logError(TAG, "RazorpayQrPaymentResponse " + new Gson().toJson(response));
 
+                try {
+                    Constants.saveLogs(getApplicationContext(), "Retry Count = " + retryCount + new Gson().toJson(response), "RazorPayResponse");
+                } catch (Exception e) {
+//            logError("PaymentLog", "Logging failed: ${e.message}");
+                    // Don't crash, just log the error silently
+                }
+
                 if (response.getItems().isEmpty()) {
                     logError(TAG, "No transaction found. Retry count: " + retryCount);
 
@@ -2045,6 +2052,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
                     /// Here I convert temperature of milk into string and set 3 digits after dot(.)
                     String strMilkTemperature = String.format("%.3f", milkTemperature);
+
 
                     Constants.updateTransaction(getApplicationContext(), transactionDao, transaction.getId(), doorStatus ? "DOOR OPEN" : "SUCCESS", truncatedValueOfMilkVolume, strMilkTemperature, transaction);
 

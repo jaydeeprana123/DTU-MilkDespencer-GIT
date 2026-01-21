@@ -44,9 +44,9 @@
         </receiver>
 
 
-        <meta-data
-            android:name="android.app.lock_task_mode"
-            android:value="lock" />
+<!--        <meta-data-->
+<!--            android:name="android.app.lock_task_mode"-->
+<!--            android:value="lock" />-->
 
 
         <provider

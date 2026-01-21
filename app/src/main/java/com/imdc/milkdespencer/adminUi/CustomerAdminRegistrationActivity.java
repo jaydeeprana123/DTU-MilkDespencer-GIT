@@ -4,16 +4,21 @@ import static com.imdc.milkdespencer.common.Constants.MachineId;
 import static com.imdc.milkdespencer.common.Constants.RazorPayCustomerID;
 import static com.imdc.milkdespencer.common.Constants.RegisterCustomerAdmin;
 
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Patterns;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.material.textfield.TextInputLayout;
 import com.google.gson.Gson;
@@ -236,6 +241,34 @@ public class CustomerAdminRegistrationActivity extends AppCompatActivity {
 
 
 
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_admin, menu);
+
+        MenuItem menuItem = menu.findItem(R.id.action_logout);
+        menuItem.setTitle(" BACK");
+        menuItem.setIcon(R.drawable.ic_arrow_back); // Replace with your desired drawable
+
+        Drawable icon = menuItem.getIcon();
+        if (icon != null) {
+            icon.mutate(); // Ensure the drawable is mutable
+
+            icon.setColorFilter(ContextCompat.getColor(this, R.color.white), PorterDuff.Mode.SRC_IN);
+        }
+
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        if (item.getItemId() == R.id.action_logout) {
+            finish();
+        }
+        return super.onOptionsItemSelected(item);
     }
 
 

@@ -1,8 +1,12 @@
 package com.imdc.milkdespencer;
 
 import android.app.DatePickerDialog;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -210,6 +214,35 @@ public class TransactionHistoryByDateActivity extends AppCompatActivity {
             targetEditText.setText(selectedDate);
         }, year, month, day);
         datePickerDialog.show();
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_admin, menu);
+
+        MenuItem menuItem = menu.findItem(R.id.action_logout);
+        menuItem.setTitle(" BACK");
+        menuItem.setIcon(R.drawable.ic_arrow_back); // Replace with your desired drawable
+
+        Drawable icon = menuItem.getIcon();
+        if (icon != null) {
+            icon.mutate(); // Ensure the drawable is mutable
+
+            icon.setColorFilter(ContextCompat.getColor(this, R.color.white), PorterDuff.Mode.SRC_IN);
+        }
+
+
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        if (item.getItemId() == R.id.action_logout) {
+            finish();
+        }
+        return super.onOptionsItemSelected(item);
     }
 
 
