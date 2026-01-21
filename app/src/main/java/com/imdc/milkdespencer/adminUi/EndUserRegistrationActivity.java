@@ -273,6 +273,7 @@ public class EndUserRegistrationActivity extends AppCompatActivity {
 
         if (item.getItemId() == R.id.action_logout) {
             finish();
+            return true; // 👈 stop further processing
         }
         return super.onOptionsItemSelected(item);
     }

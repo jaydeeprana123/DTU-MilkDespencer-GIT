@@ -285,7 +285,7 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
             isBackButtonPressed = true;
             sendDataForCIP(false, false, false, true);
             isCipOn = false;
-
+            return true;       // ✅ consume the event
 
 //            Intent intent = new Intent(AdminActivity.this, MainActivity.class);
 //            startActivity(intent);
