@@ -981,6 +981,10 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     }
 
 
+    interface OnRetryCompleteCallback {
+        void onComplete();
+    }
+
     /*Check in razor pay on every 30 seconds, after 2 minutes complete.*/
     private void startRetryPaymentCheck(String qrCodeId, JSONObject paymentObject, Dialog qrCodeDialog) {
         logError(TAG, "Start retry check for RazorPay response");
@@ -999,92 +1003,67 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
                 retryCount++;
                 logError(TAG, "Checking RazorPay payment, attempt: " + retryCount);
 
-                getRazorPayResponseByQRCodeId(qrCodeId, paymentObject, qrCodeDialog);
-
-                if (!hasValidTransaction && retryCount < MAX_RETRIES) {
-                    retryHandler.postDelayed(this, 30 * 1000); // Retry every 30 seconds
-                }
+                // ✅ Next retry only fires AFTER API responds
+                getRazorPayResponseByQRCodeId(qrCodeId, paymentObject, qrCodeDialog, () -> {
+                    if (!hasValidTransaction && retryCount < MAX_RETRIES) {
+                        retryHandler.postDelayed(retryRunnable, 30 * 1000);
+                    } else if (!hasValidTransaction && retryCount >= MAX_RETRIES) {
+                        logError(TAG, "Max retries reached. Timeout.");
+                        handleTransactionTimeout(paymentObject);
+                    }
+                });
             }
         };
 
-        // ✅ Start 1st API call immediately after dialog is dismissed (at 2 mins)
-        retryHandler.postDelayed(retryRunnable, 0);
+        retryHandler.post(retryRunnable); // Start immediately
     }
 
     /// When there is no response from qr code scan and 5 minutes is done.
     // Then get response from the qrcode
-    private void getRazorPayResponseByQRCodeId(String qrCodeId, JSONObject paymentObject, Dialog qrCodeDialog) {
+    private void getRazorPayResponseByQRCodeId(String qrCodeId, JSONObject paymentObject, Dialog qrCodeDialog, OnRetryCompleteCallback callback) {
 
         Constants.getRazorPayResponse(this, qrCodeId, new RazorpayResponseCallback() {
             @Override
             public void onSuccess(RazorpayQrPaymentResponse response) {
-                if (isTransactionCompleted) return;
-
-                logError(TAG, "RazorpayQrPaymentResponse " + new Gson().toJson(response));
-
-                try {
-                    Constants.saveLogs(getApplicationContext(), "Retry Count = " + retryCount + new Gson().toJson(response), "RazorPayResponse");
-                } catch (Exception e) {
-//            logError("PaymentLog", "Logging failed: ${e.message}");
-                    // Don't crash, just log the error silently
+                if (isTransactionCompleted) {
+                    callback.onComplete(); // ← always call callback
+                    return;
                 }
 
                 if (response.getItems().isEmpty()) {
                     logError(TAG, "No transaction found. Retry count: " + retryCount);
-
-                    if (retryCount >= MAX_RETRIES) {
-                        logError(TAG, "Max retries reached. Timeout.");
-
-                        /// Here qr code dialog will dismiss
-                        if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
-                            qrCodeDialog.dismiss();
-                        }
-
-                        handleTransactionTimeout(paymentObject);
-                    }
-
-                    return; // wait for next retry
+                    callback.onComplete(); // ← call so next retry schedules
+                    return;
                 }
 
-                // Valid transaction check
                 if (response.getItems().get(0).getId() != null && !response.getItems().get(0).getId().isEmpty()) {
-                    logError(TAG, "Valid transaction found. Stopping further retries.");
                     hasValidTransaction = true;
                     isTransactionCompleted = true;
 
                     retryHandler.removeCallbacks(retryRunnable);
 
-                    /// Here qr code dialog will dismiss
                     if (qrCodeDialog != null && qrCodeDialog.isShowing()) {
                         qrCodeDialog.dismiss();
                     }
 
                     try {
-                        Constants.saveLogs(getApplicationContext(), qrCodeId + " - Success By Razorpay API Call",KEY_API_CALL);
+                        Constants.saveLogs(getApplicationContext(), qrCodeId + " - Success By Razorpay API Call", KEY_API_CALL);
                     } catch (Exception e) {
-                        logError("PaymentLog", "Logging failed: ${e.message}");
-                        // Don't crash, just log the error silently
+                        logError("PaymentLog", "Logging failed: " + e.getMessage());
                     }
 
-
-                    // Proceed with success logic
                     processValidTransactionByCheckRazorpayAPICall(response, qrCodeId);
+                    callback.onComplete(); // ← call after success too
                 } else {
                     logError(TAG, "Transaction item is invalid. Will retry.");
+                    callback.onComplete(); // ← call so retry can continue
                 }
             }
 
             @Override
             public void onError(String error) {
-                logError(TAG, "No transaction found. Retry count: " + retryCount);
-
-                if (retryCount >= MAX_RETRIES) {
-                    logError(TAG, "Max retries reached. Timeout.");
-
-                    handleTransactionTimeout(paymentObject);
-                }
-
-                return; // wait for next retry
+                logError(TAG, "API error. Retry count: " + retryCount);
+                callback.onComplete(); // ← always call so retry chain continues
             }
         });
     }
@@ -1339,16 +1318,16 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
     @Override
     protected void onStop() {
         super.onStop();
-        Intent serviceIntent = new Intent(this, PaymentStatusService.class);
-        stopService(serviceIntent);
-
-        try {
-            if (paymentStatusReceiver != null) {
-                unregisterReceiver(paymentStatusReceiver);
-            }
-        } catch (IllegalArgumentException e) {
-            logError(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
-        }
+//        Intent serviceIntent = new Intent(this, PaymentStatusService.class);
+//        stopService(serviceIntent);
+//
+//        try {
+//            if (paymentStatusReceiver != null) {
+//                unregisterReceiver(paymentStatusReceiver);
+//            }
+//        } catch (IllegalArgumentException e) {
+//            logError(TAG, "usbPermissionReceiver was already unregistered: " + e.getMessage());
+//        }
 
 //        try {
 //            if (batteryReceiver != null) {
@@ -2086,6 +2065,18 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
     @Override
     protected void onDestroy() {
+
+
+        // Move this here from onStop()
+        try {
+            if (paymentStatusReceiver != null) {
+                unregisterReceiver(paymentStatusReceiver);
+            }
+        } catch (IllegalArgumentException e) {
+            logError(TAG, "Already unregistered: " + e.getMessage());
+        }
+
+
         shouldContinueSending = false;
 
         /// Here if handler and runnable remove
