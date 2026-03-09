@@ -117,25 +117,25 @@ public class AdminActivity extends AppCompatActivity {
 
         ///  For kiosk mode
         // Apply immersive sticky immediately
-        enterImmersiveSticky();
+//        enterImmersiveSticky();
+////
+////        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
+//        root.setOnSystemUiVisibilityChangeListener(visibility -> {
+//            // If bars became visible, re-hide them after a tiny delay
+//            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+//                root.postDelayed(this::enterImmersiveSticky, 200);
+//            }
+//        });
+////
+////        // Also re-apply when window gains focus
+////        // (covers cases like dialog dismiss, activity resume, etc.)
+////        // See onWindowFocusChanged below
+////
+////        // Hidden exit triggers
+//        setupHiddenExitTriggers();
 //
-//        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
-        root.setOnSystemUiVisibilityChangeListener(visibility -> {
-            // If bars became visible, re-hide them after a tiny delay
-            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-                root.postDelayed(this::enterImmersiveSticky, 200);
-            }
-        });
-//
-//        // Also re-apply when window gains focus
-//        // (covers cases like dialog dismiss, activity resume, etc.)
-//        // See onWindowFocusChanged below
-//
-//        // Hidden exit triggers
-        setupHiddenExitTriggers();
-
-        // (Optional) Try to start Lock Task / Screen Pinning
-        tryStartLockTask();
+//        // (Optional) Try to start Lock Task / Screen Pinning
+//        tryStartLockTask();
 
 
         doPostConfigurationData(AdminActivity.this,GetConfigurationUrl);

@@ -1781,29 +1781,30 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void enableKioskMode(){
+/// Uncomment when kiosk model should enable
 
-        isKioskModeEnable = true;
-        // Apply immersive sticky immediately
-        enterImmersiveSticky();
-
-        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
-        root.setOnSystemUiVisibilityChangeListener(visibility -> {
-            // If bars became visible, re-hide them after a tiny delay
-            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-                root.postDelayed(this::enterImmersiveSticky, 200);
-            }
-        });
-
-
-        // (Optional) Try to start Lock Task / Screen Pinning
-        tryStartLockTask();
-
-        try {
-            Constants.saveLogs(getApplicationContext(), "Entered Kisok Mode", KEY_KIOSK);
-        } catch (Exception e) {
-//            logError("PaymentLog", "Logging failed: ${e.message}");
-            // Don't crash, just log the error silently
-        }
+//        isKioskModeEnable = true;
+//        // Apply immersive sticky immediately
+//        enterImmersiveSticky();
+//
+//        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
+//        root.setOnSystemUiVisibilityChangeListener(visibility -> {
+//            // If bars became visible, re-hide them after a tiny delay
+//            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+//                root.postDelayed(this::enterImmersiveSticky, 200);
+//            }
+//        });
+//
+//
+//        // (Optional) Try to start Lock Task / Screen Pinning
+//        tryStartLockTask();
+//
+//        try {
+//            Constants.saveLogs(getApplicationContext(), "Entered Kisok Mode", KEY_KIOSK);
+//        } catch (Exception e) {
+////            logError("PaymentLog", "Logging failed: ${e.message}");
+//            // Don't crash, just log the error silently
+//        }
 
     }
 
