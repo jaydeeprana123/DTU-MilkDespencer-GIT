@@ -280,7 +280,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         if (deviceList.isEmpty()) {
             Toast.makeText(MainActivity.this, "No USB devices connected.", Toast.LENGTH_SHORT).show();
-            enableKioskMode();
+//            enableKioskMode();
 
             return;
         }
@@ -330,7 +330,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
         if (permissionGrantedForTargetDevice) {
 
             if(!isKioskModeEnable){
-                enableKioskMode();
+               // enableKioskMode();
             }
 
 
