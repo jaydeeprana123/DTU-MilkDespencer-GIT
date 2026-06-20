@@ -82,7 +82,7 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
 
     private UsbSerialCommunication usbSerialCommunication;
 
-    private static final long SEND_INTERVAL_MS = 1000; // Send every 500ms
+    private static final long SEND_INTERVAL_MS = 10000; // Send every 500ms
 
     private boolean shouldContinueSending = false;
 
@@ -117,11 +117,16 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
         btnRemoveMilk.setEnabled(false);
 
         if (!usbSerialCommunication.connected) {
+
+            logError(TAG, " usbSerialCommunication not connected");
             usbSerialCommunication.connect();
             usbSerialCommunication.setBaudRate(115200);
 
             fireOnForCIPOn();
         } else {
+
+            logError(TAG, " usbSerialCommunication already connected");
+
             fireOnForCIPOn();
         }
 
@@ -168,6 +173,7 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
                     sendDataForCIP(false, false, false, false);
 
                     addCIPDataINtoDatabase("REMOVE MILK");
+                    dialog.dismiss();
 
                 }, "REMOVING MILK");
             }
@@ -367,7 +373,7 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
             sendToDevice.setPump(pumpStatus);
             sendToDevice.setCipdone(isCipDone);
             Gson gson = new GsonBuilder().serializeSpecialFloatingPointValues().create();
-            //  logError(TAG, "QR_PAYMENT: SEND COMMAND " + gson.toJson(sendToDevice));
+            logError(TAG, "sendDataForCIP: SEND COMMAND " + gson.toJson(sendToDevice));
 
             /// Check that usb serial is not null
             if (usbSerialCommunication != null) {
@@ -393,7 +399,6 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
         if (data.contains("CIP")) {
 
             if (!isStopWhenCIPEnabled) {
-
                 clProgress.setVisibility(View.GONE);
                 isStopWhenCIPEnabled = true;
             }
@@ -403,7 +408,7 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
     }
 
     private void logError(String tag, String message) {
-       // Log.e(tag, message);
+        Log.e(tag, message);
     }
 
 
@@ -525,14 +530,18 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
     @Override
     public void onReadCIPData(String data) {
         if (data != null && data.contains("Inside CIP loop") && !isBackButtonPressed) {
-            logError(TAG + " receivedData INN: ", data);
-
+            logError(TAG + " receivedData INN: ", data + " isSenData " + isSendDataStop);
+            shouldContinueSending = false;
+            isStopWhenCIPEnabled = true;
+            isSendDataStop = true;
+//            if (!isSendDataStop) {
+//                logError(TAG + " receivedData INN: isSendDataStop", "true When Inside CIP Loop");
+//                isSendDataStop = true;
+//            }
             runOnUiThread(() -> {
                 clProgress.setVisibility(View.GONE);
                 clMain.setVisibility(View.VISIBLE);
-                if (!isSendDataStop) {
-                    isSendDataStop = true;
-                }
+
             });
         }
     }

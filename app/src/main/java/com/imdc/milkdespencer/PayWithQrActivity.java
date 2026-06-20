@@ -388,8 +388,11 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
         screenTimeOut();
 
         usbSerialCommunication = new UsbSerialCommunication(getApplicationContext());
-
+        logError(TAG  ,"usbSerialCommunication" + usbSerialCommunication.connected);
         if (!usbSerialCommunication.connected) {
+
+
+
             usbSerialCommunication.connect();
             usbSerialCommunication.setBaudRate(115200);
         }
@@ -2142,7 +2145,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-        // Log.e(tag, message);
+         Log.e(tag, message);
     }
 
 

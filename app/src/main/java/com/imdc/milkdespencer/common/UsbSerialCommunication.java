@@ -493,6 +493,9 @@ public class UsbSerialCommunication {
                                 logError(TAG + " receivedData INN: ", receivedData);
 
                                 if (!isSendDataStop) {
+
+                                    logError(TAG + " receivedData INN: isSendDataStop", "true");
+
                                     isSendDataStop = true;
                                 }
                             }
@@ -843,7 +846,7 @@ public class UsbSerialCommunication {
 
 
     private void logError(String tag, String message){
-      //  Log.e(tag, message);
+        Log.e(tag, message);
     }
 
 }

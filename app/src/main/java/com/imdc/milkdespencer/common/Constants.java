@@ -1727,6 +1727,9 @@ public class Constants {
         transaction.setMilkTemperature(milkTemperature);
         transaction.setTransactionStatus(transactionStatus);
         transaction.setRemainingvolume(remainingVolume);
+        // Add these:
+        transaction.setTransactionDate(transactionDate);
+        transaction.setTransactionTime(transactionTime);  // ← This is what's missing
 
         if (transactionId > 0 && isNetworkAvailable(activity)) {
 

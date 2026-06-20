@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer;
 
+import android.app.ActivityManager;
 import android.app.admin.DevicePolicyManager;
 
 
@@ -725,12 +726,12 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
         /// Kiosk mode on
-//        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-//            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-//            if (am.getLockTaskModeState() == ActivityManager.LOCK_TASK_MODE_NONE) {
-//                startLockTask();
-//            }
-//        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            if (am.getLockTaskModeState() == ActivityManager.LOCK_TASK_MODE_NONE) {
+                startLockTask();
+            }
+        }
 
 
 
@@ -750,22 +751,22 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
         root = findViewById(R.id.root);
 
-//        if(savedInstanceState == null){
-//            // Apply immersive sticky immediately
-//            enterImmersiveSticky();
-//
-//            // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
-//            root.setOnSystemUiVisibilityChangeListener(visibility -> {
-//                // If bars became visible, re-hide them after a tiny delay
-//                if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-//                    root.postDelayed(this::enterImmersiveSticky, 200);
-//                }
-//            });
-//
-//
-//            // (Optional) Try to start Lock Task / Screen Pinning
-//            tryStartLockTask();
-//        }
+        if(savedInstanceState == null){
+            // Apply immersive sticky immediately
+            enterImmersiveSticky();
+
+            // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
+            root.setOnSystemUiVisibilityChangeListener(visibility -> {
+                // If bars became visible, re-hide them after a tiny delay
+                if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                    root.postDelayed(this::enterImmersiveSticky, 200);
+                }
+            });
+
+
+            // (Optional) Try to start Lock Task / Screen Pinning
+            tryStartLockTask();
+        }
 
 
         instance = this;
@@ -1675,7 +1676,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-        // Log.e(tag, message);
+         Log.e(tag, message);
     }
 
     private void toastMessage(String message) {
@@ -1783,28 +1784,28 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
     private void enableKioskMode(){
 /// Uncomment when kiosk model should enable
 
-//        isKioskModeEnable = true;
-//        // Apply immersive sticky immediately
-//        enterImmersiveSticky();
-//
-//        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
-//        root.setOnSystemUiVisibilityChangeListener(visibility -> {
-//            // If bars became visible, re-hide them after a tiny delay
-//            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-//                root.postDelayed(this::enterImmersiveSticky, 200);
-//            }
-//        });
-//
-//
-//        // (Optional) Try to start Lock Task / Screen Pinning
-//        tryStartLockTask();
-//
-//        try {
-//            Constants.saveLogs(getApplicationContext(), "Entered Kisok Mode", KEY_KIOSK);
-//        } catch (Exception e) {
-////            logError("PaymentLog", "Logging failed: ${e.message}");
-//            // Don't crash, just log the error silently
-//        }
+        isKioskModeEnable = true;
+        // Apply immersive sticky immediately
+        enterImmersiveSticky();
+
+        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
+        root.setOnSystemUiVisibilityChangeListener(visibility -> {
+            // If bars became visible, re-hide them after a tiny delay
+            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                root.postDelayed(this::enterImmersiveSticky, 200);
+            }
+        });
+
+
+        // (Optional) Try to start Lock Task / Screen Pinning
+        tryStartLockTask();
+
+        try {
+            Constants.saveLogs(getApplicationContext(), "Entered Kisok Mode", KEY_KIOSK);
+        } catch (Exception e) {
+//            logError("PaymentLog", "Logging failed: ${e.message}");
+            // Don't crash, just log the error silently
+        }
 
     }
 
