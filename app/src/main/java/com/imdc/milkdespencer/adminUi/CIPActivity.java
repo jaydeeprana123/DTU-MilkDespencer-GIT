@@ -264,8 +264,7 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
         getMenuInflater().inflate(R.menu.menu_admin, menu);
 
         MenuItem menuItem = menu.findItem(R.id.action_logout);
-        menuItem.setTitle(" BACK");
-        menuItem.setIcon(R.drawable.ic_arrow_back); // Replace with your desired drawable
+        menuItem.setTitle(" LOGOUT");
 
         Drawable icon = menuItem.getIcon();
         if (icon != null) {
@@ -408,7 +407,7 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
     }
 
     private void logError(String tag, String message) {
-        Log.e(tag, message);
+      //  Log.e(tag, message);
     }
 
 
@@ -514,8 +513,18 @@ public class CIPActivity extends AppCompatActivity implements UsbSerialCommunica
 
                     runOnUiThread(() -> {
                         clProgress.setVisibility(View.GONE);  // ✅ Correct: must run on UI thread
-                        finish();                              // ✅ End the activity
+//                        finish();                              // ✅ End the activity
+
+
+                        // Here when process done...MainActivity onStart method call..
+                        // It will on restart the MainActivity
+                        Intent intent = new Intent(this, MainActivity.class);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+                        startActivity(intent);
+
+
                     });
+
 
                 }
 

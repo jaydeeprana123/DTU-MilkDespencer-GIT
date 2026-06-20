@@ -2145,7 +2145,7 @@ public class PayWithQrActivity extends AppCompatActivity implements PaymentResul
 
 
     private void logError(String tag, String message) {
-         Log.e(tag, message);
+       //  Log.e(tag, message);
     }
 
 

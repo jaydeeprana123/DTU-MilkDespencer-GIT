@@ -1,5 +1,6 @@
 package com.imdc.milkdespencer;
 
+import android.content.Intent;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -140,8 +141,8 @@ public class TransactionHistoryActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.menu_admin, menu);
 
         MenuItem menuItem = menu.findItem(R.id.action_logout);
-        menuItem.setTitle(" BACK");
-        menuItem.setIcon(R.drawable.ic_arrow_back); // Replace with your desired drawable
+        menuItem.setTitle(" LOGOUT");
+//        menuItem.setIcon(R.drawable.ic_arrow_back); // Replace with your desired drawable
 
         Drawable icon = menuItem.getIcon();
         if (icon != null) {
@@ -158,7 +159,11 @@ public class TransactionHistoryActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
 
         if (item.getItemId() == R.id.action_logout) {
-            finish();
+            // Here when process done...MainActivity onStart method call..
+            // It will on restart the MainActivity
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
             return true; // 👈 stop further processing
         }
         return super.onOptionsItemSelected(item);

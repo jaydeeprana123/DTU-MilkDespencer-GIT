@@ -725,6 +725,9 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 //        copyDatabase(this);
 
 
+        logError(TAG ,"onCreate CALL");
+
+
         /// Kiosk mode on
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             ActivityManager am = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
@@ -1676,7 +1679,7 @@ public class MainActivity extends AppCompatActivity implements UsbSerialCommunic
 
 
     private void logError(String tag, String message) {
-         Log.e(tag, message);
+       //  Log.e(tag, message);
     }
 
     private void toastMessage(String message) {

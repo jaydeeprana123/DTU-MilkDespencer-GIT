@@ -846,7 +846,7 @@ public class UsbSerialCommunication {
 
 
     private void logError(String tag, String message){
-        Log.e(tag, message);
+      //  Log.e(tag, message);
     }
 
 }

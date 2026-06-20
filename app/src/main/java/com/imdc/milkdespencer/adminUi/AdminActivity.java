@@ -118,15 +118,15 @@ public class AdminActivity extends AppCompatActivity {
         /// Uncomment when kiosk model should enable
         ///  For kiosk mode
         // Apply immersive sticky immediately
-//        enterImmersiveSticky();
+        enterImmersiveSticky();
 //
 //        // Re-apply immersive when system UI visibility changes (e.g., swipe-in)
-//        root.setOnSystemUiVisibilityChangeListener(visibility -> {
-//            // If bars became visible, re-hide them after a tiny delay
-//            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
-//                root.postDelayed(this::enterImmersiveSticky, 200);
-//            }
-//        });
+        root.setOnSystemUiVisibilityChangeListener(visibility -> {
+            // If bars became visible, re-hide them after a tiny delay
+            if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+                root.postDelayed(this::enterImmersiveSticky, 200);
+            }
+        });
 //
 //        // Also re-apply when window gains focus
 //        // (covers cases like dialog dismiss, activity resume, etc.)
@@ -136,7 +136,7 @@ public class AdminActivity extends AppCompatActivity {
         setupHiddenExitTriggers();
 
         // (Optional) Try to start Lock Task / Screen Pinning
-//        tryStartLockTask();
+        tryStartLockTask();
 
 
         doPostConfigurationData(AdminActivity.this,GetConfigurationUrl);
@@ -405,7 +405,11 @@ public class AdminActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
 
         if (item.getItemId() == R.id.action_logout) {
-            finish();
+            // Here when process done...MainActivity onStart method call..
+            // It will on restart the MainActivity
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+            startActivity(intent);
             return true;   // 🔥 THIS IS THE FIX
 //            Intent intent = new Intent(AdminActivity.this, MainActivity.class);
 //            startActivity(intent);
